@@ -21,8 +21,8 @@ ESPRIT · Advanced Data Science project · team of 6: Mohamed Khalil, Asma Driss
 
 A reproducible pipeline that turns three public fashion datasets into **one dataset with a shared label schema** and leak-free train / val / test splits. It also builds the Phase 3 report.
 
-- **Merged dataset:** 324,018 items (299,514 unique pictures / crops).
-- **Splits:** 248,440 train, 37,008 val, 38,570 test.
+- **Merged dataset:** 321,341 items (296,840 unique pictures / crops).
+- **Splits:** 246,308 train, 36,740 val, 38,293 test.
 - **Report:** [`reports/phase3_report.pdf`](reports/phase3_report.pdf), 18 pages. It covers EDA, label mapping, colour estimation, splits, decisions and next steps.
 
 ```
@@ -108,7 +108,7 @@ Notes:
 - **Fashionpedia items:** each row has a bounding box (`bbox_x`, `bbox_y`, `bbox_w`, `bbox_h`) to crop the item out of the photo.
 - **Colour:** `colour_source` says whether a colour is a real label or an estimate.
   - Estimates are kept only when the model's confidence is at least 0.6 (`colour_confidence`).
-  - On hand-labelled items they are about 77% accurate on PolyVore and 69% on Fashionpedia.
+  - On hand-labelled items they are about 73% accurate on PolyVore and 64% on Fashionpedia.
 - **Local photos:** our own photos (`source` = wardrobe / friperie) always go to the test set.
 
 ### Walkthrough notebook

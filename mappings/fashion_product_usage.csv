@@ -1,9 +1,9 @@
-usage_source,usage,note
-Casual,casual,
-Formal,formal,
-Sports,sport,
-Smart Casual,work,office-style casual
-Party,formal,no "party" value in our schema
-Travel,casual,
-Home,casual,
-Ethnic,formal,Indian festive wear; REVIEW: could be eid / wedding instead
+usage_source,keep,usage,note
+Casual,yes,casual,
+Formal,yes,formal,
+Sports,yes,sport,
+Smart Casual,yes,work,office-style casual
+Party,yes,formal,"no ""party"" value in our schema"
+Travel,yes,casual,
+Home,yes,casual,
+Ethnic,no,,Indian festive wear: all items removed (team decision 2026-10-01)

@@ -53,43 +53,45 @@ Colour validation (already done): `src/make_colour_labelling_sheet.py` → `data
 
 ## Where the data stands
 
-**Merged file `data/processed/dressme.csv`:** 324,018 rows (299,514 unique pictures / crops).
+**Merged file `data/processed/dressme.csv`:** 321,341 rows (296,840 unique pictures / crops).
 
 | Dataset | Rows | Notes |
 |---|---:|---|
-| Fashion Product | 38,081 | Product shots at 60x80 px. The only source with real labels for colour, season, usage and gender. 2,430 off-topic rows dropped. 4 pictures that appear twice with different labels are dropped in the mapping, which also writes `image_group` (file MD5). Pattern is read from product-name keywords. |
-| Fashionpedia | 160,027 | One row per worn item, with a bbox to crop; `outfit_id` = the photo. Coverage is the lowest score over length, nickname, sleeve and neckline (`coverage_from` lists the sources). The official test set has no labels, so our splits use its train + val images only. |
+| Fashion Product | 35,416 | Product shots at 60x80 px. The only source with real labels for colour, season, usage and gender. 2,430 off-topic rows dropped, and all Indian ethnic wear removed (garment types such as kurtas and sarees, plus every item with usage "Ethnic"). 4 pictures that appear twice with different labels are dropped in the mapping, which also writes `image_group` (file MD5). Pattern is read from product-name keywords. |
+| Fashionpedia | 160,015 | One row per worn item, with a bbox to crop; `outfit_id` = the photo. Coverage is the lowest score over length, nickname, sleeve and neckline (`coverage_from` lists the sources). The official test set has no labels, so our splits use its train + val images only. |
 | PolyVore (Maryland) | 125,910 | Product shots on white, in 31,333 outfits. Labelled by folder only. About 24k exact duplicates; `image_group` = MD5. Pictures found in two folders are dropped. |
 
-- **Categories:** shoes 77,260 · accessory 66,845 · top 58,946 · bottom 37,368 · bag 31,694 · dress 28,164 · outerwear 23,617 · traditional 124 (Fashionpedia kaftans).
-- **Splits (80/10/10, from a hash of the group id, so they are stable):** train 248,440 · val 37,008 · test 38,570.
+- **Categories:** shoes 77,237 · accessory 66,526 · top 56,782 · bottom 37,220 · bag 31,690 · dress 28,164 · outerwear 23,598 · traditional 124 (Fashionpedia kaftans).
+- **Splits (80/10/10, from a hash of the group id, so they are stable):** train 246,308 · val 36,740 · test 38,293.
   - `split` is per picture (`image_group`) and is used for classification. For Fashionpedia, `image_group` is the photo.
   - `outfit_split` is per outfit and is used for compatibility. A picture used in a test outfit goes to test.
   - In PolyVore, 61% of rows form one chain of outfits linked by shared products, so outfits and pictures cannot both be kept apart. `outfit_clean = False` marks outfits that share a picture with another split; use only clean val / test outfits for a strict evaluation (1,064 clean PolyVore test outfits).
-  - `duplicate = True` marks extra copies of a file (24,504); drop them when training a classifier.
+  - `duplicate = True` marks extra copies of a file (24,501); drop them when training a classifier.
   - Local photos (`source` = wardrobe / friperie) always go to test.
 
 **Colour:**
 
 - Labels: real for Fashion Product, estimated for PolyVore and Fashionpedia (`colour_source` = label / estimated, plus `colour_confidence` and, in the estimates file, `predicted_colour` before the cut).
 - Model: gradient boosting on Lab colour histograms, trained on Fashion Product's train split. The simple "nearest palette colour" rule was only 25–36% accurate.
-- Confidence cut **0.6** (team decision): 78.5% accurate on unseen Fashion Product images. Hand labels (395 items) gave **77% on PolyVore** (colour kept for 61%) and **69% on Fashionpedia** (kept for 55%).
+- Confidence cut **0.6** (team decision): 78.8% accurate on unseen Fashion Product images. Hand labels (395 items) gave **73% on PolyVore** (colour kept for 67%) and **64% on Fashionpedia** (kept for 64%). Before the Indian items were removed from the training data, the same cut gave 77% and 69% while keeping fewer colours; a cut of 0.7 now gives 78% and 69%.
 - Main error: black read as navy or brown.
 - Colour stays empty for Fashionpedia crops under 64 px or without a polygon mask. Gold and silver are never predicted for clothes.
 - Features are cached in `data/interim/colour_features_*.pkl` (only the pixel features are reused; labels are re-read each run). Delete the cache after changing `features()`.
 
 ## Decisions taken
 
+- **Indian ethnic wear removed** (Fashion Product: kurtas, kurtis, churidar, salwar, patiala, dupatta, sarees, lehenga, Nehru jackets, and every item with usage "Ethnic"; Fashionpedia: Nehru jackets). `mappings/fashion_product_usage.csv` has a new `keep` column for this.
 - **Kaftan → `traditional`** (sub_category `kaftan`). Nickname rules now have an optional `category` column in `mappings/fashionpedia_nickname.csv` to move an item to another category.
 - **Colour confidence cut = 0.6.**
 - **Metallic colours** are not allowed for clothes (estimates only).
 - **PolyVore outfits sharing a picture** are kept and flagged (`outfit_clean`).
 
-## Open team decisions (11 `REVIEW` rows)
+## Open team decisions (4 `REVIEW` rows)
 
-- **Indian ethnic wear (Fashion Product):** Kurtas and Kurtis → tunic. Churidar, Salwar and Patiala → trousers. Sarees and Swimwear are dropped. The "Ethnic" usage → formal, though it could be eid or wedding.
-- **Herringbone:** currently checked, could be solid.
-- **Glasses / eyewear (Fashionpedia, PolyVore):** sunglasses and eyeglasses are merged into one value, but Kaggle only has sunglasses.
+- **Swimwear (Fashion Product):** dropped, because the schema has no category for it.
+- **Herringbone (Fashionpedia):** currently checked, could be solid (82 items).
+- **Glasses / eyewear (Fashionpedia, PolyVore):** sunglasses and eyeglasses are merged into one value (11,645 items), because neither dataset separates them.
+- **Colour cut:** 0.6 now gives 73% / 64% on the hand labels (PolyVore / Fashionpedia), and 0.7 gives 78% / 69% with fewer colours. Not a REVIEW row, but worth a team look.
 
 ## The report
 

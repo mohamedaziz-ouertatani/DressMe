@@ -5,7 +5,7 @@ The rules live in editable CSV files in mappings/ (no rule is hard-coded here):
     fashion_product_articletype.csv       articleType -> keep?, category, sub_category
     fashion_product_colour.csv            baseColour  -> primary_colour
     fashion_product_season.csv            season      -> season
-    fashion_product_usage.csv             usage       -> usage
+    fashion_product_usage.csv             usage       -> keep?, usage
     fashion_product_pattern_keywords.csv  words in productDisplayName -> pattern
     colour_palette.csv                    the ~20 allowed colours (shared by all datasets)
     sub_category_vocabulary.csv           allowed sub_category values (shared by all datasets)
@@ -88,7 +88,8 @@ def main():
     art = read_map("fashion_product_articletype.csv").set_index("articleType")
     colour = read_map("fashion_product_colour.csv").set_index("baseColour")["primary_colour"]
     season = read_map("fashion_product_season.csv").set_index("season_source")["season"]
-    usage = read_map("fashion_product_usage.csv").set_index("usage_source")["usage"]
+    usage_rules = read_map("fashion_product_usage.csv").set_index("usage_source")
+    usage = usage_rules["usage"]
     kw = read_map("fashion_product_pattern_keywords.csv")
     kw = kw.sort_values("priority", key=lambda s: s.astype(int))
     keywords = list(zip(kw["keyword"].str.lower(), kw["pattern"]))
@@ -108,7 +109,12 @@ def main():
 
     # --- apply rules ---------------------------------------------------
     df = df[df["articleType"].map(art["keep"]) == "yes"].copy()
-    print(f"{len(df)} products kept after the articleType rules")
+    # a usage rule can also drop items (e.g. 'Ethnic' = Indian festive wear);
+    # items with no usage at all are kept
+    dropped_usage = df["usage"].map(usage_rules["keep"]) == "no"
+    print(f"{dropped_usage.sum()} products dropped by the usage rules")
+    df = df[~dropped_usage]
+    print(f"{len(df)} products kept after the articleType and usage rules")
 
     out = pd.DataFrame({
         "id": "fp_" + df["id"].astype(str),  # prefix avoids id clashes between datasets

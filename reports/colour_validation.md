@@ -4,24 +4,24 @@
 
 | dataset | min. confidence | colour kept | accuracy (95% CI) |
 |---|---:|---:|---:|
-| Fashionpedia | 0.0 | 100% (195) | 54.4% (47–61) |
-| Fashionpedia | 0.5 | 76% (148) | 59.5% (51–67) |
-| Fashionpedia | 0.6 | 55% (108) | 69.4% (60–77) |
-| Fashionpedia | 0.7 | 42% (82) | 75.6% (65–84) |
-| PolyVore | 0.0 | 100% (200) | 59.5% (53–66) |
-| PolyVore | 0.5 | 74% (147) | 69.4% (62–76) |
-| PolyVore | 0.6 | 61% (122) | 77.0% (69–84) |
-| PolyVore | 0.7 | 48% (95) | 77.9% (69–85) |
+| Fashionpedia | 0.0 | 100% (195) | 52.3% (45–59) |
+| Fashionpedia | 0.5 | 78% (153) | 58.8% (51–66) |
+| Fashionpedia | 0.6 | 64% (125) | 64.0% (55–72) |
+| Fashionpedia | 0.7 | 48% (93) | 68.8% (59–77) |
+| PolyVore | 0.0 | 100% (200) | 62.5% (56–69) |
+| PolyVore | 0.5 | 78% (156) | 71.2% (64–78) |
+| PolyVore | 0.6 | 66% (133) | 72.9% (65–80) |
+| PolyVore | 0.7 | 55% (110) | 78.2% (70–85) |
 
 ## Most frequent mistakes (true → predicted, all confidences)
 
-- black → navy: 19
-- black → brown: 16
-- navy → blue: 6
+- black → brown: 18
+- black → navy: 18
+- navy → blue: 9
+- beige → brown: 7
 - white → silver: 5
-- burgundy → red: 4
-- beige → brown: 4
+- beige → gold: 4
 - white → grey: 4
-- blue → navy: 4
 - teal → green: 4
-- khaki → beige: 4
+- gold → beige: 4
+- white → cream: 3

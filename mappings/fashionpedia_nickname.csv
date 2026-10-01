@@ -80,7 +80,7 @@ boardshorts,no,,,,,swimwear (also dropped in Kaggle)
 bloomers,no,,,,,underwear
 blazer,yes,blazer,,,,
 tuxedo (jacket),yes,blazer,,formal,,
-nehru (jacket),yes,waistcoat,,,,same as Kaggle 'Nehru Jackets'
+nehru (jacket),no,,,,,Indian ethnic: removed (team decision 2026-10-01)
 bolero,yes,cardigan,,,,same as Kaggle 'Shrug'
 biker (jacket),yes,jacket,,,,
 trucker (jacket),yes,jacket,,,,

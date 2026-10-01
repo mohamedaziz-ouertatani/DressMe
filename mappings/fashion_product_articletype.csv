@@ -3,8 +3,8 @@ Tshirts,yes,top,t-shirt,
 Shirts,yes,top,shirt,
 Tops,yes,top,top,
 Tunics,yes,top,tunic,
-Kurtas,yes,top,tunic,Indian ethnic; looks like a long tunic. REVIEW
-Kurtis,yes,top,tunic,Indian ethnic; looks like a long tunic. REVIEW
+Kurtas,no,,,Indian ethnic: removed (team decision 2026-10-01)
+Kurtis,no,,,Indian ethnic: removed (team decision 2026-10-01)
 Sweaters,yes,top,sweater,
 Sweatshirts,yes,top,sweatshirt,
 Lounge Tshirts,no,,,nightwear
@@ -16,9 +16,9 @@ Skirts,yes,bottom,skirt,
 Leggings,yes,bottom,leggings,
 Jeggings,yes,bottom,leggings,
 Track Pants,yes,bottom,track-pants,
-Churidar,yes,bottom,trousers,Indian ethnic fitted trousers. REVIEW
-Salwar,yes,bottom,trousers,Indian ethnic loose trousers. REVIEW
-Patiala,yes,bottom,trousers,Indian ethnic loose trousers. REVIEW
+Churidar,no,,,Indian ethnic: removed (team decision 2026-10-01)
+Salwar,no,,,Indian ethnic: removed (team decision 2026-10-01)
+Patiala,no,,,Indian ethnic: removed (team decision 2026-10-01)
 Rain Trousers,no,,,rainwear
 Stockings,no,,,hosiery
 Tights,no,,,hosiery
@@ -32,7 +32,7 @@ Jackets,yes,outerwear,jacket,
 Rain Jacket,yes,outerwear,jacket,
 Blazers,yes,outerwear,blazer,
 Waistcoat,yes,outerwear,waistcoat,
-Nehru Jackets,yes,outerwear,waistcoat,
+Nehru Jackets,no,,,Indian ethnic: removed (team decision 2026-10-01)
 Shrug,yes,outerwear,cardigan,
 Casual Shoes,yes,shoes,casual-shoes,mostly sneakers and loafers
 Sports Shoes,yes,shoes,sneakers,
@@ -68,7 +68,7 @@ Hair Accessory,yes,accessory,hair-accessory,
 Scarves,yes,accessory,scarf,
 Stoles,yes,accessory,scarf,
 Mufflers,yes,accessory,scarf,
-Dupatta,yes,accessory,scarf,Indian ethnic shawl
+Dupatta,no,,,Indian ethnic: removed (team decision 2026-10-01)
 Gloves,yes,accessory,gloves,
 Earrings,yes,accessory,earrings,
 Necklace and Chains,yes,accessory,necklace,
@@ -77,10 +77,10 @@ Bracelet,yes,accessory,bracelet,
 Bangle,yes,accessory,bracelet,
 Ring,yes,accessory,ring,
 Jewellery Set,yes,accessory,jewellery-set,
-Sarees,no,,,Indian ethnic with no Tunisian equivalent. REVIEW
-Lehenga Choli,no,,,Indian ethnic with no Tunisian equivalent
-Kurta Sets,no,,,multi-item set in one photo
-Salwar and Dupatta,no,,,multi-item set in one photo
+Sarees,no,,,Indian ethnic: removed (team decision 2026-10-01)
+Lehenga Choli,no,,,Indian ethnic: removed (team decision 2026-10-01)
+Kurta Sets,no,,,Indian ethnic: removed (team decision 2026-10-01)
+Salwar and Dupatta,no,,,Indian ethnic: removed (team decision 2026-10-01)
 Clothing Set,no,,,multi-item set in one photo
 Suits,no,,,multi-item set in one photo
 Swimwear,no,,,no swimwear category in schema. REVIEW

@@ -668,8 +668,8 @@ out = pd.DataFrame({
     story += [h1("mapping", "Label mapping results"),
               table([["Dataset", "Script", "Rows out", "Notes"],
                      ["Fashion Product", "map_fashion_product.py",
-                      f"{rows['Fashion Product']:,}", "off-topic, saree and swimwear rows "
-                      "dropped; colour, season, usage from text"],
+                      f"{rows['Fashion Product']:,}", "off-topic, Indian ethnic and swimwear "
+                      "rows dropped; colour, season, usage from text"],
                      ["Fashionpedia", "map_fashionpedia.py", f"{rows['Fashionpedia']:,}",
                       "one row per worn item, bbox to crop, outfit_id = photo"],
                      ["PolyVore", "map_polyvore.py", f"{rows['PolyVore']:,}",
@@ -972,9 +972,12 @@ df["split"] = df["image_group"].map(group_split)
     # --- decisions, quality, next steps
     story += [h1("decisions", "Open team decisions (REVIEW rows)"),
               table([["Topic", "Current rule", "Alternative"],
-                     ["Indian ethnic wear (Fashion Product)", "Kurta/Kurti → tunic; Churidar, "
-                      "Salwar, Patiala → trousers; Saree, Swimwear dropped", "Keep / drop more"],
-                     ["“Ethnic” usage", "formal", "eid or wedding"],
+                     ["Indian ethnic wear (Fashion Product, Fashionpedia)", "<b>decided</b>: "
+                      "removed (kurtas, kurtis, churidar, salwar, patiala, dupatta, sarees, "
+                      "Nehru jackets…, plus every item with usage “Ethnic”)",
+                      "map kurtas to tunic, Ethnic usage to formal"],
+                     ["Swimwear (Fashion Product)", "dropped (no category in the schema)",
+                      "add a category"],
                      ["Kaftan (Fashionpedia)", "<b>decided</b>: traditional (close to the "
                       "Maghreb caftan)", "dress"],
                      ["Herringbone", "checked", "solid"],
