@@ -111,6 +111,15 @@ Notes:
   - On hand-labelled items they are about 77% accurate on PolyVore and 69% on Fashionpedia.
 - **Local photos:** our own photos (`source` = wardrobe / friperie) always go to the test set.
 
+### Walkthrough notebook
+
+[`notebooks/phase3_walkthrough.ipynb`](notebooks/phase3_walkthrough.ipynb) tells the whole Phase 3 story. It covers the schema, the EDA highlights, mapping, colour accuracy, the leak checks re-run live, class balance, outfits and traditional items. It reads the pipeline outputs, so run the pipeline once first; it then runs in about a minute.
+
+```bash
+pip install notebook
+jupyter notebook notebooks/phase3_walkthrough.ipynb
+```
+
 ### Colour validation (optional)
 
 ```bash
