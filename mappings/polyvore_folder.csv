@@ -1,0 +1,21 @@
+folder,keep,category,sub_category,note
+top,yes,top,,mixed: t-shirts / shirts / tops / sweaters (and some shirt-jackets)
+pants,yes,bottom,,mixed: jeans / trousers / leggings / shorts
+skirt,yes,bottom,skirt,
+dress,yes,dress,dress,
+jumpsuit,yes,dress,jumpsuit,
+outwear,yes,outerwear,,mixed: jackets / coats / blazers / cardigans
+shoes,yes,shoes,,no shoe type given
+bag,yes,bag,,no bag type given
+bracelet,yes,accessory,bracelet,
+brooch,yes,accessory,brooch,
+earrings,yes,accessory,earrings,
+eyewear,yes,accessory,glasses,mostly sunglasses; same value as Fashionpedia. REVIEW
+gloves,yes,accessory,gloves,
+hairwear,yes,accessory,hair-accessory,
+hats,yes,accessory,hat,includes caps and beanies
+necklace,yes,accessory,necklace,
+neckwear,yes,accessory,,mixed: scarves and ties
+rings,yes,accessory,ring,
+watches,yes,accessory,watch,
+legwear,no,,,tights / socks (also dropped in Kaggle and Fashionpedia)

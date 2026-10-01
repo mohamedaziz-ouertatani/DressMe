@@ -1,0 +1,154 @@
+nickname,keep,sub_category,category,usage,coverage,note
+classic (t-shirt),yes,t-shirt,,,,
+raglan (t-shirt),yes,t-shirt,,,,
+ringer (t-shirt),yes,t-shirt,,,,
+undershirt,yes,t-shirt,,,,plain tee
+polo (shirt),yes,t-shirt,,,,Kaggle files polos under t-shirt
+rugby (shirt),yes,t-shirt,,,,
+henley (shirt),yes,t-shirt,,,,
+sailor (shirt),yes,t-shirt,,,,breton top
+tank (top),yes,top,,,2,sleeveless
+camisole,yes,top,,,2,thin straps
+tube (top),yes,top,,,1,strapless
+halter (top),yes,top,,,2,
+crop (top),yes,top,,,1,shows the belly
+peasant (top),yes,top,,,,
+smock (top),yes,top,,,,
+tunic (top),yes,tunic,,,,
+hoodie,yes,sweatshirt,,,,
+gown,yes,dress,,formal,,long evening dress
+sheath (dress),yes,dress,,,,
+shift (dress),yes,dress,,,,
+skater (dress),yes,dress,,,,
+bodycon (dress),yes,dress,,,,
+tunic (dress),yes,dress,,,,
+halter (dress),yes,dress,,,2,
+shirt (dress),yes,dress,,,,
+slip (dress),yes,dress,,,2,thin straps
+sweater (dress),yes,dress,,,,
+jumper (dress),yes,dress,,,,
+sundress,yes,dress,,,,
+blouson (dress),yes,dress,,,,
+wrap (dress),yes,dress,,,,
+tea (dress),yes,dress,,,,
+chemise (dress),yes,dress,,,,
+cheongsams,yes,dress,,,,
+kaftan,yes,kaftan,traditional,,,decided 2026-10-01: traditional (close to the Maghreb caftan)
+nightgown,no,,,,,nightwear (also dropped in Kaggle)
+jeans,yes,jeans,,,,
+leggings,yes,leggings,,,,
+capri (pants),yes,capris,,,,
+crop (pants),yes,capris,,,,cropped trousers
+sailor (pants),yes,trousers,,,,
+peg (pants),yes,trousers,,,,
+culottes,yes,trousers,,,,
+hip-huggers (pants),yes,trousers,,,,
+jodhpur,yes,trousers,,,,
+cargo (pants),yes,trousers,,,,
+harem (pants),yes,trousers,,,,
+camo (pants),yes,trousers,,,,
+sweatpants,yes,track-pants,,sport,,
+track (pants),yes,track-pants,,sport,,
+sheath (skirt),yes,skirt,,,,
+dirndl (skirt),yes,skirt,,,,
+skater (skirt),yes,skirt,,,,
+hobble (skirt),yes,skirt,,,,
+rah-rah (skirt),yes,skirt,,,,
+ball gown (skirt),yes,skirt,,formal,,
+accordion (skirt),yes,skirt,,,,
+gypsy (skirt),yes,skirt,,,,
+tutu (skirt),yes,skirt,,,,
+wrap (skirt),yes,skirt,,,,
+prairie (skirt),yes,skirt,,,,
+tulip (skirt),yes,skirt,,,,
+godet (skirt),yes,skirt,,,,
+sarong (skirt),yes,skirt,,,,
+kilt,yes,skirt,,,,
+cargo (skirt),yes,skirt,,,,
+flamenco (skirt),yes,skirt,,,,
+short (shorts),yes,shorts,,,,
+roll-up (shorts),yes,shorts,,,,
+bermuda (shorts),yes,shorts,,,,
+tie-up (shorts),yes,shorts,,,,
+culotte (shorts),yes,shorts,,,,
+cargo (shorts),yes,shorts,,,,
+booty (shorts),yes,shorts,,,1,very short
+skort,yes,shorts,,,,
+lounge (shorts),no,,,,,nightwear (also dropped in Kaggle)
+trunks,no,,,,,swimwear (also dropped in Kaggle)
+boardshorts,no,,,,,swimwear (also dropped in Kaggle)
+bloomers,no,,,,,underwear
+blazer,yes,blazer,,,,
+tuxedo (jacket),yes,blazer,,formal,,
+nehru (jacket),yes,waistcoat,,,,same as Kaggle 'Nehru Jackets'
+bolero,yes,cardigan,,,,same as Kaggle 'Shrug'
+biker (jacket),yes,jacket,,,,
+trucker (jacket),yes,jacket,,,,
+bomber (jacket),yes,jacket,,,,
+track (jacket),yes,jacket,,sport,,
+puffer (jacket),yes,jacket,,,,
+crop (jacket),yes,jacket,,,,
+norfolk (jacket),yes,jacket,,,,
+varsity (jacket),yes,jacket,,,,
+chanel (jacket),yes,jacket,,,,
+safari (jacket),yes,jacket,,,,
+windbreaker,yes,jacket,,,,
+pea (jacket),yes,jacket,,,,
+classic military (jacket),yes,jacket,,,,
+anorak,yes,jacket,,,,
+mao (jacket),yes,jacket,,,,
+blanket (coat),yes,coat,,,,
+pea (coat),yes,coat,,,,
+trench (coat),yes,coat,,,,
+teddy bear (coat),yes,coat,,,,
+wrap (coat),yes,coat,,,,
+parka,yes,coat,,,,
+military (coat),yes,coat,,,,
+duster (coat),yes,coat,,,,
+puffer (coat),yes,coat,,,,
+kimono,yes,coat,,,,
+shearling (coat),yes,coat,,,,
+dress (coat ),yes,coat,,,,the space before ')' is in the original label
+duffle (coat),yes,coat,,,,
+swing (coat),yes,coat,,,,
+raincoat,yes,coat,,,,
+robe,no,,,,,nightwear (also dropped in Kaggle)
+asymmetric (collar),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+regular (collar),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+shirt (collar),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+polo (collar),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+chelsea (collar),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+banded (collar),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+mandarin (collar),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+peter pan (collar),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+bow (collar),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+stand-away (collar),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+jabot (collar),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+sailor (collar),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+oversized (collar),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+notched (lapel),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+peak (lapel),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+shawl (lapel),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+napoleon (lapel),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+oversized (lapel),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+set-in sleeve,ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+dropped-shoulder sleeve,ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+raglan (sleeve),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+cap (sleeve),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+tulip (sleeve),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+puff (sleeve),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+bell (sleeve),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+circular flounce (sleeve),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+poet (sleeve),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+"dolman (sleeve), batwing (sleeve)",ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+bishop (sleeve),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+leg of mutton (sleeve),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+kimono (sleeve),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+cargo (pocket),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+patch (pocket),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+welt (pocket),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+kangaroo (pocket),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+seam (pocket),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+slash (pocket),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+curved (pocket),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"
+flap (pocket),ignore,,,,,"nickname of a garment part (sleeve, pocket, collar, lapel): ignored"

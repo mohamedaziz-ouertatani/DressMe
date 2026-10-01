@@ -1,0 +1,47 @@
+category_id,category_name,keep,category,sub_category,note
+0,"shirt, blouse",yes,top,shirt,
+1,"top, t-shirt, sweatshirt",yes,top,,sub_category only from nickname (mixed class)
+2,sweater,yes,top,sweater,
+3,cardigan,yes,outerwear,cardigan,
+4,jacket,yes,outerwear,jacket,
+5,vest,yes,outerwear,waistcoat,
+6,pants,yes,bottom,,sub_category only from nickname (jeans / leggings / trousers mixed)
+7,shorts,yes,bottom,shorts,
+8,skirt,yes,bottom,skirt,
+9,coat,yes,outerwear,coat,
+10,dress,yes,dress,dress,
+11,jumpsuit,yes,dress,jumpsuit,
+12,cape,yes,outerwear,cape,
+13,glasses,yes,accessory,glasses,sunglasses and eyeglasses together. REVIEW: Kaggle only has sunglasses
+14,hat,yes,accessory,hat,
+15,"headband, head covering, hair accessory",yes,accessory,hair-accessory,
+16,tie,yes,accessory,tie,
+17,glove,yes,accessory,gloves,
+18,watch,yes,accessory,watch,
+19,belt,yes,accessory,belt,
+20,leg warmer,no,,,hosiery
+21,"tights, stockings",no,,,hosiery (also dropped in Kaggle)
+22,sock,no,,,rarely visible (also dropped in Kaggle)
+23,shoe,yes,shoes,,"no shoe type in Fashionpedia; one object per foot"
+24,"bag, wallet",yes,bag,,bag and wallet mixed
+25,scarf,yes,accessory,scarf,
+26,umbrella,no,,,not clothing
+27,hood,no,,,garment part
+28,collar,no,,,garment part
+29,lapel,no,,,garment part
+30,epaulette,no,,,garment part
+31,sleeve,no,,,garment part (used for coverage)
+32,pocket,no,,,garment part
+33,neckline,no,,,garment part (used for coverage)
+34,buckle,no,,,garment part
+35,zipper,no,,,garment part
+36,applique,no,,,decoration
+37,bead,no,,,decoration
+38,bow,no,,,decoration
+39,flower,no,,,decoration
+40,fringe,no,,,decoration
+41,ribbon,no,,,decoration
+42,rivet,no,,,decoration
+43,ruffle,no,,,decoration
+44,sequin,no,,,decoration
+45,tassel,no,,,decoration

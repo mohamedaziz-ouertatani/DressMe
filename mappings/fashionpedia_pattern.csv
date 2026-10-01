@@ -1,0 +1,19 @@
+attribute,pattern,priority,note
+floral,floral,1,"when an item has several patterns, the lowest priority number wins"
+plant,floral,1,
+stripe,striped,2,
+check,checked,3,
+houndstooth (pattern),checked,3,
+argyle,checked,3,
+herringbone (pattern),checked,3,woven texture; REVIEW (could be solid)
+abstract,printed,4,
+cartoon,printed,4,
+"letters, numbers",printed,4,
+camouflage,printed,4,
+dot,printed,4,
+fair isle,printed,4,
+geometric,printed,4,
+paisley,printed,4,
+chevron,printed,4,
+toile de jouy,printed,4,
+plain (pattern),solid,5,"lowest priority: 'plain + floral' becomes floral"

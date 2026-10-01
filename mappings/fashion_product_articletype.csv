@@ -1,0 +1,111 @@
+articleType,keep,category,sub_category,note
+Tshirts,yes,top,t-shirt,
+Shirts,yes,top,shirt,
+Tops,yes,top,top,
+Tunics,yes,top,tunic,
+Kurtas,yes,top,tunic,Indian ethnic; looks like a long tunic. REVIEW
+Kurtis,yes,top,tunic,Indian ethnic; looks like a long tunic. REVIEW
+Sweaters,yes,top,sweater,
+Sweatshirts,yes,top,sweatshirt,
+Lounge Tshirts,no,,,nightwear
+Jeans,yes,bottom,jeans,
+Trousers,yes,bottom,trousers,
+Capris,yes,bottom,capris,
+Shorts,yes,bottom,shorts,
+Skirts,yes,bottom,skirt,
+Leggings,yes,bottom,leggings,
+Jeggings,yes,bottom,leggings,
+Track Pants,yes,bottom,track-pants,
+Churidar,yes,bottom,trousers,Indian ethnic fitted trousers. REVIEW
+Salwar,yes,bottom,trousers,Indian ethnic loose trousers. REVIEW
+Patiala,yes,bottom,trousers,Indian ethnic loose trousers. REVIEW
+Rain Trousers,no,,,rainwear
+Stockings,no,,,hosiery
+Tights,no,,,hosiery
+Tracksuits,no,,,two-piece set in one photo
+Lounge Pants,no,,,nightwear
+Lounge Shorts,no,,,nightwear
+Dresses,yes,dress,dress,
+Jumpsuit,yes,dress,jumpsuit,
+Rompers,yes,dress,jumpsuit,short jumpsuit
+Jackets,yes,outerwear,jacket,
+Rain Jacket,yes,outerwear,jacket,
+Blazers,yes,outerwear,blazer,
+Waistcoat,yes,outerwear,waistcoat,
+Nehru Jackets,yes,outerwear,waistcoat,
+Shrug,yes,outerwear,cardigan,
+Casual Shoes,yes,shoes,casual-shoes,mostly sneakers and loafers
+Sports Shoes,yes,shoes,sneakers,
+Formal Shoes,yes,shoes,formal-shoes,
+Heels,yes,shoes,heels,
+Flats,yes,shoes,flats,
+Sandals,yes,shoes,sandals,
+Sports Sandals,yes,shoes,sandals,
+Flip Flops,yes,shoes,flip-flops,
+Handbags,yes,bag,handbag,
+Backpacks,yes,bag,backpack,
+Rucksacks,yes,bag,backpack,
+Clutches,yes,bag,clutch,
+Messenger Bag,yes,bag,messenger-bag,
+Laptop Bag,yes,bag,laptop-bag,
+Duffel Bag,yes,bag,duffel-bag,
+Waist Pouch,yes,bag,waist-bag,
+Mobile Pouch,no,,,not a fashion item
+Tablet Sleeve,no,,,not a fashion item
+Trolley Bag,no,,,luggage
+Watches,yes,accessory,watch,
+Sunglasses,yes,accessory,sunglasses,
+Belts,yes,accessory,belt,
+Suspenders,yes,accessory,suspenders,
+Wallets,yes,accessory,wallet,
+Ties,yes,accessory,tie,
+Ties and Cufflinks,yes,accessory,tie,
+Cufflinks,yes,accessory,cufflinks,
+Caps,yes,accessory,cap,
+Hat,yes,accessory,hat,
+Headband,yes,accessory,hair-accessory,
+Hair Accessory,yes,accessory,hair-accessory,
+Scarves,yes,accessory,scarf,
+Stoles,yes,accessory,scarf,
+Mufflers,yes,accessory,scarf,
+Dupatta,yes,accessory,scarf,Indian ethnic shawl
+Gloves,yes,accessory,gloves,
+Earrings,yes,accessory,earrings,
+Necklace and Chains,yes,accessory,necklace,
+Pendant,yes,accessory,necklace,
+Bracelet,yes,accessory,bracelet,
+Bangle,yes,accessory,bracelet,
+Ring,yes,accessory,ring,
+Jewellery Set,yes,accessory,jewellery-set,
+Sarees,no,,,Indian ethnic with no Tunisian equivalent. REVIEW
+Lehenga Choli,no,,,Indian ethnic with no Tunisian equivalent
+Kurta Sets,no,,,multi-item set in one photo
+Salwar and Dupatta,no,,,multi-item set in one photo
+Clothing Set,no,,,multi-item set in one photo
+Suits,no,,,multi-item set in one photo
+Swimwear,no,,,no swimwear category in schema. REVIEW
+Bra,no,,,innerwear
+Briefs,no,,,innerwear
+Boxers,no,,,innerwear
+Trunk,no,,,innerwear
+Innerwear Vests,no,,,innerwear
+Camisoles,no,,,innerwear
+Shapewear,no,,,innerwear
+Baby Dolls,no,,,nightwear
+Night suits,no,,,nightwear
+Nightdress,no,,,nightwear
+Bath Robe,no,,,nightwear
+Robe,no,,,nightwear
+Socks,no,,,rarely visible in an outfit
+Booties,no,,,baby socks
+Shoe Accessories,no,,,not clothing
+Shoe Laces,no,,,not clothing
+Wristbands,no,,,sport equipment
+Accessory Gift Set,no,,,mixed gift box
+Free Gifts,no,,,unknown content
+Key chain,no,,,not clothing
+Travel Accessory,no,,,not clothing
+Water Bottle,no,,,not clothing
+Umbrellas,no,,,not clothing
+Perfume and Body Mist,no,,,not clothing
+Ipad,no,,,not clothing
