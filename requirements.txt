@@ -1,0 +1,8 @@
+# Phase 3 data pipeline (Python 3.11+; tested with Python 3.13)
+pandas>=2.2
+numpy>=2.0
+scipy>=1.13
+scikit-learn>=1.5
+pillow>=10.0
+matplotlib>=3.9
+reportlab>=4.2
