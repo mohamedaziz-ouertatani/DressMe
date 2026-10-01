@@ -49,7 +49,8 @@ UPPER_IDS = [0, 1, 2, 3, 4, 5, 9, 10, 11, 12]
 MIN_INSIDE = 0.8  # share of the part's box that must be inside the garment's box
 
 PATTERNS = {"solid", "striped", "checked", "floral", "printed"}
-CATEGORIES = {"top", "bottom", "dress", "outerwear", "shoes", "bag", "accessory", "traditional"}
+CATEGORIES = {"top", "bottom", "dress", "outerwear", "shoes", "bag", "accessory", "traditional",
+              "swimwear"}
 USAGES = {"casual", "formal", "sport", "wedding", "eid", "work"}
 
 
@@ -129,7 +130,7 @@ def main():
                         ("sleeve", all_len), ("neckline", all_neck)]:
         if missing := needed - set(cov.loc[cov["applies_to"] == src, "attribute"]):
             fail(f"coverage rules for '{src}' missing: {sorted(missing)}")
-    if wrong := set(pat["pattern"]) - PATTERNS:
+    if wrong := set(pat["pattern"]) - PATTERNS - {""}:  # empty = pattern unknown
         fail(f"patterns not in the schema: {wrong}")
     if wrong := set(nick["category"]) - CATEGORIES - {""}:
         fail(f"nickname categories not in the schema: {wrong}")
@@ -191,13 +192,15 @@ def main():
         if sub and vocab_cat[sub] != category:
             sub = ""
 
-        # pattern: lowest priority number wins ('plain + floral' -> floral)
+        # pattern: lowest priority number wins ('plain + floral' -> floral);
+        # a rule with an empty pattern (herringbone) makes the pattern unknown
         found = [pat_rank[p] for p in names(a.attribute_ids, "textile pattern")]
         pattern = min(found)[1] if found else ""
 
         # coverage from the item's own length
         length_src = {"bottom": "bottom_dress", "dress": "bottom_dress",
-                      "traditional": "bottom_dress", "top": "top"}.get(category)
+                      "traditional": "bottom_dress", "swimwear": "bottom_dress",
+                      "top": "top"}.get(category)
         if length_src:
             for name in names(a.attribute_ids, "length"):
                 if (length_src, name) in cov_score:

@@ -7,6 +7,8 @@ The rules live in editable CSV files in mappings/ (no rule is hard-coded here):
     fashion_product_season.csv            season      -> season
     fashion_product_usage.csv             usage       -> keep?, usage
     fashion_product_pattern_keywords.csv  words in productDisplayName -> pattern
+    fashion_product_name_rules.csv        words in productDisplayName -> fix category /
+                                          sub_category or drop (e.g. swimming cap under Swimwear)
     colour_palette.csv                    the ~20 allowed colours (shared by all datasets)
     sub_category_vocabulary.csv           allowed sub_category values (shared by all datasets)
 
@@ -38,7 +40,8 @@ OUT_PATH = ROOT / "data" / "processed" / "fashion_product.csv"
 DROP_MASTER = ["Personal Care", "Home", "Sporting Goods"]
 
 # Allowed values of the unified schema (see CLAUDE.md)
-CATEGORIES = {"top", "bottom", "dress", "outerwear", "shoes", "bag", "accessory", "traditional"}
+CATEGORIES = {"top", "bottom", "dress", "outerwear", "shoes", "bag", "accessory", "traditional",
+              "swimwear"}
 PATTERNS = {"solid", "striped", "checked", "floral", "printed"}
 SEASONS = {"summer", "winter", "mid-season"}
 USAGES = {"casual", "formal", "sport", "wedding", "eid", "work"}
@@ -94,6 +97,7 @@ def main():
     kw = kw.sort_values("priority", key=lambda s: s.astype(int))
     keywords = list(zip(kw["keyword"].str.lower(), kw["pattern"]))
     palette = set(read_map("colour_palette.csv")["colour"])
+    name_rules = read_map("fashion_product_name_rules.csv")
 
     check_covered(df["articleType"], art.index, "articleType")
     check_covered(df["baseColour"], colour.index, "baseColour")
@@ -102,6 +106,8 @@ def main():
     check_allowed(art["category"], CATEGORIES, "category")
     vocab = read_map("sub_category_vocabulary.csv")
     check_allowed(art["sub_category"], set(vocab["sub_category"]), "sub_category")
+    check_allowed(name_rules["category"], CATEGORIES, "category")
+    check_allowed(name_rules["sub_category"], set(vocab["sub_category"]), "sub_category")
     check_allowed(colour, palette, "colour")
     check_allowed(season, SEASONS, "season")
     check_allowed(usage, USAGES, "usage")
@@ -116,11 +122,27 @@ def main():
     df = df[~dropped_usage]
     print(f"{len(df)} products kept after the articleType and usage rules")
 
+    df["category"] = df["articleType"].map(art["category"])
+    df["sub_category"] = df["articleType"].map(art["sub_category"])
+
+    # name rules: some articleTypes mix several things (e.g. Swimwear also holds
+    # swimming caps and goggles), so a word in the product name can fix the label
+    name_drop = pd.Series(False, index=df.index)
+    for r in name_rules.itertuples():
+        hit = (df["articleType"] == r.articleType) & df["productDisplayName"].str.contains(
+            rf"\b{r.keyword}\b", case=False, regex=True, na=False)
+        if r.keep == "no":
+            name_drop |= hit
+        else:
+            df.loc[hit, ["category", "sub_category"]] = [r.category, r.sub_category]
+    df = df[~name_drop]
+    print(f"{name_drop.sum()} products dropped and the others relabelled by the name rules")
+
     out = pd.DataFrame({
         "id": "fp_" + df["id"].astype(str),  # prefix avoids id clashes between datasets
         "image_path": "raw/FashionProduct/images/" + df["id"].astype(str) + ".jpg",
-        "category": df["articleType"].map(art["category"]),
-        "sub_category": df["articleType"].map(art["sub_category"]),
+        "category": df["category"],
+        "sub_category": df["sub_category"],
         "primary_colour": df["baseColour"].map(colour),
         "secondary_colour": pd.NA,       # not in this dataset
         "pattern": df["productDisplayName"].map(lambda s: find_pattern(s, keywords)),

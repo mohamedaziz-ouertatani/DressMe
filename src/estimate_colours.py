@@ -35,6 +35,7 @@ It is read by merge_and_split.py, which fills `primary_colour` and sets
 
 import hashlib
 import json
+import os
 import sys
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
@@ -59,13 +60,14 @@ OUT_PATH = DATA / "processed" / "colour_estimates.csv"
 REPORT_PATH = ROOT / "reports" / "colour_estimation.md"
 FIG_DIR = ROOT / "reports" / "figures" / "colour"
 
-MIN_CONFIDENCE = 0.6   # below this the colour stays empty (team decision 2026-10-01; ~78% accurate above it on Fashion Product)
-METAL_FREE = {"top", "bottom", "dress", "outerwear", "traditional"}
+MIN_CONFIDENCE = 0.7   # below this the colour stays empty (decided 2026-10-01: 0.7 beat 0.6 on the hand labels, 78% / 69% vs 73% / 64%)
+METAL_FREE = {"top", "bottom", "dress", "outerwear", "traditional", "swimwear"}
 METALS = {"gold", "silver"}
 WHITE = 235            # R, G and B above this = near-white (background candidate)
 THUMB = 80             # product shots are shrunk to Fashion Product's size (60x80)
 MAX_PIXELS = 4000      # pixels sampled per Fashionpedia mask (speed)
-WORKERS = 12
+# parallel processes; lower it if you get MemoryError (e.g. set DRESSME_WORKERS=4)
+WORKERS = int(os.environ.get("DRESSME_WORKERS", 12))
 
 # Lab histogram: 6 bins for lightness x 6 x 6 for the two colour axes
 L_EDGES = np.linspace(0, 100, 7)

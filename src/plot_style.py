@@ -19,7 +19,7 @@ CREAM = "#F2E8DA"
 DARK = "#23201C"
 
 # up to 8 series (e.g. the 8 categories): brand colours first, then tints
-SERIES = [RUST, GOLD, DARK, "#C27A55", "#E6D2A8", "#6E655B", "#5E2C14", "#A8987F"]
+SERIES = [RUST, GOLD, DARK, "#C27A55", "#E6D2A8", "#6E655B", "#5E2C14", "#A8987F", "#3D5A5B"]
 
 # heatmaps: cream (low) -> gold -> rust (high)
 CMAP = LinearSegmentedColormap.from_list("dressme", [CREAM, GOLD, RUST])

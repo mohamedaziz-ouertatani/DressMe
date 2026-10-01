@@ -149,7 +149,8 @@ def merged_figures():
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # 1) category mix per dataset (stacked bars, % of rows)
-    cats = ["top", "bottom", "dress", "outerwear", "shoes", "bag", "accessory", "traditional"]
+    cats = ["top", "bottom", "dress", "outerwear", "shoes", "bag", "accessory", "traditional",
+            "swimwear"]
     share = pd.DataFrame({k: d["category"].value_counts(normalize=True) * 100
                           for k, d in dfs.items()}).reindex(cats).fillna(0).T
     ax = share.plot(kind="barh", stacked=True, figsize=(8, 2.8), color=SERIES, width=0.7)
@@ -302,6 +303,7 @@ def build():
     used = next(r for r in acc_rows if "used" in r[0])  # the threshold in use
     sp = m["split_tab"].sum()
     cv = m["cov"]
+    n_sub = len(pd.read_csv(ROOT / "mappings" / "sub_category_vocabulary.csv"))
     # open team decisions = rows whose note says REVIEW, in any mapping file
     n_review = sum(f.read_text(encoding="utf-8").count("REVIEW")
                    for f in (ROOT / "mappings").glob("*.csv"))
@@ -338,8 +340,9 @@ def build():
         "~24k duplicate images in PolyVore (split leakage), small crops in Fashionpedia, and a "
         "large domain gap between catalogue shots and friperie phone photos.",
         "Mapping rules live in <font face='Courier'>mappings/*.csv</font>, never in code; the "
-        f"apply scripts stop when a source value has no rule. {n_review} rules are flagged "
-        "<b>REVIEW</b> for team decision.",
+        "apply scripts stop when a source value has no rule. "
+        + (f"{n_review} rules are flagged <b>REVIEW</b> for team decision." if n_review
+           else "All <b>REVIEW</b> decisions are settled."),
         "<b>Colour</b> was estimated for PolyVore and Fashionpedia with a small model trained "
         f"on Fashion Product's real labels. At the confidence cut used it is {used[2]} "
         f"accurate on unseen Fashion Product images (it gives a colour to {used[1]} of them). "
@@ -455,8 +458,8 @@ def build():
                 "the merged data."),
               table([["Field", "Values"],
                      ["category", "top, bottom, dress, outerwear, shoes, bag, accessory, "
-                      "traditional"],
-                     ["sub_category", "55 controlled values (t-shirt, shirt, jeans, jebba, "
+                      "traditional, swimwear"],
+                     ["sub_category", f"{n_sub} controlled values (t-shirt, shirt, jeans, jebba, "
                       "sneakers…) in sub_category_vocabulary.csv, each tied to a parent category"],
                      ["primary / secondary_colour", "fixed 21-colour palette "
                       "(colour_palette.csv)"],
@@ -668,8 +671,8 @@ out = pd.DataFrame({
     story += [h1("mapping", "Label mapping results"),
               table([["Dataset", "Script", "Rows out", "Notes"],
                      ["Fashion Product", "map_fashion_product.py",
-                      f"{rows['Fashion Product']:,}", "off-topic, Indian ethnic and swimwear "
-                      "rows dropped; colour, season, usage from text"],
+                      f"{rows['Fashion Product']:,}", "off-topic and Indian ethnic rows "
+                      "dropped; colour, season, usage from text"],
                      ["Fashionpedia", "map_fashionpedia.py", f"{rows['Fashionpedia']:,}",
                       "one row per worn item, bbox to crop, outfit_id = photo"],
                      ["PolyVore", "map_polyvore.py", f"{rows['PolyVore']:,}",
@@ -756,7 +759,7 @@ def find_pattern(name, keywords):
         "cut, or when a Fashionpedia item is too small (crop &lt; 64 px) or has no polygon mask. "
         "<font face='Courier'>colour_confidence</font> is kept so a stricter cut can be used "
         "later, and <font face='Courier'>colour_source</font> = label / estimated.",
-        "Gold and silver are not allowed for clothes (a REVIEW decision): the model's next "
+        "Gold and silver are not allowed for clothes (a team decision): the model's next "
         "best colour is used instead.",
     ])
     story += [Paragraph("Accuracy on unseen Fashion Product images", H2),
@@ -970,24 +973,27 @@ df["split"] = df["image_group"].map(group_split)
               Spacer(1, 8)]
 
     # --- decisions, quality, next steps
-    story += [h1("decisions", "Open team decisions (REVIEW rows)"),
+    story += [h1("decisions", "Team decisions (former REVIEW rows)"),
               table([["Topic", "Current rule", "Alternative"],
                      ["Indian ethnic wear (Fashion Product, Fashionpedia)", "<b>decided</b>: "
                       "removed (kurtas, kurtis, churidar, salwar, patiala, dupatta, sarees, "
                       "Nehru jackets…, plus every item with usage “Ethnic”)",
                       "map kurtas to tunic, Ethnic usage to formal"],
-                     ["Swimwear (Fashion Product)", "dropped (no category in the schema)",
-                      "add a category"],
+                     ["Swimwear (Fashion Product, Fashionpedia)", "<b>decided</b>: new "
+                      "category swimwear (swimsuit, swim-shorts); swimming caps → accessory, "
+                      "goggles dropped", "drop it"],
                      ["Kaftan (Fashionpedia)", "<b>decided</b>: traditional (close to the "
                       "Maghreb caftan)", "dress"],
-                     ["Herringbone", "checked", "solid"],
-                     ["Eyewear", "sunglasses + eyeglasses merged", "split (Kaggle only has "
-                      "sunglasses)"],
-                     ["Metallic colours", "not allowed for clothes (estimates only)",
+                     ["Herringbone (Fashionpedia)", "<b>decided</b>: pattern left empty "
+                      "(a fine zigzag weave, neither checked nor solid)", "checked or solid"],
+                     ["Eyewear", "<b>decided</b>: sunglasses + eyeglasses merged",
+                      "split (Kaggle only has sunglasses)"],
+                     ["Metallic colours", "<b>decided</b>: not allowed for clothes "
+                      "(estimates only)",
                       "allowed for all items"],
                      ["Colour confidence cut", f"<b>decided</b>: "
                       f"{used[0].replace(' ← used', '')} ({used[2]} accurate on Fashion "
-                      f"Product; {hand_check})", "0.5: more colours, less accurate"],
+                      f"Product; {hand_check})", "0.6: more colours, less accurate"],
                      ["PolyVore outfits sharing pictures", "kept, flagged outfit_clean = False",
                       "drop them from val / test"]],
                     widths=[4.3 * cm, 7 * cm, WIDTH - 11.3 * cm]),
@@ -1004,14 +1010,14 @@ df["split"] = df["image_group"].map(group_split)
                      ["Outfit leakage", "outfit_split per outfit; outfit_clean for strict tests"],
                      ["Domain gap (catalogue vs phone photos)",
                       "Local wardrobe / friperie photos reserved for test"],
-                     ["No traditional clothing", "Collect local photos (jebba, kaftan…)"]],
+                     ["No traditional clothing", "Collect local photos (jebba, kaftan…)"],
+                     ["Very few swimwear items (under 100)",
+                      "Collect local photos (including modest swimwear)"]],
                     widths=[7 * cm, WIDTH - 7 * cm]),
               Spacer(1, 8),
               h1("next", "Next steps")]
     story += bullets([
         "Collect and label local wardrobe / friperie photos (test set, traditional items).",
-        "Settle the REVIEW decisions above and re-run the pipeline "
-        "(map_*.py → estimate_colours.py → merge_and_split.py → build_phase3_report.py).",
         "Phase 4: train EfficientNet on <font face='Courier'>split</font> (without duplicates), "
         "compute FashionCLIP embeddings, and fit the compatibility formula on "
         "<font face='Courier'>outfit_split</font>.",

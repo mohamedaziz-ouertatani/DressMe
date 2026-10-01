@@ -75,8 +75,8 @@ cargo (shorts),yes,shorts,,,,
 booty (shorts),yes,shorts,,,1,very short
 skort,yes,shorts,,,,
 lounge (shorts),no,,,,,nightwear (also dropped in Kaggle)
-trunks,no,,,,,swimwear (also dropped in Kaggle)
-boardshorts,no,,,,,swimwear (also dropped in Kaggle)
+trunks,yes,swim-shorts,swimwear,,,swimwear (team decision 2026-10-01)
+boardshorts,yes,swim-shorts,swimwear,,,swimwear (team decision 2026-10-01)
 bloomers,no,,,,,underwear
 blazer,yes,blazer,,,,
 tuxedo (jacket),yes,blazer,,formal,,

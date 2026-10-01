@@ -17,7 +17,7 @@ Phases 1 (Empathize) and 2 (Ideate) are finished. **Phase 3 (data collection) is
 
 | Field | Values |
 |---|---|
-| category | top, bottom, dress, outerwear, shoes, bag, accessory, traditional |
+| category | top, bottom, dress, outerwear, shoes, bag, accessory, traditional, swimwear |
 | sub_category | controlled list in `mappings/sub_category_vocabulary.csv`; each dataset maps to the coarsest shared value (e.g. polo → t-shirt) |
 | primary / secondary_colour | fixed 21-colour palette in `mappings/colour_palette.csv` |
 | pattern | solid, striped, checked, floral, printed |
@@ -53,16 +53,16 @@ Colour validation (already done): `src/make_colour_labelling_sheet.py` → `data
 
 ## Where the data stands
 
-**Merged file `data/processed/dressme.csv`:** 321,341 rows (296,840 unique pictures / crops).
+**Merged file `data/processed/dressme.csv`:** 321,422 rows (296,921 unique pictures / crops).
 
 | Dataset | Rows | Notes |
 |---|---:|---|
-| Fashion Product | 35,416 | Product shots at 60x80 px. The only source with real labels for colour, season, usage and gender. 2,430 off-topic rows dropped, and all Indian ethnic wear removed (garment types such as kurtas and sarees, plus every item with usage "Ethnic"). 4 pictures that appear twice with different labels are dropped in the mapping, which also writes `image_group` (file MD5). Pattern is read from product-name keywords. |
-| Fashionpedia | 160,015 | One row per worn item, with a bbox to crop; `outfit_id` = the photo. Coverage is the lowest score over length, nickname, sleeve and neckline (`coverage_from` lists the sources). The official test set has no labels, so our splits use its train + val images only. |
+| Fashion Product | 35,432 | Product shots at 60x80 px. The only source with real labels for colour, season, usage and gender. 2,430 off-topic rows dropped, and all Indian ethnic wear removed (garment types such as kurtas and sarees, plus every item with usage "Ethnic"). 4 pictures that appear twice with different labels are dropped in the mapping, which also writes `image_group` (file MD5). Pattern is read from product-name keywords. |
+| Fashionpedia | 160,080 | One row per worn item, with a bbox to crop; `outfit_id` = the photo. Coverage is the lowest score over length, nickname, sleeve and neckline (`coverage_from` lists the sources). The official test set has no labels, so our splits use its train + val images only. |
 | PolyVore (Maryland) | 125,910 | Product shots on white, in 31,333 outfits. Labelled by folder only. About 24k exact duplicates; `image_group` = MD5. Pictures found in two folders are dropped. |
 
-- **Categories:** shoes 77,237 · accessory 66,526 · top 56,782 · bottom 37,220 · bag 31,690 · dress 28,164 · outerwear 23,598 · traditional 124 (Fashionpedia kaftans).
-- **Splits (80/10/10, from a hash of the group id, so they are stable):** train 246,308 · val 36,740 · test 38,293.
+- **Categories:** shoes 77,237 · accessory 66,532 · top 56,782 · bottom 37,226 · bag 31,690 · dress 28,164 · outerwear 23,598 · traditional 124 (Fashionpedia kaftans) · swimwear 69 (10 Fashion Product swimsuits, 59 Fashionpedia swim-shorts).
+- **Splits (80/10/10, from a hash of the group id, so they are stable):** train 246,373 · val 36,750 · test 38,299.
   - `split` is per picture (`image_group`) and is used for classification. For Fashionpedia, `image_group` is the photo.
   - `outfit_split` is per outfit and is used for compatibility. A picture used in a test outfit goes to test.
   - In PolyVore, 61% of rows form one chain of outfits linked by shared products, so outfits and pictures cannot both be kept apart. `outfit_clean = False` marks outfits that share a picture with another split; use only clean val / test outfits for a strict evaluation (1,064 clean PolyVore test outfits).
@@ -73,7 +73,7 @@ Colour validation (already done): `src/make_colour_labelling_sheet.py` → `data
 
 - Labels: real for Fashion Product, estimated for PolyVore and Fashionpedia (`colour_source` = label / estimated, plus `colour_confidence` and, in the estimates file, `predicted_colour` before the cut).
 - Model: gradient boosting on Lab colour histograms, trained on Fashion Product's train split. The simple "nearest palette colour" rule was only 25–36% accurate.
-- Confidence cut **0.6** (team decision): 78.8% accurate on unseen Fashion Product images. Hand labels (395 items) gave **73% on PolyVore** (colour kept for 67%) and **64% on Fashionpedia** (kept for 64%). Before the Indian items were removed from the training data, the same cut gave 77% and 69% while keeping fewer colours; a cut of 0.7 now gives 78% and 69%.
+- Confidence cut **0.7** (team decision): 83.1% accurate on unseen Fashion Product images (colour given to 49%). Hand labels (395 items) gave **77% on PolyVore** (colour kept for 52%) and **66% on Fashionpedia** (kept for 44%), against 74% / 61% at 0.6. With ~100 items per dataset the 95% intervals are about ±8 points, so the gain is a trend, not proof. Over the whole data, PolyVore has a colour for 52% of rows and Fashionpedia for 32% (small crops get none).
 - Main error: black read as navy or brown.
 - Colour stays empty for Fashionpedia crops under 64 px or without a polygon mask. Gold and silver are never predicted for clothes.
 - Features are cached in `data/interim/colour_features_*.pkl` (only the pixel features are reused; labels are re-read each run). Delete the cache after changing `features()`.
@@ -82,16 +82,16 @@ Colour validation (already done): `src/make_colour_labelling_sheet.py` → `data
 
 - **Indian ethnic wear removed** (Fashion Product: kurtas, kurtis, churidar, salwar, patiala, dupatta, sarees, lehenga, Nehru jackets, and every item with usage "Ethnic"; Fashionpedia: Nehru jackets). `mappings/fashion_product_usage.csv` has a new `keep` column for this.
 - **Kaftan → `traditional`** (sub_category `kaftan`). Nickname rules now have an optional `category` column in `mappings/fashionpedia_nickname.csv` to move an item to another category.
-- **Colour confidence cut = 0.6.**
+- **Colour confidence cut = 0.7** (raised from 0.6 on 2026-10-01: on the hand labels it gives 77% / 66% instead of 74% / 61%, and we have enough data to afford fewer colours).
+- **Swimwear included** as a 9th category, `swimwear` (sub_categories `swimsuit` and `swim-shorts`): Fashion Product swimsuits and Fashionpedia trunks / boardshorts. Swimming caps filed under Swimwear become accessory / cap and goggles are dropped, through the new `mappings/fashion_product_name_rules.csv` (keywords in the product name). There are under 100 public items, so local photos (including modest swimwear) are needed.
+- **Herringbone → pattern left empty** (a fine zigzag weave, neither checked nor solid). It keeps priority 3, so "herringbone + plain" stays empty while "herringbone + floral" is floral.
+- **Glasses / eyewear:** sunglasses and eyeglasses stay merged into `glasses`, because neither Fashionpedia nor PolyVore separates them.
 - **Metallic colours** are not allowed for clothes (estimates only).
 - **PolyVore outfits sharing a picture** are kept and flagged (`outfit_clean`).
 
-## Open team decisions (4 `REVIEW` rows)
+## Open team decisions
 
-- **Swimwear (Fashion Product):** dropped, because the schema has no category for it.
-- **Herringbone (Fashionpedia):** currently checked, could be solid (82 items).
-- **Glasses / eyewear (Fashionpedia, PolyVore):** sunglasses and eyeglasses are merged into one value (11,645 items), because neither dataset separates them.
-- **Colour cut:** 0.6 now gives 73% / 64% on the hand labels (PolyVore / Fashionpedia), and 0.7 gives 78% / 69% with fewer colours. Not a REVIEW row, but worth a team look.
+None: every `REVIEW` row was settled on 2026-10-01 (see above).
 
 ## The report
 
@@ -110,14 +110,13 @@ Sections are numbered automatically from the `SECTIONS` list in the script.
 
 ## Next steps
 
-1. **Local data collection** (plan: wardrobes 500–1,000 items, friperie 150–300, local garments 50–100, fit-check subset 50–100, ~100 near-duplicate pairs). It needs signed consent and blurred faces. Add the photos with `source` = wardrobe / friperie; the split script puts them in test.
-2. Settle the remaining REVIEW rows, then re-run the pipeline (steps 2 → 5).
-3. **Phase 4:**
+1. **Local data collection** (can run alongside Phase 4; plan: wardrobes 500–1,000 items, friperie 150–300, local garments 50–100, fit-check subset 50–100, ~100 near-duplicate pairs). It needs signed consent and blurred faces. Add the photos with `source` = wardrobe / friperie; the split script puts them in test.
+2. **Phase 4:**
    - Train EfficientNet on `split` (without duplicates).
    - Compute FashionCLIP embeddings.
    - Fit the compatibility formula on `outfit_split`.
    - Try a colour model on the embeddings to fix the black / navy / brown confusion, and compare it on the same hand labels.
-4. Add DeepFashion2 and DressCode when access is granted. ModaNet and VITON-HD are in the plan but not requested yet. The plan's Polyvore Outfits (68k) was replaced by the Maryland version.
+3. Add DeepFashion2 and DressCode when access is granted. ModaNet and VITON-HD are in the plan but not requested yet. The plan's Polyvore Outfits (68k) was replaced by the Maryland version.
 
 ## Project rules
 

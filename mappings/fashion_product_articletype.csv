@@ -83,7 +83,7 @@ Kurta Sets,no,,,Indian ethnic: removed (team decision 2026-10-01)
 Salwar and Dupatta,no,,,Indian ethnic: removed (team decision 2026-10-01)
 Clothing Set,no,,,multi-item set in one photo
 Suits,no,,,multi-item set in one photo
-Swimwear,no,,,no swimwear category in schema. REVIEW
+Swimwear,yes,swimwear,swimsuit,"swimsuits; swimming caps and goggles are fixed by fashion_product_name_rules.csv (team decision 2026-10-01)"
 Bra,no,,,innerwear
 Briefs,no,,,innerwear
 Boxers,no,,,innerwear

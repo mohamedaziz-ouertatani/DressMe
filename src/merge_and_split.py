@@ -56,7 +56,7 @@ SEED = "dressme-2026"          # change it only if the team wants a new random s
 SHARES = {"train": 80, "val": 10}  # percent; the rest (10) goes to test
 LOCAL_SOURCES = {"wardrobe", "friperie"}  # our own photos: test only
 CATEGORIES = {"top", "bottom", "dress", "outerwear", "shoes", "bag", "accessory",
-              "traditional"}
+              "traditional", "swimwear"}
 
 # the unified schema first, then the extra columns, in this order
 COLUMNS = ["id", "dataset", "image_path", "bbox_x", "bbox_y", "bbox_w", "bbox_h",

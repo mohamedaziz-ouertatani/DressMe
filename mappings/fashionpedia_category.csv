@@ -12,7 +12,7 @@ category_id,category_name,keep,category,sub_category,note
 10,dress,yes,dress,dress,
 11,jumpsuit,yes,dress,jumpsuit,
 12,cape,yes,outerwear,cape,
-13,glasses,yes,accessory,glasses,sunglasses and eyeglasses together. REVIEW: Kaggle only has sunglasses
+13,glasses,yes,accessory,glasses,sunglasses and eyeglasses together (team decision 2026-10-01: Kaggle only has sunglasses)
 14,hat,yes,accessory,hat,
 15,"headband, head covering, hair accessory",yes,accessory,hair-accessory,
 16,tie,yes,accessory,tie,

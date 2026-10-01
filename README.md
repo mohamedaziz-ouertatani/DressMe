@@ -21,8 +21,8 @@ ESPRIT · Advanced Data Science project · team of 6: Mohamed Khalil, Asma Driss
 
 A reproducible pipeline that turns three public fashion datasets into **one dataset with a shared label schema** and leak-free train / val / test splits. It also builds the Phase 3 report.
 
-- **Merged dataset:** 321,341 items (296,840 unique pictures / crops).
-- **Splits:** 246,308 train, 36,740 val, 38,293 test.
+- **Merged dataset:** 321,422 items (296,921 unique pictures / crops).
+- **Splits:** 246,373 train, 36,750 val, 38,299 test.
 - **Report:** [`reports/phase3_report.pdf`](reports/phase3_report.pdf), 18 pages. It covers EDA, label mapping, colour estimation, splits, decisions and next steps.
 
 ```
@@ -39,7 +39,7 @@ Every source is mapped to the same fields:
 
 | Field | Values |
 |---|---|
-| `category` | top, bottom, dress, outerwear, shoes, bag, accessory, traditional |
+| `category` | top, bottom, dress, outerwear, shoes, bag, accessory, traditional, swimwear |
 | `sub_category` | controlled list in `mappings/sub_category_vocabulary.csv` (t-shirt, jeans, jebba, kaftan…) |
 | `primary_colour` / `secondary_colour` | 21-colour palette in `mappings/colour_palette.csv` |
 | `pattern` | solid, striped, checked, floral, printed |
@@ -107,8 +107,8 @@ Notes:
 - **Outfit compatibility:** use `outfit_split`. For a strict evaluation, keep only val / test outfits with `outfit_clean` = True. Some PolyVore outfits share products across splits.
 - **Fashionpedia items:** each row has a bounding box (`bbox_x`, `bbox_y`, `bbox_w`, `bbox_h`) to crop the item out of the photo.
 - **Colour:** `colour_source` says whether a colour is a real label or an estimate.
-  - Estimates are kept only when the model's confidence is at least 0.6 (`colour_confidence`).
-  - On hand-labelled items they are about 73% accurate on PolyVore and 64% on Fashionpedia.
+  - Estimates are kept only when the model's confidence is at least 0.7 (`colour_confidence`).
+  - On hand-labelled items they are about 77% accurate on PolyVore and 66% on Fashionpedia.
 - **Local photos:** our own photos (`source` = wardrobe / friperie) always go to the test set.
 
 ### Walkthrough notebook

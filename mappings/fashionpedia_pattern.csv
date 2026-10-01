@@ -5,7 +5,7 @@ stripe,striped,2,
 check,checked,3,
 houndstooth (pattern),checked,3,
 argyle,checked,3,
-herringbone (pattern),checked,3,woven texture; REVIEW (could be solid)
+herringbone (pattern),,3,"fine zigzag weave: neither checked nor solid, so pattern stays empty (team decision 2026-10-01). Priority 3 so 'herringbone + plain' stays empty too"
 abstract,printed,4,
 cartoon,printed,4,
 "letters, numbers",printed,4,
