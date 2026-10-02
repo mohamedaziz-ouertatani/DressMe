@@ -1,4 +1,4 @@
-# DressMe — Handoff (2026-10-01)
+# DressMe — Handoff (2026-10-02)
 
 Paste this into a new Claude chat to pick up the project.
 
@@ -11,7 +11,7 @@ An AI personal fashion assistant built by a team of 6 for an ESPRIT Advanced Dat
 - **Survey (57 responses):** black dominates 84% of wardrobes, 56% shop second-hand, 40% are frustrated by fit, and 42% want "should I buy this?" advice.
 - **Personas (Phase 1):** Amira, Youssef, Nour, Rania, Salma, Ines, Skander. The Phase 3 data collection plan (team PDF) maps each feature to a persona and a "How might we" question (H1–H9).
 
-Phases 1 (Empathize) and 2 (Ideate) are finished. **Phase 3 (data collection) is done on the public data.** What is left is the local photo collection.
+Phases 1 (Empathize) and 2 (Ideate) are finished. **Phase 3 (data collection) is done on the public data**; the local photo collection is still to do. **Phase 4 (full prototype) has started.** It is split into five sub-projects: embeddings (done), classifier, compatibility, backend, frontend.
 
 ## Unified label schema (the target for every dataset)
 
@@ -108,14 +108,36 @@ Sections are numbered automatically from the `SECTIONS` list in the script.
 
 **Still marked *[to fill]* in the report:** who labels the local photos (and how they are double-checked), and the planned collection dates.
 
+## Phase 4: FashionCLIP embeddings (sub-project 1, done)
+
+- **Setup:** the CUDA build of PyTorch for the RTX 2050 (4 GB), installed as described in `requirements-models.txt`. The model is `patrickjohncyh/fashion-clip`, loaded with `transformers`.
+- **Scripts:**
+  - `src/fashionclip.py`: shared helpers (load the model, crop a Fashionpedia item with 5% padding, embed images / texts).
+  - `src/embed_fashionclip.py`: the one-off pass over the data.
+  - `src/similarity.py`: `SimilarityIndex`, nearest-neighbour search with dataset / category filters and `exclude_ids`.
+  - `src/evaluate_embeddings.py`: the evaluation.
+- **Output:** `data/processed/embeddings/fashionclip.npy` (306,636 × 512 float16, unit length) and `fashionclip_ids.csv`.
+  - Each picture is embedded once (282,135 distinct pictures); duplicate copies share their vector.
+  - The 14,786 Fashionpedia crops under 32 px have no vector.
+  - The run takes about 35 min with `DRESSME_WORKERS=4`. Image loading is the bottleneck (about 140 img/s); the GPU could do 680/s.
+- **Results** (`reports/embeddings_evaluation.md`, test split, duplicates left out):
+  - **Zero-shot** (no training): 72% category, 60% sub_category.
+  - **Linear probe** on the vectors: **88% category** (96% Fashion Product, 95% PolyVore, 81% Fashionpedia), **80% sub_category**, 74% pattern. **This is the bar for the EfficientNet classifier.**
+  - **Colour from the vectors:** better on Fashion Product (71% vs 64.5%), but clearly worse on the hand-labelled PolyVore / Fashionpedia items (63% vs 77% and 42% vs 66% at equal coverage). **Decision: keep the gradient-boosting colour model.**
+  - **Street → shop retrieval:** 65% of the 5 nearest product shots share the street item's category, and the picture grid looks right.
+- **Lessons:**
+  - Commands longer than 10 min must run as a separate process writing a log, because background tool commands are killed at 10 min. That is how the first PyTorch install got cut off.
+  - sklearn's LogisticRegression was far too slow on this machine (25 s for 3,000 vectors), so the probes train on the GPU instead (`Probe` in `evaluate_embeddings.py`).
+
 ## Next steps
 
 1. **Local data collection** (can run alongside Phase 4; plan: wardrobes 500–1,000 items, friperie 150–300, local garments 50–100, fit-check subset 50–100, ~100 near-duplicate pairs). It needs signed consent and blurred faces. Add the photos with `source` = wardrobe / friperie; the split script puts them in test.
-2. **Phase 4:**
-   - Train EfficientNet on `split` (without duplicates).
-   - Compute FashionCLIP embeddings.
-   - Fit the compatibility formula on `outfit_split`.
-   - Try a colour model on the embeddings to fix the black / navy / brown confusion, and compare it on the same hand labels.
+2. **Phase 4**, one design → plan → build cycle per sub-project:
+   - ~~FashionCLIP embeddings~~ (done).
+   - **Next:** EfficientNet-B0 on `category` / `sub_category`, trained on `split` without duplicates. It must beat the linear probe (88% / 80%).
+   - Compatibility formula fitted on `outfit_split`.
+   - FastAPI + MongoDB backend (classify, similar items, score an outfit, Gemini chat).
+   - React + Tailwind frontend.
 3. Add DeepFashion2 and DressCode when access is granted. ModaNet and VITON-HD are in the plan but not requested yet. The plan's Polyvore Outfits (68k) was replaced by the Maryland version.
 
 ## Project rules

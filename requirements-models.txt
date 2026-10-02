@@ -1,0 +1,9 @@
+# Phase 4 models (on top of requirements.txt)
+#
+# Install the GPU build of PyTorch FIRST (the default pip build is CPU-only):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
+# then:
+#   pip install -r requirements-models.txt
+torch>=2.5
+torchvision>=0.20
+transformers>=4.45

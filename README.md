@@ -9,7 +9,7 @@ ESPRIT · Advanced Data Science project · team of 6: Mohamed Khalil, Asma Driss
 | 1. Empathize (survey of 57 people, personas) | done |
 | 2. Ideate (14 features) | done |
 | 3. Data collection | public data done; local photo collection in progress |
-| 4. Modelling | next |
+| 4. Full prototype | in progress: embeddings done; classifier, compatibility, backend, frontend next |
 
 **Planned stack:**
 - Frontend: React + TailwindCSS.
@@ -26,7 +26,7 @@ A reproducible pipeline that turns three public fashion datasets into **one data
 - **Report:** [`reports/phase3_report.pdf`](reports/phase3_report.pdf), 18 pages. It covers EDA, label mapping, colour estimation, splits, decisions and next steps.
 
 ```
-src/          pipeline scripts (EDA, mapping, colours, merge, report)
+src/          pipeline scripts (EDA, mapping, colours, merge, report, embeddings)
 mappings/     every label rule, as editable CSV files
 reports/      EDA reports (markdown), figures, Phase 3 PDF
 notebooks/    exploration
@@ -119,6 +119,33 @@ Notes:
 pip install notebook
 jupyter notebook notebooks/phase3_walkthrough.ipynb
 ```
+
+## Phase 4: FashionCLIP embeddings
+
+Every picture gets a 512-number FashionCLIP vector. Similar items have similar vectors, which powers "find similar items" and gives the other models a strong starting point. A GPU is strongly recommended.
+
+```bash
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
+pip install -r requirements-models.txt
+
+python src/embed_fashionclip.py --limit 500   # quick test (separate folder)
+python src/embed_fashionclip.py               # all pictures, ~35 min -> data/processed/embeddings/
+python src/evaluate_embeddings.py             # -> reports/embeddings_evaluation.md
+```
+
+- **What the vectors already know** (test split; full numbers in [`reports/embeddings_evaluation.md`](reports/embeddings_evaluation.md)):
+  - A simple linear classifier on them reaches **88% on category** and **80% on sub_category**. The EfficientNet classifier has to beat that.
+  - Street photo → product shot search works (see the grid in the report).
+- **Colour:** for colour on PolyVore / Fashionpedia, the existing gradient-boosting model stays. A colour model on the vectors was worse on the hand-labelled items.
+- **Similar-item search** from Python:
+
+```python
+from similarity import SimilarityIndex       # run from src/
+index = SimilarityIndex.load()
+index.search(index.vector("fpd_val_123"), k=5, datasets=["polyvore"])
+```
+
+- If you get a `MemoryError`, lower the loader processes with `DRESSME_WORKERS` (default 2).
 
 ### Colour validation (optional)
 
