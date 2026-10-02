@@ -11,7 +11,7 @@ An AI personal fashion assistant built by a team of 6 for an ESPRIT Advanced Dat
 - **Survey (57 responses):** black dominates 84% of wardrobes, 56% shop second-hand, 40% are frustrated by fit, and 42% want "should I buy this?" advice.
 - **Personas (Phase 1):** Amira, Youssef, Nour, Rania, Salma, Ines, Skander. The Phase 3 data collection plan (team PDF) maps each feature to a persona and a "How might we" question (H1–H9).
 
-Phases 1 (Empathize) and 2 (Ideate) are finished. **Phase 3 (data collection) is done on the public data**; the local photo collection is still to do. **Phase 4 (full prototype) has started.** It is split into five sub-projects: embeddings (done), classifier (done), compatibility (done), backend, frontend.
+Phases 1 (Empathize) and 2 (Ideate) are finished. **Phase 3 (data collection) is done on the public data**; the local photo collection is still to do. **Phase 4 (full prototype) has started.** It is split into five sub-projects: embeddings (done), classifier (done), compatibility (done), backend (done), frontend.
 
 ## Unified label schema (the target for every dataset)
 
@@ -199,6 +199,33 @@ Sections are numbered automatically from the `SECTIONS` list in the script.
   - an exact copy of an owned item gives "skip", with the near-twin warning.
 - **Limit:** PolyVore taste (online collages) and Fashionpedia (runway / street) aren't Tunisian friperie wardrobes. The local photos and user feedback are the real test.
 
+## Phase 4: backend (sub-project 4, done)
+
+- **Stack:** FastAPI + MongoDB (the local MongoDB 4.0 service, so pymongo is pinned below 4.14), in `backend/`. It reuses the src/ models through `app/ml.py` instead of copying them.
+- **Run it:**
+  1. copy `backend/.env.example` to `backend/.env` and set `JWT_SECRET`;
+  2. from `backend/`: `uvicorn app.main:create_app --factory --port 8000`;
+  3. open http://localhost:8000/docs.
+
+  The models load in about a minute.
+- **Team decisions (2026-10-02):**
+  - real accounts (email + password; bcrypt + JWT);
+  - a Gemini chat **with tools**;
+  - similar items from the wardrobe **and** the public datasets, served only locally to logged-in users for the academic demo.
+- **Endpoints:**
+  - sign-up / log-in, and the profile (name, modesty level `min_coverage`, language fr / ar / en);
+  - wardrobe upload (analysed: category, sub_category, pattern, colour + FashionCLIP vector; photos shrunk to 1024 px);
+  - **user corrections** (`PATCH /items/{id}`; the model's guesses stay in `predicted`, corrected fields are listed in `corrected`);
+  - `/analyze` for friperie photos (not saved; the candidate is deleted after 24 h);
+  - `/buy-advice`, outfit score / suggest / complete, `/similar`;
+  - `/chat`, with history per user.
+- **Chat:** Gemini automatic function calling with four tools bound to the user (`list_wardrobe`, `suggest_outfits`, `score_outfit`, `buy_advice_last_scan`). The system prompt asks it to use the real wardrobe, answer in the user's language and respect their modesty level. **It needs `GEMINI_API_KEY` in `backend/.env`** (not set yet); without it `/chat` answers 503.
+- **Colour model:** `src/estimate_colours.py` now saves the trained model to `models/checkpoints/colour_model.joblib`, which the backend uses for uploads. Re-running it gave byte-identical estimates.
+- **Tests** (`backend/tests/`):
+  - 19 fast tests with fake models / Gemini on a `dressme_test` database (~12 s). They cover auth, validation, privacy (other users' items → 404), uploads, corrections, outfits, buy advice, similar items and chat.
+  - `DRESSME_SLOW=1` adds 2 tests of the real models (category right on at least 36 of 40 test photos; catalog search).
+- **Live check** of the real server: 8 real photos uploaded, **8/8 categories right**. Suggest, buy advice, similar, catalog images and chat (503 without a key) all work. Colours: 3 of 8 were confident (one of them wrong: navy read as black), and 5 were left for the user to confirm, so **the frontend must make colour easy to confirm**.
+
 ## Next steps
 
 1. **Local data collection** (can run alongside Phase 4; plan: wardrobes 500–1,000 items, friperie 150–300, local garments 50–100, fit-check subset 50–100, ~100 near-duplicate pairs). It needs signed consent and blurred faces. Add the photos with `source` = wardrobe / friperie; the split script puts them in test.
@@ -206,8 +233,8 @@ Sections are numbered automatically from the `SECTIONS` list in the script.
    - ~~FashionCLIP embeddings~~ (done).
    - ~~EfficientNet classifier~~ (done: 95.7% category, 86.4% sub_category, 86.8% pattern).
    - ~~Compatibility formula~~ (done; the team still has to tune the weights in `mappings/compatibility_weights.csv`).
-   - **Next:** FastAPI + MongoDB backend (classify, similar items, score / suggest / buy advice / complete, Gemini chat).
-   - React + Tailwind frontend.
+   - ~~FastAPI + MongoDB backend~~ (done; set `GEMINI_API_KEY` to enable the chat).
+   - **Next:** React + Tailwind frontend.
 3. Add DeepFashion2 and DressCode when access is granted. ModaNet and VITON-HD are in the plan but not requested yet. The plan's Polyvore Outfits (68k) was replaced by the Maryland version.
 
 ## Project rules

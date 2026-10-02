@@ -9,7 +9,7 @@ ESPRIT · Advanced Data Science project · team of 6: Mohamed Khalil, Asma Driss
 | 1. Empathize (survey of 57 people, personas) | done |
 | 2. Ideate (14 features) | done |
 | 3. Data collection | public data done; local photo collection in progress |
-| 4. Full prototype | in progress: embeddings, classifier and compatibility done; backend, frontend next |
+| 4. Full prototype | in progress: embeddings, classifier, compatibility and backend done; frontend next |
 
 **Planned stack:**
 - Frontend: React + TailwindCSS.
@@ -27,6 +27,7 @@ A reproducible pipeline that turns three public fashion datasets into **one data
 
 ```
 src/          pipeline scripts (EDA, mapping, colours, merge, report, embeddings, classifier, compatibility)
+backend/      FastAPI + MongoDB API (app/, tests/)
 mappings/     every label rule, as editable CSV files
 reports/      EDA reports (markdown), figures, Phase 3 PDF
 notebooks/    exploration
@@ -196,6 +197,27 @@ item = {"category": "top", "colour": "black", "pattern": "striped", "vector": ve
 score_outfit([top, bottom, shoes])              # {'score': 78.5, 'parts': {...}, 'reasons': [...]}
 buy_advice(new_item, wardrobe, profile={"min_coverage": 3})   # {'verdict': 'buy' | 'think' | 'skip', ...}
 ```
+
+## Phase 4: backend API
+
+FastAPI + MongoDB, in [`backend/`](backend/). It needs a running MongoDB (e.g. the local MongoDB service), the trained models (sections above), and `src/estimate_colours.py` run once, which saves the colour model.
+
+```bash
+pip install -r backend/requirements.txt
+cp backend/.env.example backend/.env      # then set JWT_SECRET (and GEMINI_API_KEY for the chat)
+cd backend
+uvicorn app.main:create_app --factory --port 8000    # docs: http://localhost:8000/docs
+python -m pytest                                      # 19 fast tests (fake models, dressme_test database)
+```
+
+| endpoint | what it does |
+|---|---|
+| `POST /auth/register`, `POST /auth/login`, `GET/PUT /me` | account, profile (modesty level, language) |
+| `POST /items`, `GET /items`, `PATCH /items/{id}`, `DELETE /items/{id}` | wardrobe: upload a photo (analysed), list, correct, delete |
+| `POST /analyze`, `POST /buy-advice` | friperie photo → "should I buy this?" (buy / think / skip) |
+| `POST /outfits/score`, `GET /outfits/suggest`, `POST /outfits/complete` | outfits from your wardrobe |
+| `GET /similar` | look-alikes in your wardrobe + dataset inspiration |
+| `POST /chat`, `GET/DELETE /chat/history` | Gemini assistant that uses your real wardrobe |
 
 ### Colour validation (optional)
 
