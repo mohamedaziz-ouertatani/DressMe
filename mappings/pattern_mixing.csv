@@ -1,0 +1,16 @@
+a,b,score,note
+solid,solid,1.0,REVIEW (all scores are team starting values)
+solid,striped,1.0,
+solid,checked,1.0,
+solid,floral,1.0,
+solid,printed,1.0,
+striped,striped,0.4,
+striped,checked,0.3,
+striped,floral,0.4,
+striped,printed,0.3,
+checked,checked,0.4,
+checked,floral,0.3,
+checked,printed,0.3,
+floral,floral,0.5,
+floral,printed,0.3,
+printed,printed,0.3,

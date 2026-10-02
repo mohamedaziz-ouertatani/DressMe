@@ -9,7 +9,7 @@ ESPRIT · Advanced Data Science project · team of 6: Mohamed Khalil, Asma Driss
 | 1. Empathize (survey of 57 people, personas) | done |
 | 2. Ideate (14 features) | done |
 | 3. Data collection | public data done; local photo collection in progress |
-| 4. Full prototype | in progress: embeddings and classifier done; compatibility, backend, frontend next |
+| 4. Full prototype | in progress: embeddings, classifier and compatibility done; backend, frontend next |
 
 **Planned stack:**
 - Frontend: React + TailwindCSS.
@@ -26,7 +26,7 @@ A reproducible pipeline that turns three public fashion datasets into **one data
 - **Report:** [`reports/phase3_report.pdf`](reports/phase3_report.pdf), 18 pages. It covers EDA, label mapping, colour estimation, splits, decisions and next steps.
 
 ```
-src/          pipeline scripts (EDA, mapping, colours, merge, report, embeddings, classifier)
+src/          pipeline scripts (EDA, mapping, colours, merge, report, embeddings, classifier, compatibility)
 mappings/     every label rule, as editable CSV files
 reports/      EDA reports (markdown), figures, Phase 3 PDF
 notebooks/    exploration
@@ -173,6 +173,28 @@ from PIL import Image
 model, device = load_classifier()
 predict([Image.open("photo.jpg")], model, device)
 # [{'category': 'top', 'category_conf': 0.99, 'sub_category': 'shirt', 'pattern': 'checked', ...}]
+```
+
+## Phase 4: outfit compatibility
+
+A readable formula: **score = Σ weight × part**, from 0 to 100, with reasons. The four parts are style (FashionCLIP similarity), colour harmony, pattern mixing and outfit structure. The team sets the weights and every rule in `mappings/` (`compatibility_weights.csv`, `colour_groups.csv`, `colour_harmony.csv`, `pattern_mixing.csv`, `outfit_structure.csv`). The data only measures them.
+
+```bash
+python src/predict_item_attributes.py     # classifier predictions for every item (~10-30 min)
+python src/evaluate_compatibility.py      # -> reports/compatibility_evaluation.md
+python src/evaluate_compatibility.py --weights style=0.6,colour=0.2,pattern=0.1,structure=0.1   # quick try
+```
+
+| test set | AUC (real vs swapped item) | fill-in-the-blank (1 of 4) |
+|---|---:|---:|
+| PolyVore, 904 clean test outfits | 66.6% | 42.6% |
+| Fashionpedia, 2,710 street photos | 78.7% | 59.5% |
+
+```python
+from compatibility import score_outfit, suggest_outfits, buy_advice, complete_outfit   # run from src/
+item = {"category": "top", "colour": "black", "pattern": "striped", "vector": vec}   # vector = FashionCLIP
+score_outfit([top, bottom, shoes])              # {'score': 78.5, 'parts': {...}, 'reasons': [...]}
+buy_advice(new_item, wardrobe, profile={"min_coverage": 3})   # {'verdict': 'buy' | 'think' | 'skip', ...}
 ```
 
 ### Colour validation (optional)

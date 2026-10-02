@@ -1,0 +1,32 @@
+a,b,score,note
+neutral,neutral,1.0,neutrals go with everything. REVIEW (all scores are team starting values)
+neutral,earth,1.0,
+neutral,warm,1.0,
+neutral,cool,1.0,
+neutral,metal,1.0,
+neutral,multicolour,1.0,
+earth,earth,0.9,
+earth,warm,0.8,
+earth,cool,0.6,
+earth,metal,0.9,
+earth,multicolour,0.5,
+warm,warm,0.6,
+warm,cool,0.5,
+warm,metal,0.9,
+warm,multicolour,0.5,
+cool,cool,0.8,
+cool,metal,0.9,
+cool,multicolour,0.5,
+metal,metal,0.7,
+metal,multicolour,0.6,
+multicolour,multicolour,0.3,two busy items
+red,pink,0.4,colour pairs override their groups
+red,orange,0.4,
+red,green,0.3,
+pink,orange,0.5,
+burgundy,pink,0.6,
+purple,yellow,0.6,
+blue,navy,0.9,
+black,navy,0.7,often avoided
+black,brown,0.7,
+gold,silver,0.6,mixed metals
