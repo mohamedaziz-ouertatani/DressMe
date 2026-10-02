@@ -32,27 +32,12 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-from fashionclip import DATA, load_item_image, load_model, embed_pixels
+from fashionclip import load_model, embed_pixels
+from item_images import DATA, DATASETS, jobs_for, load_item_image, picture_key
 
 OUT_DIR = DATA / "processed" / "embeddings"
-MIN_SIDE = 32          # Fashionpedia crops below this size are skipped
 BATCH = 128
 WORKERS = int(os.environ.get("DRESSME_WORKERS", 2))
-DATASETS = ["fashion_product", "polyvore", "fashionpedia"]
-
-
-def picture_key(df):
-    """The key that identifies one picture: the file MD5, or the item for crops."""
-    return np.where(df["dataset"] == "fashionpedia", df["id"], df["image_group"])
-
-
-def jobs_for(df, dataset):
-    """One row per picture to embed for this dataset."""
-    d = df[df["dataset"] == dataset]
-    if dataset == "fashionpedia":
-        side = np.minimum(d["bbox_w"].astype(float), d["bbox_h"].astype(float))
-        d = d[side >= MIN_SIDE]
-    return d.drop_duplicates("key").reset_index(drop=True)
 
 
 class Pictures(Dataset):

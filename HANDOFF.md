@@ -11,7 +11,7 @@ An AI personal fashion assistant built by a team of 6 for an ESPRIT Advanced Dat
 - **Survey (57 responses):** black dominates 84% of wardrobes, 56% shop second-hand, 40% are frustrated by fit, and 42% want "should I buy this?" advice.
 - **Personas (Phase 1):** Amira, Youssef, Nour, Rania, Salma, Ines, Skander. The Phase 3 data collection plan (team PDF) maps each feature to a persona and a "How might we" question (H1–H9).
 
-Phases 1 (Empathize) and 2 (Ideate) are finished. **Phase 3 (data collection) is done on the public data**; the local photo collection is still to do. **Phase 4 (full prototype) has started.** It is split into five sub-projects: embeddings (done), classifier, compatibility, backend, frontend.
+Phases 1 (Empathize) and 2 (Ideate) are finished. **Phase 3 (data collection) is done on the public data**; the local photo collection is still to do. **Phase 4 (full prototype) has started.** It is split into five sub-projects: embeddings (done), classifier (done), compatibility, backend, frontend.
 
 ## Unified label schema (the target for every dataset)
 
@@ -129,13 +129,44 @@ Sections are numbered automatically from the `SECTIONS` list in the script.
   - Commands longer than 10 min must run as a separate process writing a log, because background tool commands are killed at 10 min. That is how the first PyTorch install got cut off.
   - sklearn's LogisticRegression was far too slow on this machine (25 s for 3,000 vectors), so the probes train on the GPU instead (`Probe` in `evaluate_embeddings.py`).
 
+## Phase 4: EfficientNet classifier (sub-project 2, done)
+
+- **Model:** EfficientNet-B0 with ImageNet weights, fine-tuned with three heads (category, sub_category, pattern).
+  - A picture only trains the heads it has a label for (PolyVore has no pattern).
+  - Classes are weighted 1/√frequency.
+- **Scripts:**
+  - `src/item_images.py`: shared picture helpers, PIL only.
+  - `src/build_image_cache.py`: the one-off image cache.
+  - `src/classifier.py`: the model, GPU batch decoding, and `predict()` for the API.
+  - `src/train_classifier.py`: training.
+  - `src/evaluate_classifier.py`: the evaluation.
+- **Image cache:** each distinct picture, letterboxed to a 224 px white square, packed into a single file `data/interim/image_cache_224.bin` (2.6 GB) with an index. The first version kept 282k small files, and training crawled at 49 img/s, because Windows opens small files at only ~300/s. With the packed file and GPU JPEG decoding, training runs at ~200 img/s and the GPU is the limit.
+- **Training:**
+  - 5 epochs of ~20 min each.
+  - AdamW, cosine schedule, mixed precision, batch size 64.
+  - Augmentation: crop, flip, brightness / contrast. No hue change, so colours stay true.
+  - The weights go to `models/checkpoints/classifier_best.pt` (git-ignored). The per-epoch log is `reports/classifier_training_log.csv`.
+- **Test results** (`reports/classifier_evaluation.md`; the FashionCLIP probe was scored on the same pictures):
+
+| field | EfficientNet | FashionCLIP probe | Fashionpedia (street crops), EfficientNet vs probe |
+|---|---:|---:|---:|
+| category | **95.7%** | 88.3% | 93.2% vs 80.8% |
+| sub_category | **86.4%** | 79.7% | 81.2% vs 69.1% |
+| pattern | **86.8%** | 74.2% | 87.1% vs 74.4% |
+
+- **Model choice:** under the team rule (whichever is better), **EfficientNet is used for all three fields** (`reports/classifier_choice.json`, read by the API).
+- **Weak spots:**
+  - `traditional` (kaftans; mostly read as dress) and `swimwear` have too few public pictures to learn. Local photos are needed.
+  - Small sub_categories are weaker; balanced accuracy is about 80%.
+  - `predict()` always gives a pattern and sub_category with a confidence, even for items like shoes, so the app should show the confidence or hide low-confidence answers.
+
 ## Next steps
 
 1. **Local data collection** (can run alongside Phase 4; plan: wardrobes 500–1,000 items, friperie 150–300, local garments 50–100, fit-check subset 50–100, ~100 near-duplicate pairs). It needs signed consent and blurred faces. Add the photos with `source` = wardrobe / friperie; the split script puts them in test.
 2. **Phase 4**, one design → plan → build cycle per sub-project:
    - ~~FashionCLIP embeddings~~ (done).
-   - **Next:** EfficientNet-B0 on `category` / `sub_category`, trained on `split` without duplicates. It must beat the linear probe (88% / 80%).
-   - Compatibility formula fitted on `outfit_split`.
+   - ~~EfficientNet classifier~~ (done: 95.7% category, 86.4% sub_category, 86.8% pattern).
+   - **Next:** compatibility formula fitted on `outfit_split`.
    - FastAPI + MongoDB backend (classify, similar items, score an outfit, Gemini chat).
    - React + Tailwind frontend.
 3. Add DeepFashion2 and DressCode when access is granted. ModaNet and VITON-HD are in the plan but not requested yet. The plan's Polyvore Outfits (68k) was replaced by the Maryland version.

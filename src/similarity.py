@@ -18,7 +18,7 @@ Needs data/processed/embeddings/ from src/embed_fashionclip.py.
 import numpy as np
 import pandas as pd
 
-from fashionclip import DATA
+from item_images import DATA
 
 EMB_DIR = DATA / "processed" / "embeddings"
 CHUNK = 50_000

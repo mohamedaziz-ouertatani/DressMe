@@ -92,7 +92,8 @@ def load_vectors():
     vecs = np.load(EMB_DIR / "fashionclip.npy", mmap_mode="r")
     meta = pd.read_csv(DATA / "processed" / "dressme.csv", dtype=str, keep_default_na=False,
                        usecols=["id", "dataset", "category", "sub_category", "pattern",
-                                "primary_colour", "colour_source", "duplicate", "split"])
+                                "primary_colour", "colour_source", "duplicate", "split",
+                                "image_group"])
     df = ids.reset_index().rename(columns={"index": "row"}).merge(meta, on="id")
     df = df[df["duplicate"] != "True"].reset_index(drop=True)
     return df, vecs
@@ -151,6 +152,20 @@ class Probe:
 
     def predict(self, X):
         return self.classes_[self.predict_proba(X).argmax(1)]
+
+    def state(self):
+        """Everything needed to rebuild the probe (tensors / strings only)."""
+        return {"classes": list(self.classes_), "mean": torch.tensor(self.mean),
+                "std": torch.tensor(self.std), "layer": self.layer.state_dict()}
+
+    @classmethod
+    def from_state(cls, s):
+        p = cls()
+        p.classes_ = np.array(s["classes"])
+        p.mean, p.std = s["mean"].numpy(), s["std"].numpy()
+        p.layer = torch.nn.Linear(p.mean.shape[0], len(p.classes_)).to(DEVICE)
+        p.layer.load_state_dict(s["layer"])
+        return p
 
 
 def probe(df, vecs, col, title):

@@ -9,7 +9,7 @@ ESPRIT · Advanced Data Science project · team of 6: Mohamed Khalil, Asma Driss
 | 1. Empathize (survey of 57 people, personas) | done |
 | 2. Ideate (14 features) | done |
 | 3. Data collection | public data done; local photo collection in progress |
-| 4. Full prototype | in progress: embeddings done; classifier, compatibility, backend, frontend next |
+| 4. Full prototype | in progress: embeddings and classifier done; compatibility, backend, frontend next |
 
 **Planned stack:**
 - Frontend: React + TailwindCSS.
@@ -26,7 +26,7 @@ A reproducible pipeline that turns three public fashion datasets into **one data
 - **Report:** [`reports/phase3_report.pdf`](reports/phase3_report.pdf), 18 pages. It covers EDA, label mapping, colour estimation, splits, decisions and next steps.
 
 ```
-src/          pipeline scripts (EDA, mapping, colours, merge, report, embeddings)
+src/          pipeline scripts (EDA, mapping, colours, merge, report, embeddings, classifier)
 mappings/     every label rule, as editable CSV files
 reports/      EDA reports (markdown), figures, Phase 3 PDF
 notebooks/    exploration
@@ -146,6 +146,34 @@ index.search(index.vector("fpd_val_123"), k=5, datasets=["polyvore"])
 ```
 
 - If you get a `MemoryError`, lower the loader processes with `DRESSME_WORKERS` (default 2).
+
+## Phase 4: EfficientNet classifier
+
+One picture in; category, sub_category and pattern out. EfficientNet-B0 is fine-tuned on the train split (about 2 h on an RTX 2050).
+
+```bash
+python src/build_image_cache.py      # once: every picture as a 224 px square, packed into one file (~35 min + packing)
+python src/train_classifier.py       # ~5 x 20 min -> models/checkpoints/classifier_best.pt (not in git)
+python src/evaluate_classifier.py    # -> reports/classifier_evaluation.md, reports/classifier_choice.json
+```
+
+Run long steps in a terminal you can leave open; training resumes from the last epoch if it stops.
+
+| test accuracy | EfficientNet | FashionCLIP linear probe |
+|---|---:|---:|
+| category | **95.7%** | 88.3% |
+| sub_category | **86.4%** | 79.7% |
+| pattern | **86.8%** | 74.2% |
+
+Using it from Python:
+
+```python
+from classifier import load_classifier, predict   # run from src/
+from PIL import Image
+model, device = load_classifier()
+predict([Image.open("photo.jpg")], model, device)
+# [{'category': 'top', 'category_conf': 0.99, 'sub_category': 'shirt', 'pattern': 'checked', ...}]
+```
 
 ### Colour validation (optional)
 

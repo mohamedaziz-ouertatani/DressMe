@@ -1,0 +1,20 @@
+{
+  "category": {
+    "model": "efficientnet",
+    "efficientnet": 0.9568,
+    "fashionclip_probe": 0.8826,
+    "test_items": 29633
+  },
+  "sub_category": {
+    "model": "efficientnet",
+    "efficientnet": 0.8641,
+    "fashionclip_probe": 0.7971,
+    "test_items": 16228
+  },
+  "pattern": {
+    "model": "efficientnet",
+    "efficientnet": 0.8679,
+    "fashionclip_probe": 0.7425,
+    "test_items": 7844
+  }
+}

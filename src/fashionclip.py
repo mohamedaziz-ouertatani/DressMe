@@ -15,16 +15,13 @@ The model weights (~600 MB) are downloaded once into the Hugging Face cache
 (outside the repo, never committed).
 """
 
-from pathlib import Path
-
 import numpy as np
 import torch
-from PIL import Image
 
-ROOT = Path(__file__).resolve().parents[1]
-DATA = ROOT / "data"
+# load_item_image lives in item_images.py (no PyTorch); re-exported here
+from item_images import DATA, ROOT, load_item_image  # noqa: F401
+
 MODEL_NAME = "patrickjohncyh/fashion-clip"
-CROP_PADDING = 0.05   # Fashionpedia crops get 5% extra margin around the bbox
 
 
 def load_model(device=None):
@@ -36,21 +33,6 @@ def load_model(device=None):
     model = CLIPModel.from_pretrained(MODEL_NAME, dtype=dtype).to(device).eval()
     processor = CLIPProcessor.from_pretrained(MODEL_NAME)
     return model, processor, device
-
-
-def load_item_image(row):
-    """Open the picture of one dressme.csv row (a dict or a pandas row).
-
-    Fashionpedia rows have a bbox: the item is cropped out of the street photo,
-    with a small margin so the edges of the garment are not cut.
-    """
-    img = Image.open(DATA / row["image_path"]).convert("RGB")
-    if str(row.get("bbox_w", "")) not in ("", "nan"):
-        x, y, w, h = (float(row[k]) for k in ("bbox_x", "bbox_y", "bbox_w", "bbox_h"))
-        pad_w, pad_h = w * CROP_PADDING, h * CROP_PADDING
-        img = img.crop((max(0, x - pad_w), max(0, y - pad_h),
-                        min(img.width, x + w + pad_w), min(img.height, y + h + pad_h)))
-    return img
 
 
 def _as_tensor(out):
