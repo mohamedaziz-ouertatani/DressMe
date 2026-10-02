@@ -11,7 +11,7 @@ An AI personal fashion assistant built by a team of 6 for an ESPRIT Advanced Dat
 - **Survey (57 responses):** black dominates 84% of wardrobes, 56% shop second-hand, 40% are frustrated by fit, and 42% want "should I buy this?" advice.
 - **Personas (Phase 1):** Amira, Youssef, Nour, Rania, Salma, Ines, Skander. The Phase 3 data collection plan (team PDF) maps each feature to a persona and a "How might we" question (H1–H9).
 
-Phases 1 (Empathize) and 2 (Ideate) are finished. **Phase 3 (data collection) is done on the public data**; the local photo collection is still to do. **Phase 4 (full prototype) has started.** It is split into five sub-projects: embeddings (done), classifier (done), compatibility, backend, frontend.
+Phases 1 (Empathize) and 2 (Ideate) are finished. **Phase 3 (data collection) is done on the public data**; the local photo collection is still to do. **Phase 4 (full prototype) has started.** It is split into five sub-projects: embeddings (done), classifier (done), compatibility (done), backend, frontend.
 
 ## Unified label schema (the target for every dataset)
 
@@ -160,14 +160,53 @@ Sections are numbered automatically from the `SECTIONS` list in the script.
   - Small sub_categories are weaker; balanced accuracy is about 80%.
   - `predict()` always gives a pattern and sub_category with a confidence, even for items like shoes, so the app should show the confidence or hide low-confidence answers.
 
+## Phase 4: compatibility formula (sub-project 3, done)
+
+- **The formula** (`src/compatibility.py`): **score = Σ weight × part**, shown from 0 to 100 with short reasons ("red and pink clash", "two bold patterns", "no shoes").
+  - **The four parts** (0 = bad, 1 = good):
+    - style: average FashionCLIP similarity of the items;
+    - colour: pair table from colour groups + specific pairs, and a penalty above 3 bold colours;
+    - pattern: the worst pattern pair among the clothes;
+    - structure: wearable outfit + category limits.
+  - **Unknown parts** (e.g. no colours known) are left out and the other weights are rescaled.
+- **Set by the team** (team decision 2026-10-02: hand-tuned, the data only measures):
+  - the starting weights style 0.35 / colour 0.30 / pattern 0.15 / structure 0.20;
+  - every rule, in `mappings/compatibility_weights.csv`, `colour_groups.csv`, `colour_harmony.csv`, `pattern_mixing.csv` and `outfit_structure.csv`.
+
+  All are marked REVIEW.
+- **Personal filters on top** (team decision): `filter_items(items, profile)` drops items below the user's modesty (coverage) level, or not for the season / occasion. Unknown fields always pass.
+- **App functions:**
+  - `score_outfit`;
+  - `suggest_outfits`: best cores, completed with shoes / outerwear / bag / accessory; each item appears in at most 2 suggestions;
+  - `buy_advice`: buy / think / skip, from the good outfits where the new item **beats every item of its category you already own**, and it warns about near-twins you already own;
+  - `complete_outfit`.
+- **Classifier predictions:** `src/predict_item_attributes.py` → `data/processed/predicted_attributes.csv` (306,636 rows). PolyVore has no pattern labels, so the formula uses the predicted pattern above confidence 0.6.
+- **Evaluation** (`reports/compatibility_evaluation.md`; to try other weights: `python src/evaluate_compatibility.py --weights style=..,colour=..,pattern=..,structure=..`):
+
+| test set | team weights AUC / FITB | style alone AUC / FITB |
+|---|---:|---:|
+| PolyVore, 904 clean test outfits | 66.6% / 42.6% | 72.9% / 49.7% |
+| Fashionpedia, 2,710 test photos | 78.7% / 59.5% | 84.6% / 70.0% |
+
+  AUC chance = 50%, FITB chance = 25%.
+  - **Colour and pattern** add no measurable signal in this test (about 51%); half of PolyVore items have no colour.
+  - **Structure** can't add any, by design: a swap keeps the category.
+  - The learned reference puts about 95% of the weight on style.
+  - **For the team:** consider raising the style weight. Colour and pattern still give users readable reasons.
+- **Style scale:** real outfits average 0.35–0.55 FashionCLIP similarity. The CSV maps 0.2 → 0 and 0.8 → 1. A narrower scale made scores pile up at 100 (ties).
+- **Checks of `buy_advice`:**
+  - removing the best outfit's top / bottom / shoes from a mock wardrobe and offering it back gives "buy" (5–7 winning outfits);
+  - an exact copy of an owned item gives "skip", with the near-twin warning.
+- **Limit:** PolyVore taste (online collages) and Fashionpedia (runway / street) aren't Tunisian friperie wardrobes. The local photos and user feedback are the real test.
+
 ## Next steps
 
 1. **Local data collection** (can run alongside Phase 4; plan: wardrobes 500–1,000 items, friperie 150–300, local garments 50–100, fit-check subset 50–100, ~100 near-duplicate pairs). It needs signed consent and blurred faces. Add the photos with `source` = wardrobe / friperie; the split script puts them in test.
 2. **Phase 4**, one design → plan → build cycle per sub-project:
    - ~~FashionCLIP embeddings~~ (done).
    - ~~EfficientNet classifier~~ (done: 95.7% category, 86.4% sub_category, 86.8% pattern).
-   - **Next:** compatibility formula fitted on `outfit_split`.
-   - FastAPI + MongoDB backend (classify, similar items, score an outfit, Gemini chat).
+   - ~~Compatibility formula~~ (done; the team still has to tune the weights in `mappings/compatibility_weights.csv`).
+   - **Next:** FastAPI + MongoDB backend (classify, similar items, score / suggest / buy advice / complete, Gemini chat).
    - React + Tailwind frontend.
 3. Add DeepFashion2 and DressCode when access is granted. ModaNet and VITON-HD are in the plan but not requested yet. The plan's Polyvore Outfits (68k) was replaced by the Maryland version.
 
