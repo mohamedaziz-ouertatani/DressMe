@@ -1,4 +1,4 @@
-# DressMe — Handoff (2026-10-03)
+# DressMe — Handoff (2026-10-03, updated 10:00)
 
 Paste this file into a new Claude Code session on your machine to pick up the project. Read the first six sections first (state, branches, commands, next steps); everything after "Reference" is the detailed record of what was built and decided.
 
@@ -10,45 +10,34 @@ Paste this file into a new Claude Code session on your machine to pick up the pr
   - **PolyVore** (`src/map_polyvore.py` → `polyvore.csv`, 125,910 rows): labelled by folder only; `image_group` = file MD5; pictures found in two folders dropped.
   - Colours for PolyVore / Fashionpedia come from `src/estimate_colours.py` (gradient boosting on Lab histograms, kept only at confidence ≥ 0.7).
   - The local photo collection (wardrobe / friperie) is still to do.
-- **Phase 4:** embeddings, classifier, compatibility formula and **backend are done and on `main`**. The **frontend is done but NOT on `main` yet** (see section 2).
-- **Shop data (this session):** `src/scrape_shops.py` scraped Zara Tunisia (men + women, stock per size) with Playwright. After one successful run, Zara, Bershka and Pull&Bear all answered "Access Denied" (Akamai bot protection). **Team decision: scraping is stopped; never try to get around the block.** The rows already scraped are frozen as a static demo by `src/freeze_shop_demo.py` → `data/processed/shop_demo.csv` + `shop_demo_images/` (see section 4). Bershka / Pull&Bear were never scraped successfully.
+- **Phase 4: all five sub-projects are done and on `main`:** embeddings, classifier, compatibility formula, backend, and the React frontend + admin dashboard (#8).
+- **Shop catalogue = H&M (#9).** Scraping Zara / Bershka / Pull&Bear is stopped (all three block it; team decision: never get around it). Instead, "buy something like this" uses the **H&M catalogue from Kaggle**: 63,005 adult products mapped to the schema, 62,741 searchable with FashionCLIP. `/similar` returns them as `shop`, and the app's **Similar pieces** screen shows them in a "Buy something like this" row. See "H&M shop catalogue" in the Reference part.
+- The Zara rows scraped before the block stay a **static demo** (`src/freeze_shop_demo.py` → `data/processed/shop_demo.csv`), not used by the app.
+- **`/chat` fix (#9):** `gemini-2.5-flash` no longer works with new API keys (404, shown as 503); the default model is now `gemini-3.8-flash`.
 
 ## 2. Branches and pull requests
 
-| Branch | What it holds | State |
+Only **`main`** is left (plus `imgbot`, whose optional PR #1 is still open). Every other branch was merged or closed and deleted on 2026-10-03.
+
+| PR | What | State |
 |---|---|---|
-| `main` | Phases 3, 4.1–4.4 (backend), first scraper commit | up to date with #3 and #5 |
-| `claude/zen-einstein-hrk6yj` | `main` + scraper fixes (Zara store id, per-colour stock, block-page stop) + `src/freeze_shop_demo.py` + this HANDOFF.md | **pushed, no PR yet**: 3 files differ from `main` plus HANDOFF.md, merges cleanly |
-| `phase4-backend` | backend + **frontend** (#4 was squash-merged here as `dea1518`) | its backend part is already on `main`; the frontend part is stranded here |
-| `phase4-frontend` | the frontend before the squash (`d20eb7d`) | merged into `phase4-backend`, can be deleted |
-| `phase4-compatibility`, `imgbot` | old | `phase4-compatibility` can be deleted; ImgBot PR #1 is open and optional |
+| #1 | ImgBot: optimise images | **open**, optional |
+| #2, #3, #5, #6 | compatibility, backend, scraper, scraper fixes + this file | merged (squashed) |
+| #4 | frontend; merged into `phase4-backend` *after* that branch had gone into `main`, so it missed `main` | landed on `main` through #8 |
+| #7 | accidental revert of #6 | closed, not merged |
+| #8 | frontend + admin dashboard → `main` | merged |
+| #9 | H&M shop catalogue + `/chat` model fix | merged |
 
-Pull requests (github.com/mohamedaziz-ouertatani/DressMe):
-
-- #1 ImgBot (optimise images): **open**, optional.
-- #2 compatibility, #3 backend, #5 scraper: **closed, their content is on `main`** (squashed).
-- #4 frontend: **closed into `phase4-backend`, not into `main`.** `main` has no `frontend/` folder, `PRODUCT.md`, `DESIGN.md`, admin router or `seed_demo`.
-
-**Landing the frontend on `main`:** merging `phase4-backend` into `main` gives ~10 add/add conflicts (`main` holds a squashed copy of the same backend). Replaying only the frontend commit is clean (checked):
-
-```bash
-git checkout main && git pull origin main
-git checkout -b phase4-frontend-main
-git cherry-pick dea1518                 # the frontend squash commit; applies cleanly
-git checkout main -- HANDOFF.md         # that commit deletes HANDOFF.md: keep it
-git commit -m "Keep HANDOFF.md"
-git push -u origin phase4-frontend-main # then open a PR into main
-```
-
-Note: "Ticket & Recharge-Card Stock" in the frontend commit title is the name of its visual theme (ticket / stamp UI pieces, see `DESIGN.md`), not code from another project.
+**Lessons, to avoid repeating them:**
+- With stacked PRs (B based on A), merge B into A *before* A goes into `main`, or retarget B to `main` first. Otherwise B lands on a dead branch (#4).
+- After a squash merge, the old branch can't be merged again (git sees "added on both sides" conflicts). Start new work from a fresh `main`.
+- Two Claude sessions in the same folder leave half-finished merges behind. Before switching branches, run `git status`; if a merge is in progress, check what it would change (`git diff --cached --stat HEAD`) before aborting.
 
 ## 3. Step-by-step local commands (Windows, from `C:\dev\DressMe`)
 
 ```bash
-# 0. get this branch
-git fetch origin
-git checkout claude/zen-einstein-hrk6yj
-git pull origin claude/zen-einstein-hrk6yj
+# 0. get the code
+git checkout main && git pull origin main
 
 # 1. virtual environment (once)
 python -m venv .venv
@@ -57,22 +46,24 @@ pip install -r requirements.txt
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126   # GPU build FIRST
 pip install -r requirements-models.txt
 pip install -r backend/requirements.txt
-pip install -r requirements-scraping.txt   # only for the shop scripts (playwright)
 
-# 2. freeze the shop demo (reads data/raw/Shops/*/products.csv, never scrapes)
-python src/freeze_shop_demo.py              # add --no-images if the picture server refuses too
-
-# 3. backend (needs the local MongoDB service running)
+# 2. backend (needs the local MongoDB service running)
 copy backend\.env.example backend\.env      # then set JWT_SECRET (and GEMINI_API_KEY for /chat)
 cd backend
-python -m pytest                            # 19 fast tests, ~12 s
+python -m pytest                            # 24 fast tests, ~15 s
 uvicorn app.main:create_app --factory --port 8000   # http://localhost:8000/docs, models load in ~1 min
+python -m app.seed_demo                     # once, with the API running: demo + admin accounts, passwords written to backend/.env
+python -m app.make_admin you@example.com    # optional: make an existing account admin
 
-# 4. frontend (only after it is on your branch, see section 2)
+# 3. frontend (second terminal)
 cd frontend
-npm install
-npm run dev                                 # http://localhost:5173, API on :8000
+npm install                                 # first time only
+npm run dev                                 # http://localhost:5173, forwards /api to :8000
 ```
+
+Demo login: `demo@example.com` (admin: `admin@example.com`); the passwords are on the `DEMO_PASSWORD` / `DEMO_ADMIN_PASSWORD` lines of `backend/.env`.
+
+**Restart the backend after rebuilding any vectors** (`embed_fashionclip.py`, `embed_hm.py`): it loads the catalogues only at start-up.
 
 Do NOT run `src/scrape_shops.py` again: all three shops block it, and retrying makes the block last longer.
 
@@ -87,38 +78,37 @@ Nothing under `data/` or `models/` is in git; it exists only on your machine. Da
 | `dressme.csv` | `src/merge_and_split.py` | the merged dataset: `split` (per picture, for classification), `outfit_split` (per outfit), `outfit_clean`, `duplicate` |
 | `embeddings/fashionclip.npy` + `fashionclip_ids.csv` | `src/embed_fashionclip.py` | 306,636 × 512 float16 |
 | `predicted_attributes.csv` | `src/predict_item_attributes.py` | classifier predictions, never labels |
-| `shop_demo.csv` + `shop_demo_images/` | `src/freeze_shop_demo.py` | **static** Zara demo snapshot (2026-10-03), see below |
+| `hm.csv` | `src/map_hm.py` | **H&M shop catalogue**, 63,005 rows, ids `hm_`; not part of `dressme.csv` |
+| `embeddings/hm_fashionclip.npy` + `hm_fashionclip_ids.csv` | `src/embed_hm.py` | 62,741 × 512 float16 (the shop search) |
+| `shop_demo.csv` + `shop_demo_images/` | `src/freeze_shop_demo.py` | **static** Zara demo snapshot (2026-10-03), not used by the app |
 
-Raw shop data: `data/raw/Shops/<brand>_tn/products.csv` (one row per product colour, ids `zr_` / `bk_` / `pb_`), `stock_history.csv`, cached API answers in `raw/`, and `debug_home.*` (the "Access Denied" pages).
+Raw H&M data: `data/raw/HM/articles.csv` + `images/<article_id>.jpg` (70,521 pictures, 320 px). Raw shop data: `data/raw/Shops/<brand>_tn/` (see "Shop data" in the Reference part).
 
-**`shop_demo.csv`:** brand, gender, name, colour, category path, `price_tnd` (raw price / 100, matches zara.com/tn), link, picture, sizes, `availability`, and `availability_level`:
-- `colour` = stock checked for that exact colour;
-- `product` = rows scraped before the per-colour fix (that is all the current Zara rows): "in_stock" only means *some colour or size* of the product was in stock on 2026-10-03. Present it that way in the demo.
+**`shop_demo.csv` caveat:** `availability_level` = `product` for all current Zara rows: "in_stock" only means *some colour or size* of the product was in stock on 2026-10-03.
 
-Shop items are **not mapped to the unified schema** (no `category` / `colour` from the palette yet), and `source` has no value for shop items: a team decision.
+Shop items (H&M and Zara) have no `source` value yet: a team decision.
 
 **Rule files in `mappings/`** (rules live in CSVs, never in code; the apply scripts fail when a source value has no rule; multi-value fields use `|`; unknown stays empty):
-- label mappings: `fashion_product_*.csv`, `fashionpedia_*.csv`, `polyvore_folder.csv`, shared `sub_category_vocabulary.csv` and `colour_palette.csv`. No open `REVIEW` rows since 2026-10-01.
+- label mappings: `fashion_product_*.csv`, `fashionpedia_*.csv`, `polyvore_folder.csv`, `hm_*.csv`, shared `sub_category_vocabulary.csv` and `colour_palette.csv`. No open `REVIEW` rows.
 - compatibility rules (set by the TEAM, all `REVIEW` until tuned): `compatibility_weights.csv`, `colour_groups.csv`, `colour_harmony.csv`, `pattern_mixing.csv`, `outfit_structure.csv`. Never change the weights from the data without the team; the frontend's admin formula editor rewrites `compatibility_weights.csv`.
 
-## 5. Immediate next steps for the new session
+## 5. Immediate next steps
 
-1. **Merge this branch:** open a PR `claude/zen-einstein-hrk6yj` → `main` (scraper fixes + freeze script + HANDOFF.md). It merges cleanly.
-2. **Land the frontend on `main`** with the cherry-pick in section 2, run `npm run build` and `python -m pytest`, then open the PR.
-3. **Run the full stack locally** (section 3), seed the demo accounts (`python -m app.seed_demo` from `backend/`, with the API running; the passwords go to `backend/.env`), make an admin (`python -m app.make_admin <email>`), and set `GEMINI_API_KEY` to enable the chat.
-4. **Optional: tag the shop demo pictures with the classifier** (section 6, prompt B).
-5. Team decisions still open: tune the compatibility weights (style alone scores better), pick a `source` value for shop items, and fill the *[to fill]* parts of the Phase 3 report (who labels the local photos, collection dates).
-6. Local photo collection (consent, blurred faces; `source` = wardrobe / friperie, always in test).
+1. **Full walkthrough of the app before the demo:** scan → buy advice, wardrobe corrections, outfits, chat, Similar pieces (with the H&M row), in English / French / Arabic, on desktop and phone sizes. Nobody has tested the whole journey since the frontend, backend, H&M and the chat fix came together. List what's broken, then fix it (prompt A).
+2. **Local photo collection (team):** the biggest gap. Every result so far is on public datasets; even 100–200 friperie / wardrobe photos (consent, blurred faces; `source` = wardrobe / friperie, always in test) would show whether the classifier and colour model hold up on real use.
+3. **Team decisions still open:** tune the compatibility weights (style alone scores better: 72.9% vs 66.6% AUC on PolyVore), pick a `source` value for shop items, and fill the *[to fill]* parts of the Phase 3 report (who labels the local photos, collection dates).
+4. **Dropped:** tagging the Zara demo pictures with the classifier (old prompt B). H&M gives 62k products with real labels, so it's no longer worth it.
+5. Optional tidy-up: close or merge ImgBot PR #1.
 
 ## 6. Ready-to-paste prompts for the new session
 
-**Prompt A: backend (sub-project 4) running locally and frontend on main**
+**Prompt A: full walkthrough of the app**
 
-> Read CLAUDE.md and HANDOFF.md. The FastAPI + MongoDB backend (sub-project 4) is on `main` in `backend/`; the React frontend is only on `phase4-backend` (squash commit `dea1518`). 1) Create `phase4-frontend-main` from `main`, cherry-pick `dea1518`, keep `HANDOFF.md`, and check that `python -m pytest` in `backend/` and `npm run build` in `frontend/` pass. 2) Help me run the stack locally on Windows: MongoDB service, `backend/.env` from `.env.example` (JWT_SECRET, GEMINI_API_KEY), `uvicorn app.main:create_app --factory --port 8000`, `python -m app.seed_demo`, `npm run dev`. 3) Walk through scan → buy advice, wardrobe corrections, outfits and chat, and list anything broken. Don't change the compatibility weights.
+> Read CLAUDE.md and HANDOFF.md. Everything is on `main`. Help me run the stack locally (section 3: MongoDB service, `uvicorn …`, `npm run dev`); I'll log in with the demo account myself. Then walk through scan → "should I buy this?", wardrobe corrections (colour confirmation), today's outfit / build, chat, and Similar pieces (with the H&M "Buy something like this" row), in English, French and Arabic (right-to-left), on desktop and a phone-sized screen. List everything broken or confusing, ranked, before fixing anything. Don't change the compatibility weights.
 
-**Prompt B: classifier tags for the shop demo (optional)**
+**Prompt B: rebuild the H&M catalogue on another machine**
 
-> Read CLAUDE.md and HANDOFF.md. `data/processed/shop_demo.csv` + `shop_demo_images/<id>.jpg` is a static Zara Tunisia snapshot. Write `src/tag_shop_demo.py`: run `classifier.predict` (category, sub_category, pattern), the gradient-boosting colour model (`models/checkpoints/colour_model.joblib`, cut 0.7) and FashionCLIP on each picture, and write `data/processed/shop_demo_tagged.csv` (+ vectors) with the confidences. These are predictions, never labels (like `predicted_attributes.csv`). Then compare the predicted category with Zara's category path (`FEMME > JEANS`...) as a small sanity check, and propose (don't build yet) how the backend could show these as "in Tunisian shops" items next to buy advice, keeping the "availability on 2026-10-03, product level" caveat.
+> Read CLAUDE.md and HANDOFF.md, section "H&M shop catalogue". On this machine `data/raw/HM/` is empty. Check that my Kaggle API account accepted the H&M competition rules, then run the four steps (articles.csv, `map_hm.py`, the private notebook + `fetch_hm_images.py`, `embed_hm.py`) and confirm `/similar` returns a `shop` list. Watch the disk space (~1.7 GB needed while unzipping).
 
 ---
 
@@ -133,7 +123,7 @@ An AI personal fashion assistant built by a team of 6 for an ESPRIT Advanced Dat
 - **Survey (57 responses):** black dominates 84% of wardrobes, 56% shop second-hand, 40% are frustrated by fit, and 42% want "should I buy this?" advice.
 - **Personas (Phase 1):** Amira, Youssef, Nour, Rania, Salma, Ines, Skander. The Phase 3 data collection plan (team PDF) maps each feature to a persona and a "How might we" question (H1–H9).
 
-Phases 1 (Empathize) and 2 (Ideate) are finished. **Phase 3 (data collection) is done on the public data**; the local photo collection is still to do. **Phase 4 (full prototype) has started.** It is split into five sub-projects: embeddings (done), classifier (done), compatibility (done), backend (done), frontend.
+Phases 1 (Empathize) and 2 (Ideate) are finished. **Phase 3 (data collection) is done on the public data**; the local photo collection is still to do. **Phase 4 (full prototype) is done:** five sub-projects, all on `main`: embeddings, classifier, compatibility, backend, frontend (+ the H&M shop catalogue).
 
 ## Unified label schema (the target for every dataset)
 
@@ -213,7 +203,7 @@ Colour validation (already done): `src/make_colour_labelling_sheet.py` → `data
 
 ## Open team decisions
 
-None in the label mappings: every `REVIEW` row there was settled on 2026-10-01 (see above). Still open: the compatibility weights and rules (all `REVIEW`), a `source` value for shop items, and the Phase 3 report's *[to fill]* parts (see section 5).
+None in the label mappings: every `REVIEW` row there was settled on 2026-10-01 (see above). Still open: the compatibility weights and rules (all `REVIEW`), a `source` value for shop items (H&M and Zara), and the Phase 3 report's *[to fill]* parts (see section 5).
 
 ## The report
 
@@ -344,9 +334,27 @@ Sections are numbered automatically from the `SECTIONS` list in the script.
 - **Chat:** Gemini automatic function calling with four tools bound to the user (`list_wardrobe`, `suggest_outfits`, `score_outfit`, `buy_advice_last_scan`). The system prompt asks it to use the real wardrobe, answer in the user's language and respect their modesty level. **It needs `GEMINI_API_KEY` in `backend/.env`** (not set yet); without it `/chat` answers 503.
 - **Colour model:** `src/estimate_colours.py` now saves the trained model to `models/checkpoints/colour_model.joblib`, which the backend uses for uploads. Re-running it gave byte-identical estimates.
 - **Tests** (`backend/tests/`):
-  - 19 fast tests with fake models / Gemini on a `dressme_test` database (~12 s). They cover auth, validation, privacy (other users' items → 404), uploads, corrections, outfits, buy advice, similar items and chat.
+  - 19 fast tests at the time (24 since the frontend and H&M work) with fake models / Gemini on a `dressme_test` database (~12 s). They cover auth, validation, privacy (other users' items → 404), uploads, corrections, outfits, buy advice, similar items and chat.
   - `DRESSME_SLOW=1` adds 2 tests of the real models (category right on at least 36 of 40 test photos; catalog search).
 - **Live check** of the real server: 8 real photos uploaded, **8/8 categories right**. Suggest, buy advice, similar, catalog images and chat (503 without a key) all work. Colours: 3 of 8 were confident (one of them wrong: navy read as black), and 5 were left for the user to confirm, so **the frontend must make colour easy to confirm**.
+
+## Phase 4: frontend and admin dashboard (sub-project 5, done)
+
+- `frontend/`: React 19 + Vite + TypeScript + Tailwind 4 (see `frontend/README.md`; `DESIGN.md` for the visual system "Ticket & Recharge-Card Stock"; `PRODUCT.md` for the brief).
+- Screens: Today's outfit, Scan ("should I buy this?" with a stamped BUY / THINK / SKIP), Wardrobe (every predicted field correctable; dashed = guessed, solid = confirmed), Build, Assistant chat, Similar pieces (wardrobe look-alikes, H&M products to buy, dataset inspiration), Profile. English, French, Arabic (right-to-left).
+- Admins get `/admin`: usage stats, model quality (how often users correct each prediction), user management, and the formula editor (rewrites `mappings/compatibility_weights.csv`).
+- Images are loaded with the `Authorization` header (blob URLs), not `?token=` links.
+- It reached `main` through #8 (see section 2 for why #4 missed it).
+
+## H&M shop catalogue (2026-10-03, #9)
+
+- **Why:** the shops block scraping, so the "buy something like this" suggestions come from H&M Personalized Fashion Recommendations (Kaggle competition, closed). Real retail products with type, colour and pattern labels; **no price, no stock**. Licence: non-commercial use under the competition rules; the pictures belong to H&M. It is a shop catalogue, **not** training data: never merge it into `dressme.csv`.
+- **Kaggle access:** the account must have accepted the rules (closed competition: the **Late Submission** button shows them; nothing to submit). The Kaggle CLI reads `~/.kaggle/access_token` **before** `kaggle.json`: both must belong to that account (mohameddazizz). A 403 means the wrong account, a 401 an expired key.
+- **Labels:** `src/map_hm.py` + `mappings/hm_*.csv` → `data/processed/hm.csv`: 105,542 articles → 63,005 adult products (children's wear, underwear, nightwear, socks and non-clothing dropped). Notable rules: blouse → shirt (like Fashionpedia), polo → t-shirt, denim trousers → jeans and men's swimwear bottoms → swim-shorts (`hm_refine_rules.csv`), "Greenish Khaki" → olive, boots → shoes with no sub_category (not in the vocabulary). Pattern comes from "graphical appearance", with keywords in the name / description where it's unclear; textures (lace, sequin…) stay empty.
+- **Pictures:** the full set is ~30 GB, and Kaggle allows only ~500 single-file downloads per period (429 Too Many Requests, then pauses of 12–40 min), so downloading one by one would take days. Instead a **private** Kaggle notebook (`kaggle/hm_images/`, `kaggle kernels push -p kaggle/hm_images`) shrinks the 70,521 adult pictures to 320 px into one zip (670 MB, 15 min on Kaggle), and `src/fetch_hm_images.py` downloads and unpacks it. Kaggle mounts the competition data under a path that changes, so the notebook searches `/kaggle/input`. Keep the notebook private.
+- **Vectors:** `src/embed_hm.py` → `embeddings/hm_fashionclip.*` (62,741 products, ~5 min on the GPU once the pictures are in the disk cache). It writes `.new` files and then swaps them in: on Windows a running backend used to hold the old file open, and a whole run was lost. The backend now reads this file into memory (64 MB) instead of keeping it open.
+- **API and app:** `SimilarityIndex.load_shop()`, `Catalog.search_shop()`; `/similar` returns `shop` (name, department, colour, score, picture at `/catalog/hm_<id>/image`) in the item's category, or an empty list if the H&M files are missing. The app shows them on Similar pieces.
+- **Quality check:** with Fashion Product items as queries, the closest H&M product has the same category 93.6% of the time even without the category filter (500 items). Navy jeans → blue / navy skinny jeans (0.78–0.80), white sneakers → white runners, green tee → green / teal tees. Weakest: colour on dresses (the shape matches better than the colour).
 
 ## Shop data: scraper and static demo (2026-10-03)
 
