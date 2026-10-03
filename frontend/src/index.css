@@ -1,0 +1,170 @@
+@import "tailwindcss";
+@import "@fontsource-variable/readex-pro";
+@import "@fontsource/jetbrains-mono/500.css";
+
+/* DressMe tokens: ticket & recharge-card stock.
+   stock = the guilloché ground, paper = a ticket's face, ink = security-print
+   ultramarine, stamp = validation magenta (ONLY the active verdict / selection). */
+@theme {
+  --color-stock: #e6f0ea;   /* with the guilloché lines on top, the ground reads as #E3EDE7 */
+  --color-stock-deep: #d3e2d8;
+  --color-paper: #f5f9f6;
+  --color-ink: #1e2e8e;
+  --color-ink-soft: #3a4796;
+  --color-carbon: #14161a;
+  --color-carbon-soft: #3b4440;
+  --color-perf: #9aa7a1;
+  --color-stamp: #c8234f;
+  --color-stamp-deep: #a51a40;
+
+  --font-sans: "Readex Pro Variable", "Readex Pro", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --radius-none: 0;
+  --shadow-ticket: 0 1px 1px rgb(20 22 26 / 0.06), 0 6px 14px -6px rgb(30 46 142 / 0.22);
+  --shadow-lift: 0 2px 2px rgb(20 22 26 / 0.08), 0 14px 28px -10px rgb(30 46 142 / 0.32);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    color-scheme: light;
+  }
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background-color: var(--color-stock);
+    background-image: url("./assets/guilloche.svg");
+    background-size: 240px 96px;
+    color: var(--color-carbon);
+    font-family: var(--font-sans);
+    font-feature-settings: "tnum" 0;
+    -webkit-font-smoothing: antialiased;
+    caret-color: var(--color-ink);
+    accent-color: var(--color-ink);
+  }
+  ::selection {
+    background: var(--color-ink);
+    color: var(--color-paper);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+  /* scrollbars in ticket colours */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-perf) transparent;
+  }
+  a {
+    text-underline-offset: 0.2em;
+    text-decoration-thickness: 1px;
+  }
+  /* numbers in data line up */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  /* swipeable chip rows: no visible scrollbar */
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  [dir="rtl"] .mirror-rtl {
+    transform: scaleX(-1);
+  }
+}
+
+@layer components {
+  /* A ticket: paper face, square corners, soft depth. */
+  .ticket {
+    position: relative;
+    background: var(--color-paper);
+    box-shadow: var(--shadow-ticket);
+  }
+
+  /* Perforation between a ticket and its stub. Notches are punched out of the
+     top and bottom edge with circles of the page's own ground colour. */
+  .perf-v {
+    position: relative;
+    border-inline-start: 1.5px dashed var(--color-perf);
+  }
+  .perf-v::before,
+  .perf-v::after {
+    content: "";
+    position: absolute;
+    inset-inline-start: -8px;
+    width: 14px;
+    height: 14px;
+    border-radius: 9999px;
+    background: var(--color-stock);
+  }
+  .perf-v::before {
+    top: -7px;
+  }
+  .perf-v::after {
+    bottom: -7px;
+  }
+  .perf-h {
+    border-top: 1.5px dashed var(--color-perf);
+  }
+
+  /* Field state in line form, not colour: guessed by the model = dashed,
+     confirmed by the user = solid. */
+  .field-guess {
+    border-bottom: 1.5px dashed var(--color-ink);
+  }
+  .field-sure {
+    border-bottom: 1.5px solid var(--color-carbon);
+  }
+
+  .stamp-land {
+    animation: stamp-land 260ms var(--ease-out-expo) both;
+  }
+
+  .skeleton {
+    background: linear-gradient(90deg, var(--color-stock-deep) 0%, var(--color-stock) 50%, var(--color-stock-deep) 100%);
+    background-size: 200% 100%;
+    animation: skeleton 1.4s linear infinite;
+  }
+}
+
+@keyframes stamp-land {
+  from {
+    transform: scale(1.4) rotate(var(--stamp-from, -16deg));
+    opacity: 0;
+    filter: blur(3px);
+  }
+  55% {
+    transform: scale(0.95) rotate(var(--stamp-angle, -9deg));
+    opacity: 1;
+    filter: blur(0);
+  }
+  to {
+    transform: scale(1) rotate(var(--stamp-angle, -9deg));
+  }
+}
+
+@keyframes skeleton {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp-land {
+    animation: stamp-fade 200ms ease-out both;
+    transform: rotate(var(--stamp-angle, -9deg));
+  }
+  .skeleton {
+    animation: none;
+  }
+}
+
+@keyframes stamp-fade {
+  from {
+    opacity: 0;
+  }
+}

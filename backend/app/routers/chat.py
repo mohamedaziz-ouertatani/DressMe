@@ -11,6 +11,7 @@ from .. import ml  # noqa: F401  (puts src/ on the import path)
 import compatibility
 
 from ..chat_engine import ChatUnavailable
+from ..events import log_event
 from ..schemas import ChatMessage
 from ..security import current_user
 from ..wardrobe import outfit_out, to_compat
@@ -96,6 +97,7 @@ def chat(body: ChatMessage, request: Request, user=Depends(current_user)):
         {"user_id": user["_id"], "role": "model", "text": answer, "tools": used,
          "created_at": now + timedelta(milliseconds=1)},
     ])
+    log_event(db, "chat", user["_id"], tools=used)
     return {"reply": answer, "tools_used": used}
 
 

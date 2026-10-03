@@ -9,7 +9,7 @@ ESPRIT · Advanced Data Science project · team of 6: Mohamed Khalil, Asma Driss
 | 1. Empathize (survey of 57 people, personas) | done |
 | 2. Ideate (14 features) | done |
 | 3. Data collection | public data done; local photo collection in progress |
-| 4. Full prototype | in progress: embeddings, classifier, compatibility and backend done; frontend next |
+| 4. Full prototype | embeddings, classifier, compatibility, backend and frontend (+ admin) done |
 
 **Planned stack:**
 - Frontend: React + TailwindCSS.
@@ -28,6 +28,7 @@ A reproducible pipeline that turns three public fashion datasets into **one data
 ```
 src/          pipeline scripts (EDA, mapping, colours, merge, report, embeddings, classifier, compatibility)
 backend/      FastAPI + MongoDB API (app/, tests/)
+frontend/     React + Vite + TypeScript app and admin dashboard
 mappings/     every label rule, as editable CSV files
 reports/      EDA reports (markdown), figures, Phase 3 PDF
 notebooks/    exploration
@@ -219,6 +220,30 @@ python -m pytest                                      # 19 fast tests (fake mode
 | `GET /similar` | look-alikes in your wardrobe + dataset inspiration |
 | `POST /chat`, `GET/DELETE /chat/history` | Gemini assistant that uses your real wardrobe |
 
+## Phase 4: the app (frontend + admin)
+
+React + Vite + TypeScript + Tailwind, in [`frontend/`](frontend/). It talks to the backend API above.
+
+```bash
+cd frontend
+npm install
+npm run dev                  # http://localhost:5173 (the API must run on :8000)
+npm run build && npm run lint
+```
+
+```bash
+cd backend
+python -m app.seed_demo                  # demo user with 17 dataset pieces + an admin (passwords in backend/.env)
+python -m app.make_admin you@example.com # give an existing account the admin role
+```
+
+- **What's in it:**
+  - Today's outfit, Scan ("should I buy this?" with a stamped BUY / THINK / SKIP), Wardrobe (every predicted field correctable), Build, the Assistant chat, Similar pieces, and Profile (modesty level, language);
+  - English, French and Arabic (right-to-left).
+  - Admins also get `/admin`: usage stats, model quality (how often users correct each prediction), user management, and the formula editor.
+- **Design:** the visual system ("Ticket & Recharge-Card Stock") is documented in [`DESIGN.md`](DESIGN.md), and the product brief in [`PRODUCT.md`](PRODUCT.md).
+- **Demo data:** demo accounts show dataset photos and say so in the app; they are for the academic demo only.
+
 ### Colour validation (optional)
 
 ```bash
@@ -235,5 +260,6 @@ The datasets are used for non-commercial academic work only and are never redist
 
 ## More context
 
-- [`HANDOFF.md`](HANDOFF.md): detailed project state, decisions taken and open, next steps.
-- [`CLAUDE.md`](CLAUDE.md): working notes for Claude Code.
+- [`PRODUCT.md`](PRODUCT.md): users, purpose, constraints and principles of the app.
+- [`DESIGN.md`](DESIGN.md): the visual system (colours, type, components and their rules).
+- [`reports/`](reports/): every evaluation report (EDA, colours, embeddings, classifier, compatibility).

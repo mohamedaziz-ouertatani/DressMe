@@ -2,15 +2,16 @@
 Passwords (bcrypt) and log-in tokens (JWT).
 
 Every protected endpoint depends on `current_user`, which reads the token from
-the "Authorization: Bearer <token>" header. For <img> tags (which cannot send
-headers), image endpoints also accept ?token=<token>.
+the "Authorization: Bearer <token>" header, and only there: a token in a URL
+would leak into server logs, browser history and Referer headers. The app
+loads protected images with fetch() + this header (see frontend ItemPhoto).
 """
 
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
 import jwt
-from fastapi import Depends, HTTPException, Query, Request
+from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from .db import object_id
@@ -42,6 +43,8 @@ def _user_from_token(token, request):
     user = request.app.state.db.users.find_one({"_id": object_id(payload.get("sub"))})
     if not user:
         raise HTTPException(401, "Unknown user")
+    if user.get("disabled"):
+        raise HTTPException(403, "This account is disabled")
     return user
 
 
@@ -49,6 +52,9 @@ def current_user(request: Request, creds: HTTPAuthorizationCredentials = Depends
     return _user_from_token(creds.credentials if creds else None, request)
 
 
-def current_user_for_image(request: Request, creds: HTTPAuthorizationCredentials = Depends(bearer),
-                           token: str | None = Query(None)):
-    return _user_from_token(creds.credentials if creds else token, request)
+def current_admin(user=Depends(current_user)):
+    """Admin-only endpoints (role set with python -m app.make_admin <email>)."""
+    if user.get("role") != "admin":
+        raise HTTPException(403, "Admins only")
+    return user
+
