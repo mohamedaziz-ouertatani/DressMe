@@ -34,7 +34,7 @@ FIG4 = FIG / "phase4"
 MAPPINGS = ROOT / "mappings"
 
 SECTIONS = ["context", "architecture", "embeddings", "classifier", "compatibility",
-            "backend", "frontend", "decisions", "limits", "next"]
+            "backend", "frontend", "testing", "local", "decisions", "limits", "next"]
 
 
 def sec(key):
@@ -53,6 +53,14 @@ def footer(canvas, doc):
     canvas.drawString(2 * cm, 1.2 * cm, "DressMe · Phase 4 — Full prototype")
     canvas.drawRightString(A4[0] - 2 * cm, 1.2 * cm, f"Page {doc.page}")
     canvas.restoreState()
+
+
+def count_tests():
+    """Backend tests: (fast tests with fakes, tests that need the real models)."""
+    files = list((ROOT / "backend" / "tests").glob("test_*.py"))
+    n = {f.name: f.read_text(encoding="utf-8").count("\ndef test_") for f in files}
+    slow = n.pop("test_real_models.py", 0)
+    return sum(n.values()), slow
 
 
 def read_settings():
@@ -139,6 +147,7 @@ def build():
     pct = {f: choice[f]["efficientnet"] * 100 for f in choice}
     probe = {f: choice[f]["fashionclip_probe"] * 100 for f in choice}
     train_min = log["minutes"].sum()
+    n_fast, n_slow = count_tests()
 
     story = []
 
@@ -170,6 +179,14 @@ def build():
         "shop catalogue, a Gemini chat assistant with function calling and an admin dashboard.",
         "The <b>frontend</b> (React 19 + Tailwind 4) covers scan, wardrobe, outfit building, "
         "look-alikes, chat and profile in English, French and Arabic (RTL).",
+        "<b>Real photos:</b> uploads are turned upright (phone EXIF rotation) and their "
+        "background is removed (U2-Net, plus cloth-seg when the item is worn), so they look "
+        "like the white product shots the models were trained on. Outfits never repeat a "
+        "sub_category or exceed a category limit.",
+        f"<b>Demo readiness:</b> {n_fast} backend tests pass; a browser walkthrough of every "
+        "screen and the follow-up work found and fixed three bugs before the jury demo "
+        "(<i>DEMO.md</i>). The pipeline "
+        "for our own test photos is ready (<i>LOCAL_PHOTOS.md</i>); collection is next.",
     ])
     story.append(PageBreak())
 
@@ -200,6 +217,8 @@ def build():
     story += [inline_code("""
   React app (frontend/)  --/api-->  FastAPI (backend/app)  ----->  MongoDB
                                          |                         users, items, chat, events
+                                         |
+            upload: EXIF rotation -> app/background.py (rembg U2-Net + cloth-seg) -> on white
                                          |
                     app/ml.py  Analyzer: EfficientNet + colour model + FashionCLIP
                                Catalog:  SimilarityIndex (PolyVore, Fashion Product, H&M)
@@ -302,6 +321,9 @@ def build():
         "<b>Functions:</b> <i>filter_items</i> (profile: min_coverage, season, occasion; "
         "unknown fields pass), <i>suggest_outfits</i>, <i>complete_outfit</i> and "
         "<i>buy_advice</i>.",
+        "<b>Hard rule</b> (<i>clashes</i>): an outfit never holds the same sub_category twice "
+        "(two pairs of jeans) or more items of a category than <i>outfit_structure.csv</i> "
+        "allows. <i>complete_outfit</i> never proposes a clash, and scoring one answers 422.",
         f"<b>Should I buy this?</b> Counts the good outfits (score ≥ "
         f"{settings['good_outfit']['value']}) where the new item beats every owned item of its "
         f"category: ≥ {settings['buy_min_outfits']['value']} → buy, ≥ "
@@ -352,8 +374,9 @@ def build():
                       "stay in <i>predicted</i>"],
                      ["/analyze", "shop candidate, not saved to the wardrobe, deleted after 24 h"],
                      ["/buy-advice", "buy / think / skip for the last scan"],
-                     ["/outfits/score, /outfits/suggest, /outfits/complete",
-                      "the compatibility formula on the user's wardrobe"],
+                     ["/outfits/score, /outfits/suggest, /outfits/complete, /outfits/limits",
+                      "the compatibility formula on the user's wardrobe; 422 on a clash; "
+                      "category limits for the Build page"],
                      ["/similar, /catalog/{id}/image", "look-alikes in the wardrobe, the public "
                       "catalogue and the H&amp;M shop (\"buy something like this\")"],
                      ["/chat, /chat/history", "Gemini with function calling: list_wardrobe, "
@@ -363,6 +386,13 @@ def build():
                     widths=[5.6 * cm, WIDTH - 5.6 * cm]),
               Spacer(1, 6)]
     story += bullets([
+        "<b>Clean photos before analysis</b> (<i>app/background.py</i>): every upload is "
+        "turned upright with its EXIF rotation tag (phones store portrait photos sideways), "
+        "shrunk to 1024 px, its background removed with rembg (U2-Net) and pasted on white, "
+        "cropped around the item. When the item is worn, U2-Net keeps the whole person, so "
+        "U2-Net cloth-seg cuts it down to the biggest garment. If the mask finds under 3% of "
+        "the photo, the original is kept. ~3-5 s per photo on the CPU; "
+        "<i>REMOVE_BACKGROUND=0</i> / <i>CLOTH_MODEL=</i> switch the steps off.",
         "<b>Privacy:</b> every query is filtered by <i>user_id</i>; another user's item "
         "answers 404.",
         "<b>Honest colour:</b> a colour below 0.7 confidence is left empty (the guess is kept "
@@ -371,9 +401,9 @@ def build():
         "articles, pictures shrunk to 320 px in a private Kaggle notebook, embedded with "
         "FashionCLIP. The Zara / Bershka / Pull&amp;Bear rows already scraped are kept only as "
         "a frozen demo.",
-        "<b>Tests:</b> <i>python -m pytest</i> in <i>backend/</i> — 24 fast tests with fake "
-        "models on a <i>dressme_test</i> database, plus 2 real-model tests "
-        "(<i>DRESSME_SLOW=1</i>).",
+        f"<b>Tests:</b> <i>python -m pytest</i> in <i>backend/</i> — {n_fast} fast tests "
+        "with fake models and a fake background remover on a <i>dressme_test</i> database, "
+        f"plus {n_slow} real-model tests (<i>DRESSME_SLOW=1</i>).",
     ])
 
     # --- 7. frontend
@@ -385,7 +415,8 @@ def build():
                      ["Today", "outfit of the day from their wardrobe, filtered by profile"],
                      ["Scan", "photo in the friperie → analysis + buy / think / skip, with reasons"],
                      ["Wardrobe", "add items by photo, confirm or correct the predicted labels"],
-                     ["Build", "pick items, get a 0-100 score, or let the app complete the outfit"],
+                     ["Build", "pieces grouped by category; pick items, get a 0-100 score, or "
+                      "let the app complete the outfit (a clashing piece is swapped out)"],
                      ["Similar", "\"you already own something like this\" and shop look-alikes"],
                      ["Chat", "assistant that only talks about clothes the user owns"],
                      ["Profile", "name, modesty level (min_coverage), language"],
@@ -397,7 +428,52 @@ def build():
         "Design rules in <i>DESIGN.md</i>, product brief in <i>PRODUCT.md</i>.",
     ])
 
-    # --- 8. decisions
+    # --- 8. testing
+    story += h1("testing", "Testing and demo readiness")
+    story += [p("Before the jury demo the whole app was run as a user would meet it: the real "
+                "API, MongoDB and the React app in Chromium, at phone and desktop widths, with "
+                "the test fakes standing in for the models and Gemini. Every screen and flow "
+                "worked: scan → verdict → similar → add to wardrobe, item corrections, Build + "
+                "complete, chat with tool calls, Arabic right-to-left, and the four admin pages. "
+                "The walkthrough and the work that followed it found three bugs:"),
+              Spacer(1, 4),
+              table([["Found", "Fix"],
+                     ["Build page showed the score panel twice on phones",
+                      "the desktop side panel is hidden below the desktop width"],
+                     ["Phone portrait photos were analysed lying on their side (EXIF rotation "
+                      "ignored)", "uploads apply the rotation tag; a test fails without the fix"],
+                     ["<i>merge_and_split.py</i> crashed on pandas 3 (allowed by "
+                      "<i>requirements.txt</i>)", "one column type fixed; output byte-identical "
+                      "to pandas 2"]],
+                    widths=[7.5 * cm, WIDTH - 7.5 * cm]),
+              Spacer(1, 6),
+              p("<i>DEMO.md</i> holds the jury demo script: what to prepare the day before and "
+                "30 minutes before, a 9-step run order with talking points, and fallbacks. "
+                "Everything except the Gemini chat runs offline. The real models and Gemini still "
+                "need a dry run on the demo laptop.")]
+
+    # --- 9. local photos
+    story += h1("local", "Local test photos")
+    story += [p("Our own phone photos (wardrobe and friperie) are the only data from the real "
+                "DressMe setting, and the only way to measure traditional wear and swimwear. "
+                "They are the <b>test set only</b>. The pipeline is ready; collection starts "
+                "after the demo (targets: 500–1,000 wardrobe items, 150–300 friperie items, "
+                "50–100 traditional garments).")]
+    story += bullets([
+        "<i>LOCAL_PHOTOS.md</i>: consent and privacy (anonymous contributor ids, no faces, "
+        "shop owner's permission), how to shoot (one whole item per photo, plain surface, "
+        "JPEG), and how to fill each label column.",
+        "<i>src/map_local.py --init</i> lists new photos in <i>labels.csv</i>; the default run "
+        "checks every label against <i>mappings/</i> (vocabularies, category ↔ sub_category, "
+        "photo size, the same photo saved twice, ids that look like names) and stops with the "
+        "line number, then writes <i>local.csv</i> (ids <i>lc_</i>).",
+        "<i>merge_and_split.py</i> adds them to <i>dressme.csv</i> with <i>split</i> and "
+        "<i>outfit_split</i> forced to test; their colours count as real labels.",
+        "Still to do once photos exist: include <i>local</i> in the image cache, the embeddings "
+        "and the evaluation scripts.",
+    ])
+
+    # --- 10. decisions
     story += h1("decisions", "Key decisions")
     story += [table([["Decision", "Why"],
                      ["EfficientNet for category, sub_category and pattern",
@@ -411,6 +487,12 @@ def build():
                      ["One packed image cache", "small-file reads were the training bottleneck"],
                      ["H&amp;M catalogue instead of scraping", "all three shop sites block "
                       "scraping; we never try to get around bot protection"],
+                     ["Remove the background of uploads", "the models were trained on white "
+                      "product shots; a bed, rack or person in the photo confuses them"],
+                     ["No repeated sub_category / category over its limit",
+                      "a hard rule, not a lower score: two pairs of jeans is never an outfit"],
+                     ["Local photos for test only", "the one honest measure of the real "
+                      "setting; never trained on"],
                      ["Predictions are never labels", "<i>predicted_attributes.csv</i> and the "
                       "<i>predicted</i> field stay separate from ground truth / user input"]],
                     widths=[6 * cm, WIDTH - 6 * cm])]
@@ -424,6 +506,10 @@ def build():
         "Colour, pattern and structure add no measurable signal in the swap test; the team "
         "weights cost ~6 AUC points against style alone.",
         "PolyVore has no pattern labels, so its patterns are predictions.",
+        "Background removal costs ~3-5 s per photo on the CPU; cloth-seg often misses items "
+        "lying flat, so it is only used on worn items. Only the cleaned photo is kept, so a "
+        "bad cut-out cannot be redone from the original.",
+        "The models have not been measured on real phone photos yet (local test set pending).",
         "The H&amp;M catalogue has no prices and is not Tunisian stock; the shop demo is frozen.",
         "Datasets are for non-commercial academic use only and are never redistributed.",
     ])
@@ -431,11 +517,13 @@ def build():
     # --- 10. next
     story += h1("next", "Next steps")
     story += bullets([
-        "Collect and label local photos (friperie, traditional wear) for the reserved test set.",
+        "Dry run on the demo laptop with the real models, background removal and Gemini "
+        "(<i>DEMO.md</i>).",
+        "Collect and label local photos (<i>LOCAL_PHOTOS.md</i>), then evaluate the classifier, "
+        "colour model and background removal on them.",
         "Team session to tune the compatibility weights and close the REVIEW rows.",
         "User test with the personas; use the admin \"model quality\" page (correction rates) "
         "to see where the models fail in real use.",
-        "Prepare the jury demo: seeded demo account, scan → buy advice → outfit → chat.",
     ])
 
     doc = SimpleDocTemplate(str(OUT), pagesize=A4, leftMargin=2 * cm, rightMargin=2 * cm,
