@@ -432,6 +432,30 @@ def add_itx_rows(shop, rows, gender, paths, prod):
 # Stock
 # ---------------------------------------------------------------------------
 
+def fill_zara_sizes(shop, rows):
+    """Zara's listing has no sizes: read them (with their SKUs) per colour
+    from the product page data, so the stock check keeps only our colour."""
+    todo = [r for r in rows if not r.get("sku_sizes") and r.get("url")]
+    for i, row in enumerate(todo, 1):
+        # one answer per product (all colours): cache it without ?v1=
+        page_url = row["url"].split("?")[0] + "?ajax=true"
+        data = shop.get_json(page_url) or {}
+        product = data.get("product") or data
+        for colour in (product.get("detail") or {}).get("colors", []):
+            if str(colour.get("id")) == str(row["colour_id"]) or \
+               str(colour.get("productId")) == str(row["stock_id"]):
+                sizes = colour.get("sizes") or []
+                row["sizes"] = "|".join(s.get("name", "") for s in sizes)
+                row["sku_sizes"] = pack_skus({str(s["sku"]): s.get("name", "")
+                                              for s in sizes if s.get("sku")})
+                break
+        if i % 100 == 0:
+            print(f"  sizes {i}/{len(todo)}")
+    missing = sum(1 for r in rows if not r.get("sku_sizes"))
+    if missing:
+        print(f"[zara] WARNING: no sizes for {missing} colours: their stock may mix colours")
+
+
 def fetch_stock(shop, stock_id, cache):
     """{sku: availability} for one product, or {} if the shop gives nothing."""
     if stock_id in cache:
@@ -460,7 +484,7 @@ def check_stock(shop, rows):
         stock = fetch_stock(shop, str(row["stock_id"]), cache)
         sku_sizes = unpack_skus(row.get("sku_sizes"))
         if sku_sizes:  # a product's stock lists all its colours: keep ours
-            stock = {sku: a for sku, a in stock.items() if sku in sku_sizes} or stock
+            stock = {sku: a for sku, a in stock.items() if sku in sku_sizes}
         if stock:
             availability, sizes_ok, n_ok = summarize_stock(stock, sku_sizes)
             row.update(availability=availability, availability_from="stock_api",
@@ -545,6 +569,8 @@ def run_brand(browser, brand, args):
                   "from the catalogue only. Find it in your browser (product page, dev tools, "
                   "Network tab, filter 'availability') and pass --store-id.")
     if not args.no_stock:
+        if shop.kind == "zara":
+            fill_zara_sizes(shop, rows)
         check_stock(shop, rows)
     if args.images:
         save_images(shop, rows)
