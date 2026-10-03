@@ -14,7 +14,7 @@ Fashionpedia, where each item is cropped out of a street photo.
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
@@ -43,7 +43,12 @@ def load_item_image(row):
     Fashionpedia rows have a bbox: the item is cropped out of the street photo,
     with a small margin so the edges of the garment are not cut.
     """
-    img = Image.open(DATA / row["image_path"]).convert("RGB")
+    img = Image.open(DATA / row["image_path"])
+    if row.get("dataset") == "local":
+        # phone photos: apply the EXIF "rotate" tag, or a portrait photo lies on its side
+        # (only for our photos: the dataset bboxes were drawn on the stored pixels)
+        img = ImageOps.exif_transpose(img)
+    img = img.convert("RGB")
     if str(row.get("bbox_w", "")) not in ("", "nan"):
         x, y, w, h = (float(row[k]) for k in ("bbox_x", "bbox_y", "bbox_w", "bbox_h"))
         pad_w, pad_h = w * CROP_PADDING, h * CROP_PADDING
