@@ -86,8 +86,9 @@ RED, BLUE, BLACK, GREEN, WHITE = FAKE
 
 @pytest.fixture
 def settings(tmp_path):
+    # remove_background=False: no rembg in the tests unless a fake remover is passed
     return Settings(mongo_db=TEST_DB, jwt_secret="test-secret-" + "x" * 40,
-                    gemini_api_key="", storage_dir=tmp_path / "storage")
+                    gemini_api_key="", storage_dir=tmp_path / "storage", remove_background=False)
 
 
 @pytest.fixture
@@ -95,9 +96,9 @@ def make_client(settings):
     MongoClient(settings.mongo_url).drop_database(TEST_DB)
     clients = []
 
-    def make(chat_engine=None):
+    def make(chat_engine=None, remover=None):
         app = create_app(settings, analyzer=FakeAnalyzer(), catalog=FakeCatalog(),
-                         chat_engine=chat_engine or FakeChatEngine())
+                         chat_engine=chat_engine or FakeChatEngine(), remover=remover)
         c = TestClient(app)
         c.__enter__()            # runs the start-up (database connection)
         clients.append(c)

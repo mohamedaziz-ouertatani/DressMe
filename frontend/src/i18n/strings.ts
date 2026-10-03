@@ -91,7 +91,7 @@ const en = {
   saved: 'Saved',
 
   buildTitle: 'Build an outfit',
-  buildHint: 'Pick pieces from your wardrobe. The ticket scores them as you go.',
+  buildHint: 'Pick pieces from your wardrobe. The ticket scores them as you go. Picking a second piece of the same kind (another top, other jeans) swaps it in.',
   completeWith: 'Complete it with',
   pickAtLeast: 'Pick at least one piece.',
 
@@ -207,7 +207,7 @@ const fr: Record<StringKey, string> = {
   confirmAll: 'Tout est juste',
   saved: 'Enregistré',
   buildTitle: 'Composer une tenue',
-  buildHint: 'Choisis des pièces de ta garde-robe. Le ticket les note au fur et à mesure.',
+  buildHint: 'Choisis des pièces de ta garde-robe. Le ticket les note au fur et à mesure. Une deuxième pièce du même type (un autre haut, un autre jean) remplace la première.',
   completeWith: 'Complète avec',
   pickAtLeast: 'Choisis au moins une pièce.',
   chatTitle: 'Assistant',
@@ -318,7 +318,7 @@ const ar: Record<StringKey, string> = {
   confirmAll: 'كل شيء صحيح',
   saved: 'تم الحفظ',
   buildTitle: 'نسّق لبسة',
-  buildHint: 'اختر قطعا من خزانتك وستقيّمها التذكرة أثناء الاختيار.',
+  buildHint: 'اختر قطعا من خزانتك وستقيّمها التذكرة أثناء الاختيار. اختيار قطعة ثانية من نفس النوع (قميص آخر، جينز آخر) يعوّض الأولى.',
   completeWith: 'أكملها بـ',
   pickAtLeast: 'اختر قطعة واحدة على الأقل.',
   chatTitle: 'المساعد',

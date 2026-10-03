@@ -78,3 +78,23 @@ def test_candidates_are_private(client):
     r = client.post("/buy-advice", json={"candidate_id": cand["id"]}, headers=youssef)
     assert r.status_code == 404
     assert client.get(f"/similar?candidate_id={cand['id']}", headers=youssef).status_code == 404
+
+
+def test_same_piece_twice_is_refused(client):
+    headers = sign_up(client)
+    w = wardrobe(client, headers)
+    jeans2 = upload(client, headers, BLUE)              # a second pair of jeans
+    pair = [w["jeans"]["id"], jeans2["id"]]
+    for path in ("/outfits/score", "/outfits/complete"):
+        r = client.post(path, json={"item_ids": [w["top"]["id"], *pair]}, headers=headers)
+        assert r.status_code == 422 and "jeans" in r.json()["detail"]
+    # a dress with a top is still allowed (different categories)
+    r = client.post("/outfits/score", json={"item_ids": [w["top"]["id"], w["dress"]["id"]]},
+                    headers=headers)
+    assert r.status_code == 200
+    # completing top + jeans never proposes the other jeans
+    ranked = client.post("/outfits/complete", json={"item_ids": [w["top"]["id"], w["jeans"]["id"]]},
+                         headers=headers).json()
+    assert jeans2["id"] not in {x["item"]["id"] for x in ranked}
+    limits = client.get("/outfits/limits", headers=headers).json()
+    assert limits["max_items"]["top"] == 1 and limits["max_items"]["accessory"] == 4

@@ -35,10 +35,26 @@ def profile(user, season=None, occasion=None):
             "occasion": occasion}
 
 
+def no_clash(items):
+    """Hard rule: no sub_category twice, no category over its limit (else 422)."""
+    why = compatibility.clashes(items)
+    if why:
+        raise HTTPException(422, "These pieces can't be worn together: " + "; ".join(why))
+
+
+@router.get("/outfits/limits")
+def limits(user=Depends(current_user)):
+    """Max pieces per category (mappings/outfit_structure.csv); a sub_category is
+    always at most one. The Build page uses this to swap pieces instead of stacking them."""
+    return {"max_items": {c: int(n) for c, n in compatibility.RULES.max_items.items()},
+            "max_per_sub_category": 1}
+
+
 @router.post("/outfits/score")
 def score(body: ItemIds, request: Request, user=Depends(current_user)):
     docs = [own_item(request, user, i) for i in body.item_ids]
     items = [to_compat(d) for d in docs]
+    no_clash(items)
     result = compatibility.score_outfit(items)
     return outfit_out({**result, "items": items}, {str(d["_id"]): d for d in docs})
 
@@ -59,6 +75,7 @@ def suggest(request: Request, season: Season | None = None, occasion: Occasion |
 @router.post("/outfits/complete")
 def complete(body: Complete, request: Request, user=Depends(current_user)):
     chosen = [own_item(request, user, i) for i in body.item_ids]
+    no_clash([to_compat(d) for d in chosen])
     docs, by_id = wardrobe(request, user)
     candidates = [to_compat(d) for d in docs if str(d["_id"]) not in body.item_ids]
     ranked = compatibility.complete_outfit([to_compat(d) for d in chosen], candidates,
