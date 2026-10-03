@@ -174,8 +174,8 @@ class Shop:
         self.page = self.context.new_page()
 
         # Remember the API calls the home page makes: they hold the ids we need.
-        self.seen = []
-        self.page.on("request", lambda req: self.seen.append(req.url))
+        seen = []
+        self.page.on("request", lambda req: seen.append(req.url))
         home = f"{self.origin}/{args.country}/{args.language}/"
         print(f"[{brand}] opening {home}")
         self.page.goto(home, wait_until="domcontentloaded", timeout=90_000)
@@ -191,59 +191,19 @@ class Shop:
                   f"'{self.country}' ({self.page.url}): it may not serve '{args.country}'")
         self.base = f"{self.origin}/{self.country}/{self.language}/"
 
-        self.dir = OUT_DIR / f"{brand}_{self.country}"
-        (self.dir / "raw").mkdir(parents=True, exist_ok=True)
-
-        # Debug files: what the site showed us (helps when ids are not found
-        # or the site answered with a bot-check page instead of the shop).
-        html = self.page.content()
-        (self.dir / "debug_home.html").write_text(html, encoding="utf-8")
-        (self.dir / "debug_requests.txt").write_text("\n".join(self.seen), encoding="utf-8")
-        self.page.screenshot(path=str(self.dir / "debug_home.png"))
-
-        # The shop's bot protection answered instead of the shop: stop here.
-        if re.search(r"<title>\s*(Access Denied|Attention Required|Just a moment)", html, re.I):
-            sys.exit(f"ERROR: {brand} refused the automated browser ('Access Denied' page, see "
-                     f"{self.dir / 'debug_home.png'}). If it worked before, the site is "
-                     "probably slowing us down after too many requests: wait a few hours, then "
-                     "retry with a larger --delay (e.g. 5). Do not try to get around the block.")
-
-        found = find_ids(self.seen, html + "\n" + self.js_config())
+        found = find_ids(seen, self.page.content())
         self.store_id = args.store_id or found["store"]
         self.catalog_id = args.catalog_id or found["catalog"]
         self.language_id = args.language_id or found["language"] or "-1"
         print(f"[{brand}] country={self.country} language={self.language} "
               f"store={self.store_id} catalog={self.catalog_id} languageId={self.language_id}")
-        # Zara lists products without ids; its store id is only needed for
-        # the stock check and is looked for again on a product page later.
-        if self.kind == "itx" and not (self.store_id and self.catalog_id):
-            sys.exit(f"ERROR: could not find the {brand} store/catalog ids (see the debug_* "
-                     f"files in {self.dir}). Open the site in your browser, look for an "
-                     "/itxrest/.../catalog/store/<store>/<catalog>/ request in the dev tools "
-                     "(Network tab) and pass --store-id / --catalog-id.")
+        if not self.store_id or (self.kind == "itx" and not self.catalog_id):
+            sys.exit(f"ERROR: could not find the {brand} store/catalog ids. Open the site "
+                     "in your browser, look for an /itxrest/.../catalog/store/<store>/<catalog>/ "
+                     "request in the dev tools (Network tab) and pass --store-id / --catalog-id.")
 
-    def js_config(self):
-        """The site's own config object as text (Zara keeps its ids there)."""
-        try:
-            return self.page.evaluate("""() => {
-                const z = window.zara || {};
-                return JSON.stringify(z.appConfig || z.viewPayload || {});
-            }""") or ""
-        except Exception:
-            return ""
-
-    def find_store_on_page(self, url):
-        """Open a product page and catch the store id in the stock request it makes."""
-        print(f"[{self.brand}] looking for the store id on {url}")
-        start = len(self.seen)
-        try:
-            self.page.goto(url, wait_until="domcontentloaded", timeout=90_000)
-            self.page.wait_for_timeout(8_000)
-        except Exception as err:
-            print(f"  could not open it: {str(err).splitlines()[0]}")
-            return None
-        found = find_ids(self.seen[start:], self.page.content() + "\n" + self.js_config())
-        return found["store"]
+        self.dir = OUT_DIR / f"{brand}_{self.country}"
+        (self.dir / "raw").mkdir(parents=True, exist_ok=True)
 
     def get_json(self, url, cache=True):
         """GET a JSON endpoint from inside the page. None if it fails."""
@@ -303,9 +263,6 @@ def find_ids(urls, html):
         m = re.search(name + r"""["']?\s*[:=]\s*["']?(-?\d+)""", html)
         if m and not found[key]:
             found[key] = m.group(1)
-    m = re.search(r"/catalog/store/(\d+)/", html)  # an API link written in the page
-    if m and not found["store"]:
-        found["store"] = m.group(1)
     return found
 
 
@@ -433,37 +390,11 @@ def add_itx_rows(shop, rows, gender, paths, prod):
 # Stock
 # ---------------------------------------------------------------------------
 
-def fill_zara_sizes(shop, rows):
-    """Zara's listing has no sizes: read them (with their SKUs) per colour
-    from the product page data, so the stock check keeps only our colour."""
-    todo = [r for r in rows if not r.get("sku_sizes") and r.get("url")]
-    for i, row in enumerate(todo, 1):
-        # one answer per product (all colours): cache it without ?v1=
-        page_url = row["url"].split("?")[0] + "?ajax=true"
-        data = shop.get_json(page_url) or {}
-        product = data.get("product") or data
-        for colour in (product.get("detail") or {}).get("colors", []):
-            if str(colour.get("id")) == str(row["colour_id"]) or \
-               str(colour.get("productId")) == str(row["stock_id"]):
-                sizes = colour.get("sizes") or []
-                row["sizes"] = "|".join(s.get("name", "") for s in sizes)
-                row["sku_sizes"] = pack_skus({str(s["sku"]): s.get("name", "")
-                                              for s in sizes if s.get("sku")})
-                break
-        if i % 100 == 0:
-            print(f"  sizes {i}/{len(todo)}")
-    missing = sum(1 for r in rows if not r.get("sku_sizes"))
-    if missing:
-        print(f"[zara] WARNING: no sizes for {missing} colours: their stock may mix colours")
-
-
 def fetch_stock(shop, stock_id, cache):
     """{sku: availability} for one product, or {} if the shop gives nothing."""
     if stock_id in cache:
         return cache[stock_id]
-    if shop.kind == "zara" and not shop.store_id:
-        stock = {}
-    elif shop.kind == "zara":
+    if shop.kind == "zara":
         url = (f"{shop.origin}/itxrest/1/catalog/store/{shop.store_id}"
                f"/product/id/{stock_id}/availability")
         data = shop.get_json(url, cache=False) or {}
@@ -485,7 +416,7 @@ def check_stock(shop, rows):
         stock = fetch_stock(shop, str(row["stock_id"]), cache)
         sku_sizes = unpack_skus(row.get("sku_sizes"))
         if sku_sizes:  # a product's stock lists all its colours: keep ours
-            stock = {sku: a for sku, a in stock.items() if sku in sku_sizes}
+            stock = {sku: a for sku, a in stock.items() if sku in sku_sizes} or stock
         if stock:
             availability, sizes_ok, n_ok = summarize_stock(stock, sku_sizes)
             row.update(availability=availability, availability_from="stock_api",
@@ -559,19 +490,7 @@ def run_brand(browser, brand, args):
             shop.context.close()
             return
 
-    if not args.no_stock and shop.kind == "zara" and not shop.store_id:
-        for row in [r for r in rows if r.get("url")][:3]:  # try up to 3 product pages
-            shop.store_id = shop.find_store_on_page(row["url"])
-            if shop.store_id:
-                print(f"[zara] store id = {shop.store_id}")
-                break
-        if not shop.store_id:
-            print("[zara] WARNING: no store id found, so no stock check: availability comes "
-                  "from the catalogue only. Find it in your browser (product page, dev tools, "
-                  "Network tab, filter 'availability') and pass --store-id.")
     if not args.no_stock:
-        if shop.kind == "zara":
-            fill_zara_sizes(shop, rows)
         check_stock(shop, rows)
     if args.images:
         save_images(shop, rows)
