@@ -6,7 +6,8 @@ The models behind the API, loaded once at start-up (they take ~1 min and
                                     "sub_category": ..., "pattern": ..., "colour": ...,
                                     "vector": <512 FashionCLIP numbers>}
     Catalog.search(vector, k)   -> nearest dataset product shots
-    Catalog.image(item_id)      -> PIL image of one dataset item (cropped)
+    Catalog.search_shop(vector, k) -> nearest H&M products to buy ([] if not set up)
+    Catalog.image(item_id)      -> PIL image of one dataset or H&M item (cropped)
 
 They reuse the Phase 4 code in src/ (classifier, fashionclip, similarity,
 estimate_colours) instead of copying it.
@@ -49,7 +50,8 @@ class Analyzer:
 
 
 class Catalog:
-    """Dataset product shots (PolyVore, Fashion Product) as inspiration."""
+    """Dataset product shots (PolyVore, Fashion Product) as inspiration, and the
+    H&M shop catalogue as things to buy (only if src/embed_hm.py has been run)."""
 
     DATASETS = ["polyvore", "fashion_product"]
 
@@ -58,6 +60,11 @@ class Catalog:
         from item_images import load_item_image
 
         self._index = similarity.SimilarityIndex.load()
+        try:
+            self._shop = similarity.SimilarityIndex.load_shop()
+        except FileNotFoundError:
+            print("H&M shop catalogue not found: /similar returns no shop items")
+            self._shop = None
         self._load = load_item_image
 
     def search(self, vector, k=6, category=None):
@@ -66,9 +73,24 @@ class Catalog:
                  "colour": r.primary_colour, "score": round(float(r.score), 3)}
                 for r in hits.itertuples()]
 
+    def search_shop(self, vector, k=6, category=None):
+        if self._shop is None:
+            return []
+        hits = self._shop.search(vector, k=k, category=category)
+        return [{"id": r.id, "name": r.name, "shop": "H&M", "department": r.department,
+                 "category": r.category, "sub_category": r.sub_category,
+                 "colour": r.primary_colour, "score": round(float(r.score), 3)}
+                for r in hits.itertuples()]
+
     def image(self, item_id):
-        meta = self._index.meta
-        rows = meta[(meta["id"] == item_id) & meta["dataset"].isin(self.DATASETS)]
+        if item_id.startswith("hm_"):
+            if self._shop is None:
+                return None
+            meta = self._shop.meta
+            rows = meta[meta["id"] == item_id]
+        else:
+            meta = self._index.meta
+            rows = meta[(meta["id"] == item_id) & meta["dataset"].isin(self.DATASETS)]
         return self._load(rows.iloc[0].to_dict()) if len(rows) else None
 
 

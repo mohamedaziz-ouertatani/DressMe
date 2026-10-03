@@ -1,0 +1,12 @@
+keyword,pattern,priority,note
+floral,floral,1,searched in prod_name + detail_desc only when hm_pattern.csv says use_keywords=yes
+flower,floral,1,
+flowers,floral,1,
+striped,striped,2,
+stripes,striped,2,
+checked,checked,3,
+checks,checked,3,
+plaid,checked,3,
+tartan,checked,3,
+gingham,checked,3,
+houndstooth,checked,3,

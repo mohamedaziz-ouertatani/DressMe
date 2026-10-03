@@ -13,6 +13,7 @@ at once), and the dot products are done in chunks, so RAM use stays small.
 At this size a plain dot product is fast enough; no FAISS needed.
 
 Needs data/processed/embeddings/ from src/embed_fashionclip.py.
+`SimilarityIndex.load_shop()` loads the H&M shop catalogue instead (src/embed_hm.py).
 """
 
 import numpy as np
@@ -39,6 +40,18 @@ class SimilarityIndex:
         meta = pd.read_csv(DATA / "processed" / "dressme.csv", dtype=str,
                            keep_default_na=False, usecols=META_COLS)
         meta = ids.merge(meta, on="id", how="left")   # keeps the .npy row order
+        return cls(vectors, meta)
+
+    @classmethod
+    def load_shop(cls, emb_dir=EMB_DIR):
+        """The H&M shop catalogue (src/embed_hm.py), with hm.csv as metadata."""
+        vectors = np.load(emb_dir / "hm_fashionclip.npy", mmap_mode="r")
+        ids = pd.read_csv(emb_dir / "hm_fashionclip_ids.csv", dtype=str)
+        meta = pd.read_csv(DATA / "processed" / "hm.csv", dtype=str, keep_default_na=False,
+                           usecols=["id", "dataset", "image_path", "category", "sub_category",
+                                    "primary_colour", "name", "department"])
+        meta = ids.merge(meta, on="id", how="left")
+        meta["image_group"] = meta["id"]     # one picture per article
         return cls(vectors, meta)
 
     def vector(self, item_id):

@@ -1,0 +1,31 @@
+graphical_appearance_name,pattern,use_keywords,note
+Solid,solid,no,
+Melange,solid,no,heathered single colour
+Denim,solid,no,
+Chambray,solid,no,
+Slub,solid,no,textured single colour
+Neps,solid,no,textured single colour
+Stripe,striped,no,
+Check,checked,no,
+All over pattern,printed,yes,keywords can make it floral / striped / checked
+Front print,printed,no,
+Placement print,printed,yes,
+Other pattern,,yes,
+Dot,printed,no,polka dots
+Argyle,checked,no,
+Colour blocking,,no,not one of our five patterns
+Mixed solid/pattern,,yes,
+Contrast,,no,
+Lace,,yes,texture: pattern unknown
+Embroidery,,yes,texture: pattern unknown
+Application/3D,,yes,texture: pattern unknown
+Sequin,,yes,texture: pattern unknown
+Glittering/Metallic,,yes,texture: pattern unknown
+Metallic,,yes,texture: pattern unknown
+Hologram,,yes,texture: pattern unknown
+Jacquard,,yes,woven pattern: unknown which
+Other structure,,yes,texture: pattern unknown
+Treatment,,yes,washed / dyed: pattern unknown
+Transparent,,yes,
+Mesh,,yes,
+Unknown,,yes,

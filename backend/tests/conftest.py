@@ -49,8 +49,14 @@ class FakeCatalog:
         return [{"id": f"pv_{i}", "category": category or "top", "sub_category": "",
                  "colour": "black", "score": 0.9 - i / 100} for i in range(k)]
 
+    def search_shop(self, vector, k=6, category=None):
+        return [{"id": f"hm_{i}", "name": f"Product {i}", "shop": "H&M", "department": "Menswear",
+                 "category": category or "top", "sub_category": "", "colour": "navy",
+                 "score": 0.8 - i / 100} for i in range(k)]
+
     def image(self, item_id):
-        return Image.new("RGB", (20, 20), (128, 128, 128)) if item_id.startswith("pv_") else None
+        known = item_id.startswith(("pv_", "hm_"))
+        return Image.new("RGB", (20, 20), (128, 128, 128)) if known else None
 
 
 class FakeChatEngine:

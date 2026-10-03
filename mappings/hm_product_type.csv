@@ -1,0 +1,114 @@
+product_type_name,keep,category,sub_category,note
+T-shirt,yes,top,t-shirt,
+Polo shirt,yes,top,t-shirt,polo -> t-shirt (coarsest value every dataset can produce)
+Vest top,yes,top,top,tank top
+Top,yes,top,top,
+Bodysuit,yes,top,top,
+Blouse,yes,top,shirt,"same rule as Fashionpedia ""shirt, blouse"""
+Shirt,yes,top,shirt,
+Sweater,yes,top,sweater,
+Hoodie,yes,top,sweatshirt,
+Trousers,yes,bottom,trousers,denim trousers become jeans in hm_refine_rules.csv
+Outdoor trousers,yes,bottom,trousers,rain / ski trousers
+Leggings/Tights,yes,bottom,leggings,
+Shorts,yes,bottom,shorts,
+Skirt,yes,bottom,skirt,
+Dress,yes,dress,dress,
+Jumpsuit/Playsuit,yes,dress,jumpsuit,
+Dungarees,yes,dress,jumpsuit,one-piece with straps
+Garment Set,no,,,several pieces in one product
+Costumes,no,,,fancy dress
+Blazer,yes,outerwear,blazer,
+Cardigan,yes,outerwear,cardigan,
+Coat,yes,outerwear,coat,
+Jacket,yes,outerwear,jacket,
+Outdoor Waistcoat,yes,outerwear,waistcoat,padded sleeveless jacket
+Tailored Waistcoat,yes,outerwear,waistcoat,
+Sneakers,yes,shoes,sneakers,
+Ballerinas,yes,shoes,flats,
+Flat shoe,yes,shoes,flats,
+Flat shoes,yes,shoes,flats,
+Heels,yes,shoes,heels,
+Pumps,yes,shoes,heels,court shoes
+Heeled sandals,yes,shoes,heels,
+Wedge,yes,shoes,heels,
+Sandals,yes,shoes,sandals,
+Flip flop,yes,shoes,flip-flops,
+Boots,yes,shoes,,no boots value in the vocabulary
+Bootie,yes,shoes,,ankle boots; no boots value in the vocabulary
+Other shoe,yes,shoes,,mixed
+Slippers,no,,,house slippers
+Bag,yes,bag,,no bag type given
+Backpack,yes,bag,backpack,
+Cross-body bag,yes,bag,handbag,
+Shoulder bag,yes,bag,handbag,
+Tote bag,yes,bag,handbag,
+Weekend/Gym bag,yes,bag,duffel-bag,
+Wallet,yes,accessory,wallet,
+Belt,yes,accessory,belt,
+Braces,yes,accessory,suspenders,
+Bracelet,yes,accessory,bracelet,
+Earring,yes,accessory,earrings,
+Earrings,yes,accessory,earrings,
+Necklace,yes,accessory,necklace,
+Ring,yes,accessory,ring,
+Watch,yes,accessory,watch,
+Sunglasses,yes,accessory,sunglasses,
+Eyeglasses,yes,accessory,glasses,
+Scarf,yes,accessory,scarf,
+Gloves,yes,accessory,gloves,
+Tie,yes,accessory,tie,
+Cap,yes,accessory,cap,
+Cap/peaked,yes,accessory,cap,
+Beanie,yes,accessory,hat,
+Bucket hat,yes,accessory,hat,
+Felt hat,yes,accessory,hat,
+Straw hat,yes,accessory,hat,
+Hat/beanie,yes,accessory,hat,
+Hat/brim,yes,accessory,hat,
+Alice band,yes,accessory,hair-accessory,
+Hair clip,yes,accessory,hair-accessory,
+Hair string,yes,accessory,hair-accessory,
+Hair ties,yes,accessory,hair-accessory,
+Hair/alice band,yes,accessory,hair-accessory,
+Hairband,yes,accessory,hair-accessory,
+Headband,yes,accessory,hair-accessory,
+Other accessories,no,,,mixed
+Umbrella,no,,,not clothing
+Waterbottle,no,,,not clothing
+Giftbox,no,,,not clothing
+Dog Wear,no,,,not for people
+Dog wear,no,,,not for people
+Keychain,no,,,not clothing
+Mobile case,no,,,not clothing
+Wireless earphone case,no,,,not clothing
+Bikini top,yes,swimwear,swimsuit,
+Swimsuit,yes,swimwear,swimsuit,
+Swimwear set,yes,swimwear,swimsuit,
+Swimwear bottom,yes,swimwear,swimsuit,men's swim shorts fixed in hm_refine_rules.csv
+Sarong,no,,,beach cover-up
+Bra,no,,,underwear
+Bra extender,no,,,underwear
+Long John,no,,,underwear
+Nipple covers,no,,,underwear
+Underdress,no,,,underwear
+Underwear body,no,,,underwear
+Underwear bottom,no,,,underwear
+Underwear corset,no,,,underwear
+Underwear set,no,,,underwear
+Robe,no,,,nightwear
+Night gown,no,,,nightwear
+Pyjama bottom,no,,,nightwear
+Pyjama jumpsuit/playsuit,no,,,nightwear
+Pyjama set,no,,,nightwear
+Socks,no,,,socks
+Underwear Tights,no,,,tights
+Side table,no,,,furniture
+Clothing mist,no,,,not clothing
+Sewing kit,no,,,not clothing
+Stain remover spray,no,,,not clothing
+Washing bag,no,,,not clothing
+Wood balls,no,,,not clothing
+Zipper head,no,,,not clothing
+Marker pen,no,,,not clothing
+Unknown,no,,,unknown type
