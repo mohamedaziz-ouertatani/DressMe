@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from .. import ml  # noqa: F401  (puts src/ on the import path)
 import compatibility
 
-from ..chat_engine import ChatUnavailable
+from ..chat_engine import ChatBusy, ChatQuota, ChatUnavailable
 from ..events import log_event
 from ..schemas import ChatMessage
 from ..security import current_user
@@ -91,8 +91,12 @@ def chat(body: ChatMessage, request: Request, user=Depends(current_user)):
         answer, used = request.app.state.chat_engine.reply(
             system, [{"role": h["role"], "text": h["text"]} for h in history],
             body.message, tools_for(request, user))
-    except ChatUnavailable as e:
+    except ChatUnavailable as e:       # no key: the assistant is switched off
         raise HTTPException(503, str(e))
+    except ChatQuota as e:             # the key's (daily) quota is used up
+        raise HTTPException(429, str(e))
+    except ChatBusy as e:              # Gemini down or overloaded: try again later
+        raise HTTPException(502, str(e))
     now = datetime.now(timezone.utc)
     db.chats.insert_many([
         {"user_id": user["_id"], "role": "user", "text": body.message, "created_at": now},

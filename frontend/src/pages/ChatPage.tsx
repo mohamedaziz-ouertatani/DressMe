@@ -47,7 +47,9 @@ export function ChatPage() {
     setLocal([])
   }
 
-  const unavailable = error instanceof ApiError && error.status === 503
+  const unavailable = error instanceof ApiError && error.status === 503   // no Gemini key on the server
+  const busy = error instanceof ApiError && error.status === 502          // Gemini overloaded: try again
+  const quota = error instanceof ApiError && error.status === 429         // the key's daily quota is used up
 
   return (
     <Page title={t('chatTitle')}>
@@ -84,6 +86,10 @@ export function ChatPage() {
         {unavailable ? (
           <p role="status" className="mt-4 border-[1.5px] border-carbon bg-paper px-4 py-3 text-[14px] text-carbon">
             {t('chatUnavailable')}
+          </p>
+        ) : busy || quota ? (
+          <p role="status" className="mt-4 border-[1.5px] border-carbon bg-paper px-4 py-3 text-[14px] text-carbon">
+            {t(quota ? 'chatQuota' : 'chatBusy')}
           </p>
         ) : error ? (
           <div className="mt-4"><ErrorNote error={error} /></div>
