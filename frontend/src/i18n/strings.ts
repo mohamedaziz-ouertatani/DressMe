@@ -116,6 +116,8 @@ const en = {
   inWardrobe: 'Already in your wardrobe',
   inspiration: 'Inspiration',
   inspirationNote: 'Demo catalogue from public datasets, for the student project only.',
+  shopTitle: 'Buy something like this',
+  shopNote: 'From the public H&M catalogue (Kaggle data, for the student project only). No prices or stock.',
   match: '{p}% alike',
   demoNotice: 'Demo account: this wardrobe uses photos from public fashion datasets, for the student project only.',
 }
@@ -227,6 +229,8 @@ const fr: Record<StringKey, string> = {
   inWardrobe: 'Déjà dans ta garde-robe',
   inspiration: 'Inspiration',
   inspirationNote: 'Catalogue de démo issu de jeux de données publics, pour le projet étudiant uniquement.',
+  shopTitle: 'À acheter dans le même esprit',
+  shopNote: 'Catalogue public H&M (données Kaggle, pour le projet étudiant uniquement). Pas de prix ni de stock.',
   match: '{p} % proche',
   demoNotice: 'Compte de démo : cette garde-robe utilise des photos de jeux de données publics, pour le projet étudiant uniquement.',
 }
@@ -336,6 +340,8 @@ const ar: Record<StringKey, string> = {
   inWardrobe: 'موجودة في خزانتك',
   inspiration: 'إلهام',
   inspirationNote: 'كتالوج تجريبي من بيانات عامة، لمشروع الطلبة فقط.',
+  shopTitle: 'قطع مشابهة للشراء',
+  shopNote: 'من كتالوج H&M العام (بيانات Kaggle، لمشروع الطلبة فقط). بدون أسعار أو مخزون.',
   match: 'تشابه {p}٪',
   demoNotice: 'حساب تجريبي: هذه الخزانة تستعمل صورا من بيانات أزياء عامة، لمشروع الطلبة فقط.',
 }

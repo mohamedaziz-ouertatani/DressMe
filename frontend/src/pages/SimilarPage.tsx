@@ -42,6 +42,22 @@ export function SimilarPage() {
               </ul>
             )}
           </section>
+          {res.data.shop && res.data.shop.length > 0 && (
+            <section>
+              <h2 className="text-[18px] font-semibold text-carbon">{t('shopTitle')}</h2>
+              <p className="mb-3 mt-1 text-[13px] text-carbon-soft">{t('shopNote')}</p>
+              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                {res.data.shop.map((s) => (
+                  <li key={s.id} className="ticket p-2">
+                    <div className="flex justify-center"><ItemPhoto src={s.image_url} alt={s.name} size={112} /></div>
+                    {/* the shop's own product name, as H&M wrote it (not translated) */}
+                    <p className="perf-h mt-2 truncate pt-2 text-[14px] font-medium text-carbon" dir="auto" title={s.name}>{s.name}</p>
+                    <p className="font-mono text-[11px] text-ink-soft tabular">{s.shop} · {pct(s.score)}</p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           <section>
             <h2 className="text-[18px] font-semibold text-carbon">{t('inspiration')}</h2>
             <p className="mb-3 mt-1 text-[13px] text-carbon-soft">{t('inspirationNote')}</p>

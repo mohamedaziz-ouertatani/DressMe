@@ -64,6 +64,10 @@ def test_buy_advice_and_similar(client):
     assert len(sim["catalog"]) == 3 and sim["catalog"][0]["image_url"].startswith("/catalog/")
     assert client.get(sim["catalog"][0]["image_url"], headers=headers).status_code == 200
     assert client.get("/catalog/fp_unknown/image", headers=headers).status_code == 404
+    # H&M products to buy, same category, with a picture
+    assert len(sim["shop"]) == 3 and sim["shop"][0]["category"] == cand["category"]
+    assert sim["shop"][0]["name"] and sim["shop"][0]["shop"] == "H&M"
+    assert client.get(sim["shop"][0]["image_url"], headers=headers).status_code == 200
     assert client.get("/similar", headers=headers).status_code == 422
 
 

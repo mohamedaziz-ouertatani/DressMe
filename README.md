@@ -70,6 +70,7 @@ The datasets are **not included** (licences: non-commercial academic use, no red
 | [Fashion Product Images (Small)](https://www.kaggle.com/datasets/paramaggarwal/fashion-product-images-small) | `data/raw/FashionProduct/styles.csv` and `data/raw/FashionProduct/images/<id>.jpg` |
 | [Fashionpedia](https://fashionpedia.github.io/home/) | `data/raw/Fashionpedia/`: `instances_attributes_train2020.json` and `instances_attributes_val2020.json` at the root, train images in `train2020/train/`, val images in `validation_and_test_images_2020/test/` |
 | [Maryland Polyvore](https://github.com/xthan/polyvore-dataset) (Re-PolyVore version) | `data/raw/MarylandPolyVore/Re-PolyVore/<category folder>/<outfit_id>_<position>.jpg` |
+| [H&M Personalized Fashion Recommendations](https://www.kaggle.com/competitions/h-and-m-personalized-fashion-recommendations) (shop catalogue, see "Phase 4: H&M shop catalogue") | `data/raw/HM/articles.csv`; pictures are fetched by `src/fetch_hm_images.py` |
 
 DeepFashion2 and DressCode are requested but not available yet.
 
@@ -217,7 +218,7 @@ python -m pytest                                      # 19 fast tests (fake mode
 | `POST /items`, `GET /items`, `PATCH /items/{id}`, `DELETE /items/{id}` | wardrobe: upload a photo (analysed), list, correct, delete |
 | `POST /analyze`, `POST /buy-advice` | friperie photo → "should I buy this?" (buy / think / skip) |
 | `POST /outfits/score`, `GET /outfits/suggest`, `POST /outfits/complete` | outfits from your wardrobe |
-| `GET /similar` | look-alikes in your wardrobe + dataset inspiration |
+| `GET /similar` | look-alikes in your wardrobe + dataset inspiration + H&M products to buy (`shop`) |
 | `POST /chat`, `GET/DELETE /chat/history` | Gemini assistant that uses your real wardrobe |
 
 ## Phase 4: the app (frontend + admin)
@@ -244,6 +245,23 @@ python -m app.make_admin you@example.com # give an existing account the admin ro
 - **Design:** the visual system ("Ticket & Recharge-Card Stock") is documented in [`DESIGN.md`](DESIGN.md), and the product brief in [`PRODUCT.md`](PRODUCT.md).
 - **Demo data:** demo accounts show dataset photos and say so in the app; they are for the academic demo only.
 
+## Phase 4: H&M shop catalogue
+
+The shops block scraping (Zara / Bershka / Pull&Bear, team decision 2026-10-03), so the "buy something like this" suggestions come from the H&M catalogue published on Kaggle: real retail products with their type, colour and pattern. It is **not** merged into `dressme.csv`: it is not training data, it is what the user could buy. There is no price in the data.
+
+1. On Kaggle, accept the competition rules (closed competition: the **Late Submission** button shows them; nothing needs to be submitted). The Kaggle API must use the same account: a `~/.kaggle/access_token` file takes priority over `kaggle.json`.
+2. Run:
+
+```bash
+kaggle competitions download -c h-and-m-personalized-fashion-recommendations -f articles.csv -p data/raw/HM   # then unzip
+python src/map_hm.py            # labels -> data/processed/hm.csv (63k adult products; children's wear dropped)
+kaggle kernels push -p kaggle/hm_images     # private Kaggle notebook: shrinks the pictures to 320 px (~20 min on Kaggle)
+python src/fetch_hm_images.py   # when the notebook is COMPLETE: download its zip (~850 MB) and unpack it
+python src/embed_hm.py          # FashionCLIP vectors -> data/processed/embeddings/hm_fashionclip.*
+```
+
+The full picture set is ~30 GB and Kaggle allows only ~500 single-file downloads per period, so the pictures are shrunk on Kaggle by a **private** notebook ([`kaggle/hm_images/`](kaggle/hm_images/); change the account in `kernel-metadata.json` and `fetch_hm_images.py` if you use your own) and downloaded as one zip. The label rules are in `mappings/hm_*.csv`, with the same conventions as the other datasets (unknown stays empty; boots have no sub_category because the vocabulary has none).
+
 ### Colour validation (optional)
 
 ```bash
@@ -257,6 +275,7 @@ The datasets are used for non-commercial academic work only and are never redist
 - Fashion Product: MIT, per the Kaggle page.
 - Fashionpedia: annotations are CC BY 4.0; the images belong to their owners.
 - Maryland Polyvore: the dataset repository is Apache-2.0; the images belong to Polyvore users.
+- H&M Personalized Fashion Recommendations: Kaggle competition data, non-commercial use under the competition rules; the pictures belong to H&M.
 
 ## More context
 

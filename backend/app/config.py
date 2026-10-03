@@ -6,7 +6,7 @@ Settings, read from environment variables (or backend/.env, never committed).
     JWT_SECRET       REQUIRED in real use: a long random string
     JWT_HOURS        how long a log-in lasts (default 72)
     GEMINI_API_KEY   for /chat (without it, /chat answers 503)
-    GEMINI_MODEL     default gemini-2.5-flash (model names change: set it here)
+    GEMINI_MODEL     default gemini-3.8-flash (model names change: set it here)
     STORAGE_DIR      where uploaded photos go (default backend/storage)
     CORS_ORIGINS     comma-separated, default http://localhost:5173 (React dev server)
 """
@@ -29,7 +29,7 @@ class Settings:
     jwt_secret: str = field(default_factory=lambda: os.getenv("JWT_SECRET", ""))
     jwt_hours: int = field(default_factory=lambda: int(os.getenv("JWT_HOURS", "72")))
     gemini_api_key: str = field(default_factory=lambda: os.getenv("GEMINI_API_KEY", ""))
-    gemini_model: str = field(default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-2.5-flash"))
+    gemini_model: str = field(default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-3.8-flash"))
     storage_dir: Path = field(default_factory=lambda: Path(os.getenv("STORAGE_DIR", BACKEND_DIR / "storage")))
     cors_origins: list = field(default_factory=lambda: os.getenv(
         "CORS_ORIGINS", "http://localhost:5173").split(","))
