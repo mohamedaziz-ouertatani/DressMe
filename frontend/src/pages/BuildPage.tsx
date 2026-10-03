@@ -94,28 +94,42 @@ export function BuildPage() {
       ) : items.data.length === 0 ? (
         <Empty title={t('wardrobeEmptyTitle')} body={t('wardrobeEmptyBody')} />
       ) : (
-        <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 xl:grid-cols-5">
-          {items.data.map((it) => {
-            const on = picked.includes(it.id)
+        // one section per category (vocab order), so a top and its alternatives sit together
+        <div className="flex flex-col gap-6">
+          {Object.keys(CATEGORY_LABELS).map((cat) => {
+            const group = items.data!.filter((it) => it.category === cat)
+            if (!group.length) return null
             return (
-              <li key={it.id}>
-                <button
-                  aria-pressed={on}
-                  onClick={() => toggle(it.id)}
-                  className={`relative block w-full p-1.5 transition-shadow duration-150 ${on ? 'bg-paper outline-[2px] outline-ink [outline-style:solid]' : 'ticket'}`}
-                >
-                  <div className="flex justify-center"><ItemPhoto src={it.image_url} alt={label(it)} size={88} /></div>
-                  <span className="mt-1 block truncate text-[12px] text-carbon">{label(it)}</span>
-                  {on && (
-                    <span className="absolute end-1.5 top-1.5 grid size-6 place-items-center rounded-full bg-ink text-paper">
-                      <Check className="size-3.5" aria-hidden />
-                    </span>
-                  )}
-                </button>
-              </li>
+              <section key={cat} aria-labelledby={`build-${cat}`}>
+                <h2 id={`build-${cat}`} className="mb-2 text-[13px] font-medium uppercase tracking-[0.06em] text-carbon-soft">
+                  {vocab(CATEGORY_LABELS, cat, lang)} <span className="font-mono tabular" dir="ltr">· {group.length}</span>
+                </h2>
+                <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 xl:grid-cols-5">
+                  {group.map((it) => {
+                    const on = picked.includes(it.id)
+                    return (
+                      <li key={it.id}>
+                        <button
+                          aria-pressed={on}
+                          onClick={() => toggle(it.id)}
+                          className={`relative block w-full p-1.5 transition-shadow duration-150 ${on ? 'bg-paper outline-[2px] outline-ink [outline-style:solid]' : 'ticket'}`}
+                        >
+                          <div className="flex justify-center"><ItemPhoto src={it.image_url} alt={label(it)} size={88} /></div>
+                          <span className="mt-1 block truncate text-[12px] text-carbon">{label(it)}</span>
+                          {on && (
+                            <span className="absolute end-1.5 top-1.5 grid size-6 place-items-center rounded-full bg-ink text-paper">
+                              <Check className="size-3.5" aria-hidden />
+                            </span>
+                          )}
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </section>
             )
           })}
-        </ul>
+        </div>
       )}
       <div className="mt-8 lg:hidden">{result}</div>
     </Page>
