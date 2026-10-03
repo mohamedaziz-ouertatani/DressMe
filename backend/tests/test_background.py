@@ -5,7 +5,7 @@ import io
 import numpy as np
 from PIL import Image
 
-from app.background import on_white
+from app.background import keep_garment, on_white
 from tests.conftest import GREEN, RED, sign_up
 
 ITEM_BOX = (40, 50, 120, 150)    # where the red "item" sits in the test photo
@@ -50,3 +50,24 @@ def test_upload_is_cleaned_before_analysis(make_client, settings):
     saved = Image.open(next(settings.storage_dir.rglob("*.jpg")))
     assert saved.size == (88, 110)
     assert all(c > 240 for c in saved.getpixel((1, 1)))  # white corner (JPEG is not exact)
+
+
+def test_worn_item_keeps_only_the_garment():
+    """A 'person': U2-Net keeps the whole body, cloth-seg finds the top inside it."""
+    main = np.zeros((100, 60), np.uint8)
+    main[5:95, 15:45] = 255                     # head + body + legs
+    classes = np.zeros_like(main)
+    classes[30:60, 15:45] = 1                   # the top
+    classes[60:62, 15:45] = 2                   # a sliver of trousers: the top is bigger
+    kept = keep_garment(main, classes) > 128
+    assert kept[45, 30] and not kept[10, 30] and not kept[80, 30]   # top yes, head / legs no
+
+
+def test_item_alone_keeps_the_main_mask():
+    main = np.zeros((100, 60), np.uint8)
+    main[20:80, 10:50] = 255
+    flat = np.zeros_like(main)
+    flat[20:80, 10:50] = 1                      # cloth-seg agrees: the item is the object
+    assert (keep_garment(main, flat) == main).all()
+    nothing = np.zeros_like(main)               # cloth-seg misses a flat item on white
+    assert (keep_garment(main, nothing) == main).all()

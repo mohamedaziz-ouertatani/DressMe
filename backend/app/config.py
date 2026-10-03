@@ -10,6 +10,8 @@ Settings, read from environment variables (or backend/.env, never committed).
     STORAGE_DIR      where uploaded photos go (default backend/storage)
     REMOVE_BACKGROUND  1 (default) = put uploaded photos on white before analysing them, 0 = off
     BACKGROUND_MODEL   rembg model for that (default u2net)
+    CLOTH_MODEL        rembg model that keeps only the garment when it is worn
+                       (default u2net_cloth_seg; empty = keep the whole person)
     CORS_ORIGINS     comma-separated, default http://localhost:5173 (React dev server)
 """
 
@@ -40,6 +42,7 @@ class Settings:
     max_image_side: int = 1024     # uploads are shrunk to save disk
     remove_background: bool = field(default_factory=lambda: os.getenv("REMOVE_BACKGROUND", "1") != "0")
     background_model: str = field(default_factory=lambda: os.getenv("BACKGROUND_MODEL", "u2net"))
+    cloth_model: str = field(default_factory=lambda: os.getenv("CLOTH_MODEL", "u2net_cloth_seg"))
 
     def check(self):
         if len(self.jwt_secret) < 32:
