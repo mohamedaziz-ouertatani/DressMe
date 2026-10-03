@@ -5,7 +5,7 @@ def test_register_login_and_profile(client):
     headers = sign_up(client)
     me = client.get("/me", headers=headers).json()
     assert me["email"] == "amira@example.com" and me["name"] == "Amira"
-    assert me["min_coverage"] is None and me["language"] == "fr"
+    assert me["min_coverage"] is None and me["language"] == "en" and me["role"] == "user"
 
     r = client.post("/auth/login", json={"email": "AMIRA@example.com", "password": "secret-pass"})
     assert r.status_code == 200 and r.json()["token"]

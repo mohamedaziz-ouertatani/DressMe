@@ -46,8 +46,10 @@ def test_image_and_delete(client, settings):
     headers = sign_up(client)
     item = upload(client, headers, RED)
     token = headers["Authorization"].split()[1]
-    r = client.get(f"{item['image_url']}?token={token}")          # how an <img> tag loads it
+    r = client.get(item["image_url"], headers=headers)
     assert r.status_code == 200 and r.headers["content-type"] == "image/jpeg"
+    # a token in the URL is never accepted (it would leak into logs and history)
+    assert client.get(f"{item['image_url']}?token={token}").status_code == 401
     assert client.delete(f"/items/{item['id']}", headers=headers).status_code == 204
     assert client.get(f"/items/{item['id']}", headers=headers).status_code == 404
     assert not list(settings.storage_dir.rglob("*.jpg"))

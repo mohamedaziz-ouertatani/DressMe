@@ -33,6 +33,7 @@ class Settings:
     storage_dir: Path = field(default_factory=lambda: Path(os.getenv("STORAGE_DIR", BACKEND_DIR / "storage")))
     cors_origins: list = field(default_factory=lambda: os.getenv(
         "CORS_ORIGINS", "http://localhost:5173").split(","))
+    mappings_dir: Path = field(default_factory=lambda: ROOT / "mappings")   # formula CSVs
     max_upload_mb: int = 10
     max_image_side: int = 1024     # uploads are shrunk to save disk
 

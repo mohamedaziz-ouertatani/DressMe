@@ -62,9 +62,8 @@ def test_buy_advice_and_similar(client):
     sim = client.get(f"/similar?candidate_id={cand['id']}&k=3", headers=headers).json()
     assert sim["wardrobe"][0]["id"] == w["jeans"]["id"]
     assert len(sim["catalog"]) == 3 and sim["catalog"][0]["image_url"].startswith("/catalog/")
-    token = headers["Authorization"].split()[1]
-    assert client.get(f"{sim['catalog'][0]['image_url']}?token={token}").status_code == 200
-    assert client.get(f"/catalog/fp_unknown/image?token={token}").status_code == 404
+    assert client.get(sim["catalog"][0]["image_url"], headers=headers).status_code == 200
+    assert client.get("/catalog/fp_unknown/image", headers=headers).status_code == 404
     assert client.get("/similar", headers=headers).status_code == 422
 
 

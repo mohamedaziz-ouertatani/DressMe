@@ -1,0 +1,106 @@
+import { useEffect, useState } from 'react'
+import { Check, Plus } from 'lucide-react'
+import { api } from '../api/client'
+import type { Completion, Item, Outfit } from '../api/types'
+import { useI18n } from '../i18n'
+import { CATEGORY_LABELS, SUB_LABELS, vocab } from '../i18n/vocab'
+import { Page } from '../shell'
+import { ItemPhoto } from '../ui/ItemPhoto'
+import { OutfitStrip } from '../ui/OutfitStrip'
+import { Empty, ErrorNote, Skeleton } from '../ui/states'
+import { useLoad } from '../useLoad'
+
+export function BuildPage() {
+  const { t, lang } = useI18n()
+  const items = useLoad(() => api.items(), [])
+  const [picked, setPicked] = useState<string[]>([])
+  const [outfit, setOutfit] = useState<Outfit | null>(null)
+  const [completions, setCompletions] = useState<Completion[]>([])
+  const [error, setError] = useState<unknown>(null)
+
+  useEffect(() => {
+    if (!picked.length) return
+    let stale = false
+    Promise.all([api.score(picked), api.complete(picked, 4)])
+      .then(([o, c]) => {
+        if (stale) return
+        setOutfit(o)
+        setCompletions(c)
+        setError(null)
+      })
+      .catch((e) => !stale && setError(e))
+    return () => { stale = true }
+  }, [picked])
+
+  const toggle = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id].slice(-8)))
+  const label = (it: Item) => vocab(SUB_LABELS, it.sub_category, lang) || vocab(CATEGORY_LABELS, it.category, lang)
+
+  const shownOutfit = picked.length ? outfit : null
+  const shownCompletions = picked.length ? completions : []
+  const result = (
+    <div className="lg:sticky lg:top-10">
+      {error ? <ErrorNote error={error} /> : null}
+      {shownOutfit ? (
+        <div className="pt-6">
+          <OutfitStrip outfit={shownOutfit} compact />
+          {shownCompletions.length > 0 && (
+            <div className="mt-6">
+              <h2 className="mb-2 text-[13px] font-medium uppercase tracking-[0.06em] text-carbon-soft">{t('completeWith')}</h2>
+              <ul className="flex flex-col gap-2">
+                {shownCompletions.map((c) => (
+                  <li key={c.item.id}>
+                    <button onClick={() => toggle(c.item.id)} className="ticket flex w-full items-end gap-3 p-2 text-start hover:[box-shadow:var(--shadow-lift)]">
+                      <ItemPhoto src={c.item.image_url} alt={label(c.item)} size={56} />
+                      <span className="flex-1 pb-1 text-[14px] text-carbon">{label(c.item)}</span>
+                      <span className="pb-1 font-mono text-[13px] text-ink tabular" dir="ltr">{Math.round(c.score)}</span>
+                      <Plus className="mb-1.5 size-4 text-ink" aria-hidden />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      ) : (
+        <p className="ticket px-4 py-4 text-[14px] text-carbon-soft">{t('pickAtLeast')}</p>
+      )}
+    </div>
+  )
+
+  return (
+    <Page title={t('buildTitle')} aside={result}>
+      <p className="mb-4 max-w-[60ch] text-[15px] text-carbon-soft">{t('buildHint')}</p>
+      {items.error ? (
+        <ErrorNote error={items.error} onRetry={items.reload} />
+      ) : !items.data ? (
+        <Skeleton className="h-64" />
+      ) : items.data.length === 0 ? (
+        <Empty title={t('wardrobeEmptyTitle')} body={t('wardrobeEmptyBody')} />
+      ) : (
+        <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 xl:grid-cols-5">
+          {items.data.map((it) => {
+            const on = picked.includes(it.id)
+            return (
+              <li key={it.id}>
+                <button
+                  aria-pressed={on}
+                  onClick={() => toggle(it.id)}
+                  className={`relative block w-full p-1.5 transition-shadow duration-150 ${on ? 'bg-paper outline-[2px] outline-ink [outline-style:solid]' : 'ticket'}`}
+                >
+                  <div className="flex justify-center"><ItemPhoto src={it.image_url} alt={label(it)} size={88} /></div>
+                  <span className="mt-1 block truncate text-[12px] text-carbon">{label(it)}</span>
+                  {on && (
+                    <span className="absolute end-1.5 top-1.5 grid size-6 place-items-center rounded-full bg-ink text-paper">
+                      <Check className="size-3.5" aria-hidden />
+                    </span>
+                  )}
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+      <div className="mt-8 lg:hidden">{result}</div>
+    </Page>
+  )
+}
