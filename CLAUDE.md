@@ -70,7 +70,8 @@ Paths are relative to `data/` (never committed to git).
      - `/buy-advice`, `/outfits/score|suggest|complete`, `/similar`, `/catalog/{id}/image`;
      - `/chat` (Gemini with function calling: `list_wardrobe`, `suggest_outfits`, `score_outfit`, `buy_advice_last_scan`; history per user).
    - **Privacy:** every query is filtered by `user_id`, and another user's item answers 404.
-   - **Tests:** `python -m pytest` in `backend/`, using fakes and the `dressme_test` database (25 tests, ~15 s). `DRESSME_SLOW=1` adds the real-model tests.
+   - **Tests:** `python -m pytest` in `backend/`, using fakes and the `dressme_test` database (28 tests, ~15 s). `DRESSME_SLOW=1` adds the real-model tests.
+   - **Background removal:** `app/background.py`: every upload (`/items`, `/analyze`) is shrunk to 1024 px, its background removed with rembg (U2-Net, ~1 s on the CPU, model downloaded once), pasted on white and cropped around the item, so it looks like the white product shots the models were trained on. The cleaned photo is analysed and saved, and the original is not kept. If the mask finds less than 3% of the photo, the original is kept. `REMOVE_BACKGROUND=0` switches it off, and so does a missing rembg (with a warning). Tests use a fake remover.
    - **Colour on uploads:** a colour below 0.7 confidence is left empty (the guess is kept in `predicted`), so the UI must let the user confirm it.
    - **Shop:** `/similar` also returns `shop` = the nearest H&M products (`Catalog.search_shop`, `SimilarityIndex.load_shop`), images at `/catalog/hm_<id>/image`; empty if the H&M files are missing.
 
