@@ -76,9 +76,17 @@ export interface CatalogHit {
   image_url: string
 }
 
+/** A product the user could buy (H&M catalogue): no price or stock in the data. */
+export interface ShopHit extends CatalogHit {
+  name: string
+  shop: string
+  department: string
+}
+
 export interface Similar {
   wardrobe: (Item & { similarity: number })[]
   catalog: CatalogHit[]
+  shop?: ShopHit[]   // missing or empty when the server has no shop catalogue
 }
 
 export interface ChatTurn {
