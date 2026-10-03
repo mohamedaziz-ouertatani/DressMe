@@ -5,6 +5,7 @@ Inputs (made by the map_*.py scripts):
     data/processed/fashion_product.csv
     data/processed/fashionpedia.csv
     data/processed/polyvore.csv
+    data/processed/local.csv            (optional: our own photos, map_local.py)
 Output (inside data/, so never committed):
     data/processed/dressme.csv
 
@@ -29,7 +30,8 @@ long chain. Keeping every chain inside one split is impossible, so:
 Other rules:
   - the split of a group is decided by a hash of its id, so it never changes
     when the script is re-run or when new rows are added;
-  - local photos (source = wardrobe / friperie) always go to test;
+  - local photos (source = wardrobe / friperie) always go to test, and so do
+    their outfits;
   - `duplicate` = True for the 2nd, 3rd... copy of the same picture: drop those
     rows when training a classifier (they add nothing);
   - colours estimated by estimate_colours.py (PolyVore, Fashionpedia) are
@@ -93,7 +95,14 @@ def load():
     pv = read("polyvore")
     pv["image_group"] = "pv_" + pv["image_group"]
 
-    df = pd.concat([fp, fpd, pv], ignore_index=True).fillna("")
+    # our own photos (map_local.py): image_group is already "lc_" + file MD5
+    parts = [fp, fpd, pv]
+    if (PROCESSED / "local.csv").exists():
+        parts.append(read("local"))
+    else:
+        print("  no local.csv: no local photos yet (src/map_local.py)")
+
+    df = pd.concat(parts, ignore_index=True).fillna("")
 
     # colours: real labels first, then the estimates (if they were computed)
     df["colour_source"] = (df["primary_colour"] != "").map({True: "label", False: ""})
@@ -120,6 +129,8 @@ def assign_splits(df):
     has_outfit = df["outfit_id"] != ""
     outfits = pd.Series(df.loc[has_outfit, "outfit_id"].unique())
     outfit_split = dict(zip(outfits, outfits.map(bucket)))
+    local_outfits = df.loc[has_outfit & df["source"].isin(LOCAL_SOURCES), "outfit_id"]
+    outfit_split.update(dict.fromkeys(local_outfits, "test"))   # our own photos: test only
     df["outfit_split"] = df["outfit_id"].map(outfit_split).fillna("")
 
     # 2) pictures: strictest split among their outfits, else their own hash
@@ -137,7 +148,7 @@ def assign_splits(df):
     used = df[has_outfit].groupby("image_group")["outfit_split"].nunique()
     shared = set(used[used > 1].index)
     dirty = set(df.loc[has_outfit & df["image_group"].isin(shared), "outfit_id"])
-    df["outfit_clean"] = ""
+    df["outfit_clean"] = pd.Series("", index=df.index, dtype=object)  # "" or True / False
     df.loc[has_outfit, "outfit_clean"] = ~df.loc[has_outfit, "outfit_id"].isin(dirty)
 
     # 5) duplicates (same file twice); Fashionpedia groups are photos, not copies
@@ -160,8 +171,11 @@ def check(df):
     test_outfits = with_outfit[with_outfit["outfit_split"] == "test"]
     if (test_outfits["split"] != "test").any():
         sys.exit("ERROR: a test outfit contains a non-test picture")
-    if (df.loc[df["source"].isin(LOCAL_SOURCES), "split"] != "test").any():
+    local = df["source"].isin(LOCAL_SOURCES)
+    if (df.loc[local, "split"] != "test").any():
         sys.exit("ERROR: a local photo is outside the test set")
+    if (df.loc[local & (df["outfit_id"] != ""), "outfit_split"] != "test").any():
+        sys.exit("ERROR: a local outfit is outside the test set")
 
 
 def summary(df):
