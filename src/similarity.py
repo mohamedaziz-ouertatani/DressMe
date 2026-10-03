@@ -51,9 +51,11 @@ class SimilarityIndex:
         ids = pd.read_csv(emb_dir / "hm_fashionclip_ids.csv", dtype=str)
         meta = pd.read_csv(DATA / "processed" / "hm.csv", dtype=str, keep_default_na=False,
                            usecols=["id", "dataset", "image_path", "category", "sub_category",
-                                    "primary_colour", "name", "department"])
+                                    "primary_colour", "name", "department", "product_code"])
         meta = ids.merge(meta, on="id", how="left")
-        meta["image_group"] = meta["id"]     # one picture per article
+        # search() keeps one hit per image_group: grouping by product shows each
+        # product once, not the same tee in five colours
+        meta["image_group"] = meta["product_code"]
         return cls(vectors, meta)
 
     def vector(self, item_id):

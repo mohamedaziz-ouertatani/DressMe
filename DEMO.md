@@ -6,6 +6,7 @@ About 8 minutes, one laptop, the team drives. Everything runs locally **except t
 
 - [ ] `git pull` on `main`; `python -m pytest` in `backend/` passes; `npm run build` in `frontend/` passes.
 - [ ] `backend/.env` has `JWT_SECRET` and a working `GEMINI_API_KEY` (send one real chat message to check the key and `GEMINI_MODEL`).
+- [ ] **Save the Gemini quota.** The free key allows only **20 requests a day** per model, and one answer that uses the wardrobe costs several (2 for one tool call, up to 7). Rehearse the chat the day before, then send **no** chat messages on demo day before step 6. The quota resets once a day (on 2026-10-03 Gemini said "in 11.7 h" at 13:20, so around 01:00 Tunisian time). A key with billing on, or a second team member's key, avoids the problem.
 - [ ] `python -m app.seed_demo` (API running) → demo wardrobe of 17 PolyVore pieces + admin account; passwords are the `DEMO_*` lines in `backend/.env`. It also gives the admin its role.
 - [ ] Look at the demo wardrobe, then pick **2 scan photos** (real friperie items, on a plain surface, whole piece in frame) and save them on the laptop:
   - **A — a near-twin** of something already owned (e.g. another black top) → expect **skip** + "you already own N similar pieces".
@@ -42,7 +43,9 @@ Close on the numbers: classifier beats the FashionCLIP baseline on every field; 
 | Problem | What to do |
 |---|---|
 | App shows "can't reach the server" | The API is down or still loading the models: check the uvicorn terminal, wait, press *Retry*. |
-| Chat answers an error / no internet | Skip step 6; say it uses Gemini online. Everything else is local. |
+| Chat says "busy" | Gemini is overloaded (the app already retried twice): wait a minute and send again, or skip step 6. |
+| Chat says "used up its free allowance" | The day's 20 Gemini requests are gone: skip step 6, say it uses Gemini online with a free key. |
+| Chat answers another error / no internet | Skip step 6; say it uses Gemini online. Everything else is local. |
 | A scan gets a wrong label | Correct it on screen: that is the feature (step 2), and it shows up in Admin → Model quality. |
 | Verdict differs from the rehearsal | Expected if the wardrobe changed; explain the rule (good outfits where the new piece beats what you own) and move on. |
 | Port 8000 / 5173 busy | Close the old terminal, or start uvicorn with `--port 8001` and change the proxy target in `frontend/vite.config.ts`. |

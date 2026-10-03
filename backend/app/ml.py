@@ -67,8 +67,11 @@ class Catalog:
             self._shop = None
         self._load = load_item_image
 
+    SAME_PICTURE = 0.99    # a hit this close is the query's own photo (demo pieces come from PolyVore)
+
     def search(self, vector, k=6, category=None):
-        hits = self._index.search(vector, k=k, datasets=self.DATASETS, category=category)
+        hits = self._index.search(vector, k=k + 3, datasets=self.DATASETS, category=category)
+        hits = hits[hits["score"] < self.SAME_PICTURE].head(k)
         return [{"id": r.id, "category": r.category, "sub_category": r.sub_category,
                  "colour": r.primary_colour, "score": round(float(r.score), 3)}
                 for r in hits.itertuples()]

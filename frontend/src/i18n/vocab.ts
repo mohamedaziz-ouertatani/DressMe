@@ -39,7 +39,7 @@ export const SUB_LABELS: Labels = {
   coat: ['Coat', 'Manteau', 'معطف'],
   jacket: ['Jacket', 'Veste', 'جاكيت'],
   waistcoat: ['Waistcoat', 'Gilet sans manches', 'صدرية'],
-  'casual-shoes': ['Casual shoes', 'Chaussures de ville', 'حذاء يومي'],
+  'casual-shoes': ['Casual shoes', 'Chaussures décontractées', 'حذاء يومي'],
   flats: ['Flats', 'Ballerines', 'حذاء مسطح'],
   'flip-flops': ['Flip-flops', 'Tongs', 'شلاكة'],
   'formal-shoes': ['Formal shoes', 'Chaussures habillées', 'حذاء رسمي'],

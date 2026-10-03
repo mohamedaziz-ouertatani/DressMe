@@ -1,4 +1,4 @@
-# DressMe — Handoff (2026-10-03, updated 10:00)
+# DressMe — Handoff (2026-10-03, updated 14:00 after the full app walkthrough)
 
 Paste this file into a new Claude Code session on your machine to pick up the project. Read the first six sections first (state, branches, commands, next steps); everything after "Reference" is the detailed record of what was built and decided.
 
@@ -9,15 +9,23 @@ Paste this file into a new Claude Code session on your machine to pick up the pr
   - **Fashionpedia** (`src/map_fashionpedia.py` → `fashionpedia.csv`, 160,080 rows): one row per worn item with a bbox; `outfit_id` = the photo; coverage = minimum over length / nickname / sleeve / neckline (`coverage_from` lists the sources).
   - **PolyVore** (`src/map_polyvore.py` → `polyvore.csv`, 125,910 rows): labelled by folder only; `image_group` = file MD5; pictures found in two folders dropped.
   - Colours for PolyVore / Fashionpedia come from `src/estimate_colours.py` (gradient boosting on Lab histograms, kept only at confidence ≥ 0.7).
-  - The local photo collection (wardrobe / friperie) is still to do.
+  - The local photo collection (wardrobe / friperie): the pipeline is ready (`src/map_local.py`, `LOCAL_PHOTOS.md`, #13), but `data/raw/Local/photos/` is still **empty**.
 - **Phase 4: all five sub-projects are done and on `main`:** embeddings, classifier, compatibility formula, backend, and the React frontend + admin dashboard (#8).
 - **Shop catalogue = H&M (#9).** Scraping Zara / Bershka / Pull&Bear is stopped (all three block it; team decision: never get around it). Instead, "buy something like this" uses the **H&M catalogue from Kaggle**: 63,005 adult products mapped to the schema, 62,741 searchable with FashionCLIP. `/similar` returns them as `shop`, and the app's **Similar pieces** screen shows them in a "Buy something like this" row. See "H&M shop catalogue" in the Reference part.
 - The Zara rows scraped before the block stay a **static demo** (`src/freeze_shop_demo.py` → `data/processed/shop_demo.csv`), not used by the app.
 - **`/chat` fix (#9):** `gemini-2.5-flash` no longer works with new API keys (404, shown as 503); the default model is now `gemini-3.8-flash`.
+- **Since then (#11–#18):**
+  - Phase 4 PDF report (`src/build_phase4_report.py` → `reports/phase4_report.pdf`, updated in #18);
+  - jury demo script `DEMO.md` (#12);
+  - phone photo rotation fix + local photo pipeline (#13);
+  - **background removal** on every upload (rembg U2-Net, then U2-Net cloth-seg keeps only the biggest garment when the item is worn; #14, #17);
+  - **outfit clash rule**: never the same sub_category twice or a category over its limit (`/outfits/score|complete` answer 422; the Build page swaps the piece; #15);
+  - Build page groups the wardrobe by category (#16).
+- **Full walkthrough done on 2026-10-03** (section 5): everything works end to end except the chat. Gemini overload and quota errors are now retried / explained in the app. The real limit is the **free Gemini key: 20 requests a day** (see `DEMO.md`).
 
 ## 2. Branches and pull requests
 
-Only **`main`** is left (plus `imgbot`, whose optional PR #1 is still open). Every other branch was merged or closed and deleted on 2026-10-03.
+Everything is on **`main`**; only ImgBot PR #1 is still open (optional). Every branch of #10–#18 was squash-merged, so these leftovers can be deleted (locally and on GitHub): `build-group-by-category`, `outfit-clash-rule`, `handoff-update`, `claude/practical-hawking-na1oqs`, `claude/lucid-hamilton-jvxg37`.
 
 | PR | What | State |
 |---|---|---|
@@ -27,6 +35,12 @@ Only **`main`** is left (plus `imgbot`, whose optional PR #1 is still open). Eve
 | #7 | accidental revert of #6 | closed, not merged |
 | #8 | frontend + admin dashboard → `main` | merged |
 | #9 | H&M shop catalogue + `/chat` model fix | merged |
+| #10 | this file after #8 / #9 | merged |
+| #11, #18 | Phase 4 PDF report, then its update with #12–#17 | merged |
+| #12, #13 | pre-demo fixes, `DEMO.md`, phone photo rotation, local photo pipeline | merged |
+| #14, #17 | background removal on uploads, then garment-only cut for worn items | merged |
+| #15 | outfit clash rule (no sub_category twice, category limits) | merged |
+| #16 | Build page grouped by category | merged |
 
 **Lessons, to avoid repeating them:**
 - With stacked PRs (B based on A), merge B into A *before* A goes into `main`, or retarget B to `main` first. Otherwise B lands on a dead branch (#4).
@@ -50,7 +64,7 @@ pip install -r backend/requirements.txt
 # 2. backend (needs the local MongoDB service running)
 copy backend\.env.example backend\.env      # then set JWT_SECRET (and GEMINI_API_KEY for /chat)
 cd backend
-python -m pytest                            # 24 fast tests, ~15 s
+python -m pytest                            # 36 fast tests, ~20 s
 uvicorn app.main:create_app --factory --port 8000   # http://localhost:8000/docs, models load in ~1 min
 python -m app.seed_demo                     # once, with the API running: demo + admin accounts, passwords written to backend/.env
 python -m app.make_admin you@example.com    # optional: make an existing account admin
@@ -63,7 +77,9 @@ npm run dev                                 # http://localhost:5173, forwards /a
 
 Demo login: `demo@example.com` (admin: `admin@example.com`); the passwords are on the `DEMO_PASSWORD` / `DEMO_ADMIN_PASSWORD` lines of `backend/.env`.
 
-**Restart the backend after rebuilding any vectors** (`embed_fashionclip.py`, `embed_hm.py`): it loads the catalogues only at start-up.
+**Restart the backend after rebuilding any vectors** (`embed_fashionclip.py`, `embed_hm.py`): it loads the catalogues only at start-up. Also restart it after every `git pull` that touches `backend/` or `src/`: there is no auto-reload, and during the walkthrough an old server was still running the code from before #17.
+
+In the Claude desktop app, `.claude/launch.json` starts both servers (`api`, `web`) from the preview pane.
 
 Do NOT run `src/scrape_shops.py` again: all three shops block it, and retrying makes the block last longer.
 
@@ -94,17 +110,26 @@ Shop items (H&M and Zara) have no `source` value yet: a team decision.
 
 ## 5. Immediate next steps
 
-1. **Full walkthrough of the app before the demo:** scan → buy advice, wardrobe corrections, outfits, chat, Similar pieces (with the H&M row), in English / French / Arabic, on desktop and phone sizes. Nobody has tested the whole journey since the frontend, backend, H&M and the chat fix came together. List what's broken, then fix it (prompt A).
-2. **Local photo collection (team):** the biggest gap. Every result so far is on public datasets; even 100–200 friperie / wardrobe photos (consent, blurred faces; `source` = wardrobe / friperie, always in test) would show whether the classifier and colour model hold up on real use.
+1. **What the walkthrough found** (fixes in the `handoff-walkthrough` PR: items 1, 7 and 8; the rest is still open). The full walkthrough ran on 2026-10-03 on `main` at #17: the backend tests (31) and `npm run build` pass; demo + admin accounts; English / French / Arabic; desktop and a 375 px phone screen. No page scrolls sideways on the phone, the Arabic layout mirrors correctly, and no console errors appeared. These work: log-in, Today, Wardrobe + correcting a field, Scan of a product shot (SKIP) and a street photo (dress found, colour left for the user, THINK after setting it), Similar pieces with the H&M row, Build with the swap rule, Profile, and the four admin tabs. Found, most important first:
+   1. **Chat failed, with the wrong message (FIXED).** Gemini answered `503 UNAVAILABLE: model is currently experiencing high demand`, and the app said "The team needs to add the Gemini key" although the key is set. Then the key hit `429 RESOURCE_EXHAUSTED`, quota `GenerateRequestsPerDayPerProjectPerModel-FreeTier` = **20 requests a day**; one chat answer with tools costs 2 to 7 of them (automatic function calling, `maximum_remote_calls=6`), so a few test messages use up the day. Now `chat_engine.py` retries 500 / 503 twice (1 s, 3 s) and never retries 429; `/chat` answers 503 = no key, 502 = Gemini busy, 429 = quota used up; `ChatPage.tsx` shows a message for each (en / fr / ar), and the typed question stays in the box. Still the biggest risk for the jury demo (step 6): save the quota on demo day, or use a key with billing on (`DEMO.md`).
+   2. **The demo wardrobe has the same jacket twice.** Item `6ac0ccce0263af6b3ffa2138` was uploaded at 09:37 on top of the 17 seeded pieces. It shows twice in Similar pieces and in Build's "Complete it with". Delete it before the demo.
+   3. **Modesty and occasion change nothing in the demo.** None of the demo pieces has coverage, season or occasion set, and unknown fields always pass, so step 8 of `DEMO.md` (modesty 4 → different suggestions) shows the exact same outfit. Fix: have `app/seed_demo.py` set coverage / season / usage on the demo pieces (by hand, a team choice: PolyVore has no such labels), or change the demo script.
+   4. **The scan shows the original photo, not the cut-out the models read.** For a worn item, the user can't see which garment cloth-seg kept. Candidates (`/analyze`) don't keep the cleaned picture; consider saving it for 24 h like the candidate and showing it.
+   5. **SKIP gives only a generic line.** The pink tee got "It does not beat what you already own", `reasons` empty and no near-twin warning, although 2 pink tops are owned (best wardrobe match 63%, under `similar_item`). Maybe fine (team threshold), but the verdict could say which owned piece beats it.
+   6. **Near-identical outfits.** "Best outfits with it" showed two outfits that differ only by the bottom (shorts vs skirt; same shoes, jacket and bag).
+   7. **Similar pieces repeated itself (FIXED).** The H&M row showed one product in several colours; `SimilarityIndex.load_shop` now groups by `product_code`, so each product appears once. The "Inspiration" row showed the demo item itself at 100% (the demo pieces come from PolyVore); `Catalog.search` now leaves out matches ≥ 0.99.
+   8. **French (FIXED):** `casual-shoes` was "Chaussures de ville" (dress shoes); now "Chaussures décontractées".
+   9. **Stamp wording:** the stamp around a SKIP verdict says "VALIDÉ · مصادق" ("approved"), which reads oddly next to SKIP.
+2. **Local photo collection (team):** the biggest gap. Every result so far is on public datasets; even 100–200 friperie / wardrobe photos (consent, blurred faces; `source` = wardrobe / friperie, always in test) would show whether the classifier and colour model hold up on real use. The pipeline is ready (`src/map_local.py --init`, then `src/map_local.py`, then `merge_and_split.py`); the image cache, embeddings and evaluation scripts still have to learn to read `local`.
 3. **Team decisions still open:** tune the compatibility weights (style alone scores better: 72.9% vs 66.6% AUC on PolyVore), pick a `source` value for shop items, and fill the *[to fill]* parts of the Phase 3 report (who labels the local photos, collection dates).
 4. **Dropped:** tagging the Zara demo pictures with the classifier (old prompt B). H&M gives 62k products with real labels, so it's no longer worth it.
-5. Optional tidy-up: close or merge ImgBot PR #1.
+5. Optional tidy-up: close or merge ImgBot PR #1; delete the merged branches listed in section 2.
 
 ## 6. Ready-to-paste prompts for the new session
 
-**Prompt A: full walkthrough of the app**
+**Prompt A: the remaining walkthrough findings**
 
-> Read CLAUDE.md and HANDOFF.md. Everything is on `main`. Help me run the stack locally (section 3: MongoDB service, `uvicorn …`, `npm run dev`); I'll log in with the demo account myself. Then walk through scan → "should I buy this?", wardrobe corrections (colour confirmation), today's outfit / build, chat, and Similar pieces (with the H&M "Buy something like this" row), in English, French and Arabic (right-to-left), on desktop and a phone-sized screen. List everything broken or confusing, ranked, before fixing anything. Don't change the compatibility weights.
+> Read CLAUDE.md and HANDOFF.md, section 5 item 1 (walkthrough findings; 1, 7 and 8 are fixed). Start a branch from a fresh `main`. Before the demo: delete the duplicate jacket from the demo wardrobe (item 2) and give the demo pieces coverage / season / occasion in `app/seed_demo.py` so the modesty and occasion filters visibly change Today (item 3): ask me which values to use. Then propose fixes for items 4 (show the cut-out on Scan), 6 (more varied outfits) and 9 (stamp wording). Don't change the verdict thresholds or weights (team decisions). Run `python -m pytest` in `backend/` and `npm run build` in `frontend/`, then check the screens in the browser, sending as few chat messages as possible (20 Gemini requests a day).
 
 **Prompt B: rebuild the H&M catalogue on another machine**
 
@@ -331,11 +356,12 @@ Sections are numbered automatically from the `SECTIONS` list in the script.
   - `/analyze` for friperie photos (not saved; the candidate is deleted after 24 h);
   - `/buy-advice`, outfit score / suggest / complete, `/similar`;
   - `/chat`, with history per user.
-- **Chat:** Gemini automatic function calling with four tools bound to the user (`list_wardrobe`, `suggest_outfits`, `score_outfit`, `buy_advice_last_scan`). The system prompt asks it to use the real wardrobe, answer in the user's language and respect their modesty level. **It needs `GEMINI_API_KEY` in `backend/.env`** (not set yet); without it `/chat` answers 503.
+- **Chat:** Gemini automatic function calling with four tools bound to the user (`list_wardrobe`, `suggest_outfits`, `score_outfit`, `buy_advice_last_scan`). The system prompt asks it to use the real wardrobe, answer in the user's language and respect their modesty level. **It needs `GEMINI_API_KEY` in `backend/.env`** (set since 2026-10-03); without it `/chat` answers 503. Gemini overload (500 / 503) is retried twice, then answers 502; a used-up quota answers 429 (the free key allows 20 requests a day); see section 5.
 - **Colour model:** `src/estimate_colours.py` now saves the trained model to `models/checkpoints/colour_model.joblib`, which the backend uses for uploads. Re-running it gave byte-identical estimates.
 - **Tests** (`backend/tests/`):
-  - 19 fast tests at the time (24 since the frontend and H&M work) with fake models / Gemini on a `dressme_test` database (~12 s). They cover auth, validation, privacy (other users' items → 404), uploads, corrections, outfits, buy advice, similar items and chat.
+  - 19 fast tests at the time (36 now, after the frontend, H&M, background removal, clash-rule and chat-retry work) with fake models / Gemini on a `dressme_test` database (~12 s). They cover auth, validation, privacy (other users' items → 404), uploads, corrections, outfits, buy advice, similar items and chat.
   - `DRESSME_SLOW=1` adds 2 tests of the real models (category right on at least 36 of 40 test photos; catalog search).
+- **Background removal (#14, #17):** `app/background.py` shrinks every upload (`/items`, `/analyze`) to 1024 px, removes the background with rembg (U2-Net), pastes it on white and crops around the item, so it looks like the product shots the models learned from. When the item is worn, U2-Net keeps the whole person, so U2-Net cloth-seg cuts it down to the biggest garment (only when that garment is under 85% of the main object). ~3-5 s per photo on the CPU. Switches: `REMOVE_BACKGROUND=0`, `CLOTH_MODEL=` (empty). The original photo is not kept.
 - **Live check** of the real server: 8 real photos uploaded, **8/8 categories right**. Suggest, buy advice, similar, catalog images and chat (503 without a key) all work. Colours: 3 of 8 were confident (one of them wrong: navy read as black), and 5 were left for the user to confirm, so **the frontend must make colour easy to confirm**.
 
 ## Phase 4: frontend and admin dashboard (sub-project 5, done)
