@@ -1,7 +1,7 @@
 // One small fetch wrapper for every API call. The log-in token lives in
 // localStorage; a 401 anywhere logs the user out (see AuthProvider).
 import type {
-  AdminUser, BuyAdvice, ChatTurn, Completion, Formula, Item, ItemPatch, ModelQuality,
+  AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Item, ItemPatch, ModelQuality,
   Occasion, Outfit, Season, Similar, Stats, User,
 } from './types'
 
@@ -119,6 +119,7 @@ export const api = {
     q.set('n', String(opts.n ?? 5))
     return request<Outfit[]>(`/outfits/suggest?${q}`)
   },
+  outfitLimits: () => request<{ max_items: Record<Category, number> }>('/outfits/limits'),
   score: (itemIds: string[]) => request<Outfit>('/outfits/score', json('POST', { item_ids: itemIds })),
   complete: (itemIds: string[], k = 5) =>
     request<Completion[]>('/outfits/complete', json('POST', { item_ids: itemIds, k })),
