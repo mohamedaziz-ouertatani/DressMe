@@ -8,6 +8,8 @@ Settings, read from environment variables (or backend/.env, never committed).
     GEMINI_API_KEY   for /chat (without it, /chat answers 503)
     GEMINI_MODEL     default gemini-3.8-flash (model names change: set it here)
     STORAGE_DIR      where uploaded photos go (default backend/storage)
+    REMOVE_BACKGROUND  1 (default) = put uploaded photos on white before analysing them, 0 = off
+    BACKGROUND_MODEL   rembg model for that (default u2net)
     CORS_ORIGINS     comma-separated, default http://localhost:5173 (React dev server)
 """
 
@@ -36,6 +38,8 @@ class Settings:
     mappings_dir: Path = field(default_factory=lambda: ROOT / "mappings")   # formula CSVs
     max_upload_mb: int = 10
     max_image_side: int = 1024     # uploads are shrunk to save disk
+    remove_background: bool = field(default_factory=lambda: os.getenv("REMOVE_BACKGROUND", "1") != "0")
+    background_model: str = field(default_factory=lambda: os.getenv("BACKGROUND_MODEL", "u2net"))
 
     def check(self):
         if len(self.jwt_secret) < 32:

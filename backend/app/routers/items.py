@@ -2,6 +2,7 @@
 Wardrobe items: upload a photo (analysed by the models), list, correct, delete.
 Also /analyze: a friperie photo analysed WITHOUT adding it to the wardrobe
 (a "candidate", kept 24 h for /buy-advice and /similar).
+Both first remove the photo's background (see background.py).
 """
 
 import io
@@ -12,6 +13,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 from PIL import Image, UnidentifiedImageError
 
+from ..background import on_white
 from ..db import object_id, vector_to_bson
 from ..events import log_event
 from ..schemas import ItemUpdate
@@ -22,8 +24,9 @@ from ..wardrobe import fields_from_analysis, item_out
 router = APIRouter(tags=["wardrobe"])
 
 
-async def read_photo(upload, settings):
-    """The uploaded file as a PIL image; 400 if it is not a picture or too big."""
+async def read_photo(upload, request):
+    """The uploaded file as a PIL image on white; 400 if it is not a picture or too big."""
+    settings = request.app.state.settings
     data = await upload.read(settings.max_upload_mb * 1024 * 1024 + 1)
     if len(data) > settings.max_upload_mb * 1024 * 1024:
         raise HTTPException(413, f"Photo larger than {settings.max_upload_mb} MB")
@@ -32,7 +35,10 @@ async def read_photo(upload, settings):
         img.load()
     except (UnidentifiedImageError, OSError):
         raise HTTPException(400, "This file is not a readable picture")
-    return img.convert("RGB")
+    img = img.convert("RGB")
+    img.thumbnail((settings.max_image_side, settings.max_image_side))   # also faster to clean
+    remover = request.app.state.remover
+    return on_white(img, remover.mask(img)) if remover else img
 
 
 def analyse(img, user, request):
@@ -70,12 +76,11 @@ def apply_update(doc, body: ItemUpdate):
 @router.post("/items", status_code=201)
 async def add_item(request: Request, photo: UploadFile = File(...), user=Depends(current_user)):
     settings = request.app.state.settings
-    img = await read_photo(photo, settings)
+    img = await read_photo(photo, request)
     doc = analyse(img, user, request)
     doc["_id"] = ObjectId()
     folder = settings.storage_dir / str(user["_id"])
     folder.mkdir(parents=True, exist_ok=True)
-    img.thumbnail((settings.max_image_side, settings.max_image_side))
     img.save(folder / f"{doc['_id']}.jpg", quality=85)
     request.app.state.db.items.insert_one(doc)
     log_event(request.app.state.db, "upload", user["_id"], category=doc["category"])
@@ -125,7 +130,7 @@ def item_image(item_id: str, request: Request, user=Depends(current_user)):
 @router.post("/analyze", status_code=201)
 async def analyze(request: Request, photo: UploadFile = File(...), user=Depends(current_user)):
     """Analyse a photo without adding it to the wardrobe (e.g. in a friperie)."""
-    img = await read_photo(photo, request.app.state.settings)
+    img = await read_photo(photo, request)
     doc = analyse(img, user, request)
     doc["_id"] = request.app.state.db.candidates.insert_one(doc).inserted_id
     log_event(request.app.state.db, "scan", user["_id"], category=doc["category"])
