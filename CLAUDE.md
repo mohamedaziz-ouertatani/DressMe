@@ -69,7 +69,7 @@ Paths are relative to `data/` (never committed to git).
      - `/buy-advice`, `/outfits/score|suggest|complete`, `/similar`, `/catalog/{id}/image`;
      - `/chat` (Gemini with function calling: `list_wardrobe`, `suggest_outfits`, `score_outfit`, `buy_advice_last_scan`; history per user).
    - **Privacy:** every query is filtered by `user_id`, and another user's item answers 404.
-   - **Tests:** `python -m pytest` in `backend/`, using fakes and the `dressme_test` database (19 tests, ~12 s). `DRESSME_SLOW=1` adds the real-model tests.
+   - **Tests:** `python -m pytest` in `backend/`, using fakes and the `dressme_test` database (24 tests, ~15 s). `DRESSME_SLOW=1` adds the real-model tests.
    - **Colour on uploads:** a colour below 0.7 confidence is left empty (the guess is kept in `predicted`), so the UI must let the user confirm it.
    - **Shop:** `/similar` also returns `shop` = the nearest H&M products (`Catalog.search_shop`, `SimilarityIndex.load_shop`), images at `/catalog/hm_<id>/image`; empty if the H&M files are missing.
 

@@ -209,7 +209,7 @@ pip install -r backend/requirements.txt
 cp backend/.env.example backend/.env      # then set JWT_SECRET (and GEMINI_API_KEY for the chat)
 cd backend
 uvicorn app.main:create_app --factory --port 8000    # docs: http://localhost:8000/docs
-python -m pytest                                      # 19 fast tests (fake models, dressme_test database)
+python -m pytest                                      # 24 fast tests (fake models, dressme_test database)
 ```
 
 | endpoint | what it does |

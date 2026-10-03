@@ -37,8 +37,9 @@ export function BuildPage() {
 
   const shownOutfit = picked.length ? outfit : null
   const shownCompletions = picked.length ? completions : []
+  // shown twice: in the aside on desktop, under the pieces on phones (one at a time)
   const result = (
-    <div className="lg:sticky lg:top-10">
+    <div>
       {error ? <ErrorNote error={error} /> : null}
       {shownOutfit ? (
         <div className="pt-6">
@@ -68,7 +69,7 @@ export function BuildPage() {
   )
 
   return (
-    <Page title={t('buildTitle')} aside={result}>
+    <Page title={t('buildTitle')} aside={<div className="hidden lg:sticky lg:top-10 lg:block">{result}</div>}>
       <p className="mb-4 max-w-[60ch] text-[15px] text-carbon-soft">{t('buildHint')}</p>
       {items.error ? (
         <ErrorNote error={items.error} onRetry={items.reload} />
