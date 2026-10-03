@@ -22,7 +22,7 @@ A part that cannot be computed (e.g. no colours known) is left out, and the
 weights of the other parts are rescaled: unknown is never guessed.
 
 An item is a dict; only `category` is required:
-    {"id": "...", "category": "top", "colour": "black", "pattern": "striped",
+    {"id": "...", "category": "top", "sub_category": "t-shirt", "colour": "black", "pattern": "striped",
      "pattern_conf": 0.9, "vector": <FashionCLIP vector>, "coverage": 4,
      "season": {"summer"}, "usage": {"casual"}}
 
@@ -33,6 +33,7 @@ Main functions (used by the API):
     buy_advice(candidate, wardrobe, profile)  "should I buy this?": counts the good
                                             outfits where the new item beats what you own
     complete_outfit(items, candidates, profile, k)  the best missing piece
+    clashes(items)                          why the items can't be worn together
 """
 
 from itertools import combinations
@@ -174,6 +175,24 @@ def score_outfit(items, rules=RULES, weights=None):
     return {"score": round(score, 1), "parts": parts, "reasons": reasons}
 
 
+# ------------------------------------------------------------------ hard constraints
+def clashes(items, rules=RULES):
+    """Why these items can't be one outfit ([] = they can): two pieces with the
+    same sub_category (two pairs of jeans), or a category over its max_items in
+    mappings/outfit_structure.csv (two tops). Unlike structure_part, which only
+    lowers the score, this is a hard rule the app enforces when building."""
+    reasons = []
+    subs = pd.Series([i.get("sub_category") for i in items if i.get("sub_category")])
+    for sub, n in subs.value_counts().items():
+        if n > 1:
+            reasons.append(f"{n} items of {sub}")
+    cats = pd.Series([i["category"] for i in items], dtype=object)
+    for cat, n in cats.value_counts().items():
+        if n > rules.max_items[cat]:
+            reasons.append(f"{n} items of {cat} (max {rules.max_items[cat]})")
+    return reasons
+
+
 # ------------------------------------------------------------------ personal filters
 def filter_items(items, profile=None):
     """Keep the items that fit the user's profile; unknown fields always pass.
@@ -302,12 +321,11 @@ def buy_advice(candidate, wardrobe, profile=None, rules=RULES):
 
 
 def complete_outfit(items, candidates, profile=None, k=5, rules=RULES):
-    """The k candidates that best complete `items` (without breaking a category limit)."""
+    """The k candidates that best complete `items` (never a clash: see clashes())."""
     candidates, _ = filter_items(candidates, profile)
-    counts = pd.Series([i["category"] for i in items]).value_counts().to_dict()
     ranked = []
     for c in candidates:
-        if counts.get(c["category"], 0) >= rules.max_items[c["category"]]:
+        if clashes(items + [c], rules):
             continue
         ranked.append({**score_outfit(items + [c], rules), "item": c})
     ranked.sort(key=lambda r: r["score"], reverse=True)

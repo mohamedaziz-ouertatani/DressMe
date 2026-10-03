@@ -13,6 +13,7 @@ import { useLoad } from '../useLoad'
 export function BuildPage() {
   const { t, lang } = useI18n()
   const items = useLoad(() => api.items(), [])
+  const limits = useLoad(() => api.outfitLimits(), [])
   const [picked, setPicked] = useState<string[]>([])
   const [outfit, setOutfit] = useState<Outfit | null>(null)
   const [completions, setCompletions] = useState<Completion[]>([])
@@ -32,7 +33,22 @@ export function BuildPage() {
     return () => { stale = true }
   }, [picked])
 
-  const toggle = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id].slice(-8)))
+  // An outfit never holds the same sub-category twice (two pairs of jeans) or more
+  // pieces of a category than its limit (one top). Picking such a piece swaps it
+  // in for the oldest clashing one instead of stacking them; the backend refuses clashes.
+  const toggle = (id: string) =>
+    setPicked((p) => {
+      if (p.includes(id)) return p.filter((x) => x !== id)
+      const byId = new Map((items.data ?? []).map((it) => [it.id, it]))
+      const next = byId.get(id)
+      if (!next) return [...p, id].slice(-8)
+      let kept = p.filter((x) => !next.sub_category || byId.get(x)?.sub_category !== next.sub_category)
+      const max = limits.data?.max_items[next.category] ?? 1
+      const sameCat = kept.filter((x) => byId.get(x)?.category === next.category)
+      const drop = new Set(sameCat.slice(0, Math.max(0, sameCat.length - (max - 1))))
+      kept = kept.filter((x) => !drop.has(x))
+      return [...kept, id].slice(-8)
+    })
   const label = (it: Item) => vocab(SUB_LABELS, it.sub_category, lang) || vocab(CATEGORY_LABELS, it.category, lang)
 
   const shownOutfit = picked.length ? outfit : null

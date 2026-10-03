@@ -59,6 +59,9 @@ def tools_for(request, user):
         if not chosen:
             return {"error": "none of these ids are in the wardrobe"}
         items = [to_compat(d) for d in chosen]
+        clash = compatibility.clashes(items)
+        if clash:          # same hard rule as /outfits/score
+            return {"error": "these pieces can't be worn together: " + "; ".join(clash)}
         return outfit_out({**compatibility.score_outfit(items), "items": items}, by_id)
 
     def buy_advice_last_scan() -> dict:

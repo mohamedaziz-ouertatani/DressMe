@@ -41,7 +41,8 @@ def to_compat(doc):
     pattern_conf = 1.0 if "pattern" in doc.get("corrected", []) \
         else doc.get("predicted", {}).get("pattern", {}).get("conf", 1.0)
     return {
-        "id": str(doc["_id"]), "category": doc["category"], "colour": doc["colour"],
+        "id": str(doc["_id"]), "category": doc["category"],
+        "sub_category": doc.get("sub_category", ""), "colour": doc["colour"],
         "pattern": doc["pattern"], "pattern_conf": pattern_conf,
         "vector": vector_from_bson(doc.get("vector")), "coverage": doc.get("coverage"),
         "season": set(doc.get("season", [])), "usage": set(doc.get("usage", [])),
