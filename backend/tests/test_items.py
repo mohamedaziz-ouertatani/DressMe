@@ -1,3 +1,7 @@
+import io
+
+from PIL import Image
+
 from tests.conftest import BLUE, RED, photo, sign_up, upload
 
 
@@ -12,6 +16,19 @@ def test_upload_is_analysed_and_listed(client, settings):
     assert len(client.get("/items?category=bottom", headers=headers).json()) == 1
     stored = list((settings.storage_dir).rglob("*.jpg"))
     assert len(stored) == 2
+
+
+def test_phone_rotation_is_applied(client, settings):
+    """A portrait phone photo: landscape pixels + EXIF Orientation 6 (rotate 90 degrees)."""
+    headers = sign_up(client)
+    exif = Image.Exif()
+    exif[0x0112] = 6
+    buf = io.BytesIO()
+    Image.new("RGB", (80, 64), RED).save(buf, format="JPEG", exif=exif.tobytes())
+    r = client.post("/items", files={"photo": ("p.jpg", buf.getvalue(), "image/jpeg")}, headers=headers)
+    assert r.status_code == 201
+    (stored,) = settings.storage_dir.rglob("*.jpg")
+    assert Image.open(stored).size == (64, 80)       # saved upright (portrait)
 
 
 def test_not_a_picture(client):

@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from bson import ObjectId
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
-from PIL import Image, UnidentifiedImageError
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 from ..background import on_white
 from ..db import object_id, vector_to_bson
@@ -35,7 +35,9 @@ async def read_photo(upload, request):
         img.load()
     except (UnidentifiedImageError, OSError):
         raise HTTPException(400, "This file is not a readable picture")
-    img = img.convert("RGB")
+    # phones store portrait photos as landscape pixels + an EXIF "rotate" tag:
+    # apply it, or the models (and the saved photo) would see the item lying on its side
+    img = ImageOps.exif_transpose(img).convert("RGB")
     img.thumbnail((settings.max_image_side, settings.max_image_side))   # also faster to clean
     remover = request.app.state.remover
     return on_white(img, remover.mask(img)) if remover else img
