@@ -204,8 +204,9 @@ class Shop:
         # The shop's bot protection answered instead of the shop: stop here.
         if re.search(r"<title>\s*(Access Denied|Attention Required|Just a moment)", html, re.I):
             sys.exit(f"ERROR: {brand} refused the automated browser ('Access Denied' page, see "
-                     f"{self.dir / 'debug_home.png'}). The site does not allow this access; "
-                     "do not try to get around it. See CLAUDE.md for the alternatives.")
+                     f"{self.dir / 'debug_home.png'}). If it worked before, the site is "
+                     "probably slowing us down after too many requests: wait a few hours, then "
+                     "retry with a larger --delay (e.g. 5). Do not try to get around the block.")
 
         found = find_ids(self.seen, html + "\n" + self.js_config())
         self.store_id = args.store_id or found["store"]
