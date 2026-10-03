@@ -14,6 +14,7 @@ Run from the project root after the download (~5 min on the GPU):
     python src/embed_hm.py
 """
 
+import sys
 import time
 
 import numpy as np
@@ -46,8 +47,17 @@ def main():
 
     check(vecs, "the H&M vectors")
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    np.save(NPY_PATH, vecs)
-    df[["id"]].to_csv(IDS_PATH, index=False)
+    # write new files first, then swap them in: if the swap fails (e.g. a running
+    # backend still has the old file open), the new vectors are not lost
+    new_npy, new_ids = NPY_PATH.with_suffix(".new.npy"), IDS_PATH.with_suffix(".new.csv")
+    np.save(new_npy, vecs)
+    df[["id"]].to_csv(new_ids, index=False)
+    try:
+        new_npy.replace(NPY_PATH)
+        new_ids.replace(IDS_PATH)
+    except OSError:
+        sys.exit(f"ERROR: cannot replace {NPY_PATH.name} (is the backend running? stop it), "
+                 f"then rename {new_npy.name} -> {NPY_PATH.name} and {new_ids.name} -> {IDS_PATH.name}")
     print(f"Saved {len(df):,} vectors to {NPY_PATH} in {(time.time() - start) / 60:.1f} min")
 
 

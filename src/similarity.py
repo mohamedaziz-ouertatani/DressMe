@@ -45,7 +45,9 @@ class SimilarityIndex:
     @classmethod
     def load_shop(cls, emb_dir=EMB_DIR):
         """The H&M shop catalogue (src/embed_hm.py), with hm.csv as metadata."""
-        vectors = np.load(emb_dir / "hm_fashionclip.npy", mmap_mode="r")
+        # small (~64 MB): read it all, so the file is not kept open (on Windows an
+        # open file cannot be replaced, which would block re-running embed_hm.py)
+        vectors = np.load(emb_dir / "hm_fashionclip.npy")
         ids = pd.read_csv(emb_dir / "hm_fashionclip_ids.csv", dtype=str)
         meta = pd.read_csv(DATA / "processed" / "hm.csv", dtype=str, keep_default_na=False,
                            usecols=["id", "dataset", "image_path", "category", "sub_category",
