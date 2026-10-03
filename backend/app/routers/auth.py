@@ -12,14 +12,16 @@ router = APIRouter(tags=["auth"])
 
 
 def profile_out(user):
-    return {"id": str(user["_id"]), "email": user["email"], **user["profile"]}
+    return {"id": str(user["_id"]), "email": user["email"], "role": user.get("role", "user"),
+            "demo": bool(user.get("demo")), **user["profile"]}
 
 
 @router.post("/auth/register", status_code=201)
 def register(body: Register, request: Request):
     db, settings = request.app.state.db, request.app.state.settings
     user = {"email": body.email.lower(), "password_hash": hash_password(body.password),
-            "profile": {"name": body.name, "min_coverage": None, "language": "fr"},
+            "profile": {"name": body.name, "min_coverage": None, "language": "en"},
+            "role": "user", "disabled": False,
             "created_at": datetime.now(timezone.utc)}
     try:
         user["_id"] = db.users.insert_one(user).inserted_id
@@ -35,6 +37,8 @@ def login(body: Login, request: Request):
     # same message for unknown email and wrong password (do not reveal which)
     if not user or not check_password(body.password, user["password_hash"]):
         raise HTTPException(401, "Wrong email or password")
+    if user.get("disabled"):
+        raise HTTPException(403, "This account is disabled")
     return {"token": make_token(user["_id"], settings), "user": profile_out(user)}
 
 

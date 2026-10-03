@@ -14,8 +14,9 @@ from .. import ml  # noqa: F401  (puts src/ on the import path)
 import compatibility
 
 from ..db import vector_from_bson
+from ..events import log_event
 from ..schemas import BuyAdvice, Complete, ItemIds
-from ..security import current_user, current_user_for_image
+from ..security import current_user
 from ..vocab import SEASONS, USAGES
 from ..wardrobe import item_out, outfit_out, to_compat
 from .items import apply_update, own_item
@@ -74,6 +75,7 @@ def buy_advice(body: BuyAdvice, request: Request, user=Depends(current_user)):
     docs, by_id = wardrobe(request, user)
     by_id[str(cand["_id"])] = cand
     advice = compatibility.buy_advice(to_compat(cand), [to_compat(d) for d in docs], profile(user))
+    log_event(request.app.state.db, "verdict", user["_id"], verdict=advice["verdict"])
     return {"verdict": advice["verdict"], "good_outfits": advice["good_outfits"],
             "reasons": advice["reasons"], "candidate": item_out(cand, kind="candidates"),
             "best": [outfit_out(o, by_id) for o in advice["best"]]}
@@ -99,7 +101,7 @@ def similar(request: Request, item_id: str | None = None, candidate_id: str | No
 
 
 @router.get("/catalog/{item_id}/image")
-def catalog_image(item_id: str, request: Request, user=Depends(current_user_for_image)):
+def catalog_image(item_id: str, request: Request, user=Depends(current_user)):
     """A dataset product shot (academic use only: served to logged-in users, never published)."""
     img = request.app.state.catalog.image(item_id)
     if img is None:

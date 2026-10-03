@@ -13,8 +13,9 @@ from fastapi.responses import FileResponse
 from PIL import Image, UnidentifiedImageError
 
 from ..db import object_id, vector_to_bson
+from ..events import log_event
 from ..schemas import ItemUpdate
-from ..security import current_user, current_user_for_image
+from ..security import current_user
 from ..vocab import SUB_PARENT
 from ..wardrobe import fields_from_analysis, item_out
 
@@ -77,6 +78,7 @@ async def add_item(request: Request, photo: UploadFile = File(...), user=Depends
     img.thumbnail((settings.max_image_side, settings.max_image_side))
     img.save(folder / f"{doc['_id']}.jpg", quality=85)
     request.app.state.db.items.insert_one(doc)
+    log_event(request.app.state.db, "upload", user["_id"], category=doc["category"])
     return item_out(doc)
 
 
@@ -96,7 +98,10 @@ def get_item(item_id: str, request: Request, user=Depends(current_user)):
 @router.patch("/items/{item_id}")
 def update_item(item_id: str, body: ItemUpdate, request: Request, user=Depends(current_user)):
     doc = own_item(request, user, item_id)
-    request.app.state.db.items.update_one({"_id": doc["_id"]}, {"$set": apply_update(doc, body)})
+    changes = apply_update(doc, body)
+    request.app.state.db.items.update_one({"_id": doc["_id"]}, {"$set": changes})
+    log_event(request.app.state.db, "correction", user["_id"],
+              fields=sorted(set(changes) - {"corrected"}))
     return item_out(own_item(request, user, item_id))
 
 
@@ -109,7 +114,7 @@ def delete_item(item_id: str, request: Request, user=Depends(current_user)):
 
 
 @router.get("/items/{item_id}/image")
-def item_image(item_id: str, request: Request, user=Depends(current_user_for_image)):
+def item_image(item_id: str, request: Request, user=Depends(current_user)):
     doc = own_item(request, user, item_id)
     path = request.app.state.settings.storage_dir / str(user["_id"]) / f"{doc['_id']}.jpg"
     if not path.exists():
@@ -123,5 +128,6 @@ async def analyze(request: Request, photo: UploadFile = File(...), user=Depends(
     img = await read_photo(photo, request.app.state.settings)
     doc = analyse(img, user, request)
     doc["_id"] = request.app.state.db.candidates.insert_one(doc).inserted_id
+    log_event(request.app.state.db, "scan", user["_id"], category=doc["category"])
     return item_out(doc, kind="candidates")
 

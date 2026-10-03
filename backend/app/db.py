@@ -5,6 +5,7 @@ MongoDB access (pymongo). Collections:
     candidates  photos analysed with /analyze, not in the wardrobe; deleted
                 automatically after 24 h (TTL index)
     chats       chat history per user
+    events      usage log for the admin dashboard (see events.py)
 
 FashionCLIP vectors are stored as raw float16 bytes (1 KB per item).
 """
@@ -22,6 +23,7 @@ def connect(settings):
     db.items.create_index([("user_id", ASCENDING), ("created_at", ASCENDING)])
     db.candidates.create_index("created_at", expireAfterSeconds=24 * 3600)
     db.chats.create_index([("user_id", ASCENDING), ("created_at", ASCENDING)])
+    db.events.create_index([("at", ASCENDING), ("type", ASCENDING)])
     return db
 
 
