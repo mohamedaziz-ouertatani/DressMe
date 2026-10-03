@@ -1,0 +1,41 @@
+"""
+MongoDB access (pymongo). Collections:
+    users       email, password_hash, profile
+    items       one wardrobe item per document (always filtered by user_id)
+    candidates  photos analysed with /analyze, not in the wardrobe; deleted
+                automatically after 24 h (TTL index)
+    chats       chat history per user
+
+FashionCLIP vectors are stored as raw float16 bytes (1 KB per item).
+"""
+
+import numpy as np
+from bson import Binary, ObjectId
+from bson.errors import InvalidId
+from pymongo import ASCENDING, MongoClient
+
+
+def connect(settings):
+    client = MongoClient(settings.mongo_url, serverSelectionTimeoutMS=5000, tz_aware=True)
+    db = client[settings.mongo_db]
+    db.users.create_index("email", unique=True)
+    db.items.create_index([("user_id", ASCENDING), ("created_at", ASCENDING)])
+    db.candidates.create_index("created_at", expireAfterSeconds=24 * 3600)
+    db.chats.create_index([("user_id", ASCENDING), ("created_at", ASCENDING)])
+    return db
+
+
+def vector_to_bson(vector):
+    return Binary(np.asarray(vector, np.float16).tobytes())
+
+
+def vector_from_bson(data):
+    return np.frombuffer(bytes(data), np.float16).astype(np.float32) if data else None
+
+
+def object_id(value):
+    """A string id from the URL as an ObjectId, or None if it is not valid."""
+    try:
+        return ObjectId(value)
+    except (InvalidId, TypeError):
+        return None

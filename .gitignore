@@ -24,3 +24,6 @@ venv/
 # Node / frontend
 node_modules/
 dist/
+
+# Backend: uploaded photos
+backend/storage/
