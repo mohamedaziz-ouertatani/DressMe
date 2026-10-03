@@ -83,6 +83,12 @@ class Rules:
 RULES = Rules()
 
 
+def reload_rules(map_dir=MAP_DIR):
+    """Re-read the CSV files into the SAME Rules object (the functions below use it
+    as their default), e.g. after an admin edits the weights in the app."""
+    RULES.__init__(map_dir)
+
+
 # ------------------------------------------------------------------ the four parts
 def style_part(items, rules):
     vecs = [np.asarray(i["vector"], np.float32) for i in items if i.get("vector") is not None]

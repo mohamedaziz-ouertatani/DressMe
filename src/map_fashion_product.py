@@ -39,7 +39,7 @@ OUT_PATH = ROOT / "data" / "processed" / "fashion_product.csv"
 # Whole master categories that are never clothing: dropped before mapping
 DROP_MASTER = ["Personal Care", "Home", "Sporting Goods"]
 
-# Allowed values of the unified schema (see CLAUDE.md)
+# Allowed values of the unified schema (see "Unified label schema" in README.md)
 CATEGORIES = {"top", "bottom", "dress", "outerwear", "shoes", "bag", "accessory", "traditional",
               "swimwear"}
 PATTERNS = {"solid", "striped", "checked", "floral", "printed"}
