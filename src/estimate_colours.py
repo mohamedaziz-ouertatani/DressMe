@@ -25,6 +25,7 @@ Open team decision (REVIEW): metallic colours (gold, silver) are not allowed
 for clothes: the model's next best colour is used instead (METAL_FREE below).
 
 Output (inside data/, so never committed):
+    models/checkpoints/colour_model.joblib (the trained model, for the backend)
     data/processed/colour_estimates.csv   id, primary_colour, colour_confidence,
                                           predicted_colour (best colour before the cut)
 It is read by merge_and_split.py, which fills `primary_colour` and sets
@@ -47,6 +48,7 @@ import numpy as np
 import pandas as pd
 from PIL import Image, ImageDraw
 from scipy import ndimage
+import joblib
 from sklearn.ensemble import HistGradientBoostingClassifier
 
 from colour_utils import rgb_to_lab
@@ -57,6 +59,7 @@ from merge_and_split import bucket
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
 OUT_PATH = DATA / "processed" / "colour_estimates.csv"
+MODEL_PATH = ROOT / "models" / "checkpoints" / "colour_model.joblib"
 REPORT_PATH = ROOT / "reports" / "colour_estimation.md"
 FIG_DIR = ROOT / "reports" / "figures" / "colour"
 
@@ -269,6 +272,9 @@ def main():
     clf = HistGradientBoostingClassifier(max_iter=300, learning_rate=0.08,
                                          class_weight="balanced", random_state=0)
     clf.fit(X_fp[train], fp.loc[train, "primary_colour"])
+    # saved for the backend (colour of uploaded photos); git-ignored
+    MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
+    joblib.dump(clf, MODEL_PATH)
     truth = fp.loc[~train, "primary_colour"].to_numpy()
     pred, conf = predict(clf, X_fp[~train], fp.loc[~train, "category"])
     acc = (pred == truth).mean()

@@ -57,6 +57,20 @@ Paths are relative to `data/` (never committed to git).
    - **Evaluation:** `src/evaluate_compatibility.py` → `reports/compatibility_evaluation.md`: AUC (real outfit vs one item swapped within its category) and FITB on the clean PolyVore test outfits and the Fashionpedia test photos, plus a demo figure. Use `--weights style=..,colour=..` for quick tries.
    - **Results with the team weights:** PolyVore AUC 66.6% / FITB 42.6%; Fashionpedia 78.7% / 59.5%. Style alone does better (72.9% / 84.6% AUC), and colour, pattern and structure add no signal in the swap test (structure can't, by design).
 
+4. **Backend (done):** `backend/` (FastAPI + pymongo, local MongoDB 4.0, so pymongo is pinned below 4.14). Run it from `backend/` with `uvicorn app.main:create_app --factory --port 8000`; the docs are at `/docs`.
+   - **Settings:** `backend/.env` (git-ignored; see `.env.example`): `JWT_SECRET` (required), `GEMINI_API_KEY`, `GEMINI_MODEL`.
+   - **`app/ml.py`:** wraps the src/ models (`Analyzer`: classifier + colour model + FashionCLIP; `Catalog`: `SimilarityIndex` on PolyVore / Fashion Product). `src/estimate_colours.py` now also saves `models/checkpoints/colour_model.joblib`; re-running it gave identical estimates.
+   - **Auth:** email + password, bcrypt + JWT. Image endpoints also accept `?token=`, for `<img>` tags.
+   - **Endpoints:**
+     - `/auth/*`, `/me` (profile: name, `min_coverage`, language);
+     - `/items` (upload → analysed; PATCH = user corrections, tracked in `corrected`; the model's guesses stay in `predicted`);
+     - `/analyze` (candidate, not saved, deleted after 24 h);
+     - `/buy-advice`, `/outfits/score|suggest|complete`, `/similar`, `/catalog/{id}/image`;
+     - `/chat` (Gemini with function calling: `list_wardrobe`, `suggest_outfits`, `score_outfit`, `buy_advice_last_scan`; history per user).
+   - **Privacy:** every query is filtered by `user_id`, and another user's item answers 404.
+   - **Tests:** `python -m pytest` in `backend/`, using fakes and the `dressme_test` database (19 tests, ~12 s). `DRESSME_SLOW=1` adds the real-model tests.
+   - **Colour on uploads:** a colour below 0.7 confidence is left empty (the guess is kept in `predicted`), so the UI must let the user confirm it.
+
 ## Rules
 
 - Never commit anything under `data/` or model weights; keep them in `.gitignore`.
