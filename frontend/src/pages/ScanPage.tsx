@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, Plus, ScanLine, Search, ShoppingBag } from 'lucide-react'
+import { ArrowRight, Plus, ScanLine, Search, ShoppingBag, Tag } from 'lucide-react'
 import { api } from '../api/client'
 import type { BuyAdvice, Item, ItemPatch } from '../api/types'
 import { useI18n } from '../i18n'
@@ -97,6 +97,9 @@ export function ScanPage() {
             <PhotoPicker onPick={analyse} />
             <Link to="/shop" className="inline-flex min-h-11 items-center gap-2 self-start text-[15px] text-ink underline decoration-1 underline-offset-4">
               <ShoppingBag className="size-4" aria-hidden /> {t('scanShopLink')}
+            </Link>
+            <Link to="/sell" className="-mt-3 inline-flex min-h-11 items-center gap-2 self-start text-[15px] text-ink underline decoration-1 underline-offset-4">
+              <Tag className="size-4" aria-hidden /> {t('sellLink')}
             </Link>
           </div>
         )}

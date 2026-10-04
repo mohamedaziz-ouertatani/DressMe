@@ -92,8 +92,17 @@ class Labeller:
         self.failed_in_a_row = 0
         return img.convert("RGB")
 
+    def open_local(self, path):
+        """A picture we already have (the frozen snapshot): no download, no delay."""
+        try:
+            with Image.open(path) as img:
+                return img.convert("RGB")
+        except OSError as err:
+            print(f"  no picture ({err}): {path}")
+            return None
+
     def __call__(self, raw):
-        img = self.download(raw.image_url)
+        img = self.open_local(raw.image_path) if raw.image_path else self.download(raw.image_url)
         if img is None:
             return None
         thumb = img.copy()

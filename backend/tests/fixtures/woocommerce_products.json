@@ -1,0 +1,14 @@
+[
+  {"id": 11, "name": "Robe midi", "permalink": "https://shop.example.tn/produit/robe-midi/",
+   "images": [{"src": "https://shop.example.tn/wp-content/uploads/robe.jpg"}],
+   "prices": {"price": "129000", "currency_code": "TND", "currency_minor_unit": 3},
+   "is_in_stock": true,
+   "attributes": [{"name": "Taille", "terms": [{"name": "S"}, {"name": "M"}]},
+                  {"name": "Couleur", "terms": [{"name": "Noir"}]}]},
+  {"id": 12, "name": "Jean droit", "permalink": "https://shop.example.tn/produit/jean/",
+   "images": [{"src": "https://shop.example.tn/wp-content/uploads/jean.jpg"}],
+   "prices": {"price": "99000", "currency_code": "TND", "currency_minor_unit": 3},
+   "is_in_stock": false, "attributes": []},
+  {"id": 13, "name": "Sans photo", "permalink": "https://shop.example.tn/produit/x/", "images": [],
+   "prices": {"price": "1000", "currency_code": "TND", "currency_minor_unit": 3}, "is_in_stock": true}
+]

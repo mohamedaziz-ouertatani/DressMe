@@ -211,7 +211,8 @@ class Shop:
             sys.exit(f"ERROR: {brand} refused the automated browser ('Access Denied' page, see "
                      f"{self.dir / 'debug_home.png'}). If it worked before, the site is "
                      "probably slowing us down after too many requests: wait a few hours, then "
-                     "retry with a larger --delay (e.g. 5). Do not try to get around the block.")
+                     "retry with a larger --delay (e.g. 5). If this was the first page of the run, the delay "
+                     "is not the cause: the site refuses automated browsers. Do not try to get around the block.")
 
         found = find_ids(self.seen, html + "\n" + self.js_config())
         self.store_id = args.store_id or found["store"]

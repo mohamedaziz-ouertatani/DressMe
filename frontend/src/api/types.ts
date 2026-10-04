@@ -110,9 +110,37 @@ export interface Listing {
   sub_category: string
   pattern: string
   colour: string
-  status: 'active' | 'gone'
+  predicted: Item['predicted']
+  corrected: string[]
+  status: 'active' | 'gone' | 'pending' | 'rejected'
   seen_at: string | null
+  checked_at: string | null   // when price and stock were really checked
+  snapshot: boolean           // a frozen copy: price and stock only true on checked_at
   image_url: string
+  seller: { city: string; contact: string; review_note: string } | null   // friperie sellers only
+}
+
+/** PATCH /listings/{id}: what a seller may change on their own listing. */
+export type ListingPatch = ItemPatch & {
+  price_tnd?: number
+  size?: string
+  city?: string
+  contact?: string
+  title?: string
+  sold?: boolean
+}
+
+export interface SellForm {
+  price_tnd: number
+  size: string
+  city: string
+  contact: string
+  title: string
+}
+
+/** GET /admin/listings: the review queue. */
+export interface ReviewListing extends Listing {
+  seller_email: string
 }
 
 export interface ListingHit extends Listing {

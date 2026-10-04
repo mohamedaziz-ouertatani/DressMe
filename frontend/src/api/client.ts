@@ -2,7 +2,7 @@
 // localStorage; a 401 anywhere logs the user out (see AuthProvider).
 import type {
   AdminSource, AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Insights, Item, ItemPatch,
-  Listing, ListingFilters, ListingPage, ModelQuality, Occasion, Outfit, Season, Similar, Stats, User,
+  Listing, ListingFilters, ListingPage, ListingPatch, ModelQuality, ReviewListing, SellForm, Occasion, Outfit, Season, Similar, Stats, User,
   ChatAttachment,
 } from './types'
 
@@ -140,7 +140,15 @@ export const api = {
     for (const [k, v] of Object.entries(f)) if (v !== undefined && v !== '') q.set(k, String(v))
     return request<ListingPage>(`/listings?${q}`)
   },
-  listingSources: () => request<{ source_id: string; brand: string; count: number }[]>('/listings/sources'),
+  listingSources: () => request<{ source_id: string; brands: string[]; count: number }[]>('/listings/sources'),
+  myListings: () => request<Listing[]>('/listings/mine'),
+  sell: (file: Blob, f: SellForm) => {
+    const form = photoForm(file)
+    for (const [k, v] of Object.entries(f)) form.append(k, String(v))
+    return request<Listing>('/listings/sell', { method: 'POST', body: form })
+  },
+  updateListing: (id: string, patch: ListingPatch) => request<Listing>(`/listings/${id}`, json('PATCH', patch)),
+  deleteListing: (id: string) => request<void>(`/listings/${id}`, { method: 'DELETE' }),
   listing: (id: string) => request<Listing>(`/listings/${id}`),
   /** "Should I buy this?" on a listing: it becomes a candidate, then use buyAdvice. */
   listingCandidate: (id: string) => request<Item>(`/listings/${id}/candidate`, { method: 'POST' }),
@@ -162,5 +170,9 @@ export const api = {
     formula: () => request<Formula>('/admin/formula'),
     saveFormula: (values: Record<string, number>) => request<Formula>('/admin/formula', json('PUT', { values })),
     sources: () => request<{ sources: AdminSource[]; file: string }>('/admin/sources'),
+    reviewQueue: (status = 'pending') =>
+      request<{ total: number; listings: ReviewListing[] }>(`/admin/listings?status=${status}`),
+    review: (id: string, status: 'active' | 'rejected', note = '') =>
+      request<Listing>(`/admin/listings/${id}`, json('PATCH', { status, note })),
   },
 }

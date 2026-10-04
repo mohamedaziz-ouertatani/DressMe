@@ -121,7 +121,7 @@ def test_browse_filters_and_images(client):
     assert client.get("/listings/nope", headers=headers).status_code == 404
     assert client.get("/listings", headers={}).status_code == 401
     assert client.get("/listings/sources", headers=headers).json() == [
-        {"source_id": "zara_tn", "brand": "zara", "count": 2}]
+        {"source_id": "zara_tn", "brands": ["zara"], "count": 2}]
 
 
 def test_buy_advice_and_similar_on_a_listing(client):
@@ -167,8 +167,11 @@ def test_admin_sources(client, db):
     db.users.update_one({}, {"$set": {"role": "admin"}})
     record_run(db, "zara_tn", datetime.now(timezone.utc), "blocked", "Access Denied")
     rows = {s["source_id"]: s for s in client.get("/admin/sources", headers=headers).json()["sources"]}
-    assert rows["zara_tn"]["refused"] == "" and rows["zara_tn"]["last_run"]["result"] == "blocked"
+    # the Inditex sites refused our browser on 2026-10-04: switched off, history kept
+    assert rows["zara_tn"]["refused"] == "not enabled" and rows["zara_tn"]["last_run"]["result"] == "blocked"
     assert rows["zara_tn"]["last_ok"] is None
+    assert rows["inditex_snapshot"]["refused"] == ""
+    assert "check_shop_source" in rows["exist_tn"]["refused"]           # kind not set until checked
 
 
 # ------------------------------------------------------------------ Inditex connector
@@ -260,3 +263,15 @@ def test_collector_saves_ok_runs_and_reports_blocks(client, db, monkeypatch):
     fake.fetch = lambda s, a: FetchResult("ok", "done", [raw("c")], "stock")
     result = collect_listings.collect(db, settings, source, args, lambda s: FakeLabeller(block=True))
     assert result == "blocked" and db.listings.count_documents({"status": "active"}) == 2
+
+
+def test_snapshot_listing_keeps_its_own_check_date(client):
+    headers = sign_up(client)
+    old = raw("s1")
+    old.checked_at, old.snapshot = "2026-10-03T10:00:00Z", True
+    sync(client, [old, raw("live")])
+    by_title = {x["title"]: x for x in client.get("/listings", headers=headers).json()["items"]}
+    snap, live = by_title["Product s1"], by_title["Product live"]
+    assert snap["snapshot"] is True and snap["checked_at"] == "2026-10-03T10:00:00Z"
+    assert live["snapshot"] is False and live["checked_at"] == live["seen_at"]
+    assert snap["seller"] is None

@@ -9,6 +9,8 @@ Admin dashboard API (admins only: python -m app.make_admin <email>).
     GET    /admin/formula         compatibility weights and settings (+ rule tables)
     PUT    /admin/formula         edit them: rewrites mappings/compatibility_weights.csv
     GET    /admin/sources         listing sources (mappings/listing_sources.csv) + their last runs
+    GET    /admin/listings        friperie sellers' listings to review (?status=pending)
+    PATCH  /admin/listings/{id}   approve (active) or reject one, with an optional note
 """
 
 import csv
@@ -26,7 +28,8 @@ import compatibility
 
 from ..db import object_id
 from ..events import EVENT_TYPES
-from ..listings import last_run, load_sources, usable
+from ..listings import SELLERS, last_run, listing_out, load_sources, usable
+from .listings import delete_seller_listings
 from ..ml import colour_min_confidence
 from ..security import current_admin
 from ..wardrobe import PREDICTED_FIELDS
@@ -139,6 +142,8 @@ def delete_user(user_id: str, request: Request, admin=Depends(current_admin)):
     db = request.app.state.db
     for coll in ("items", "candidates", "chats", "events", "outfit_feedback"):
         db[coll].delete_many({"user_id": user["_id"]})
+    delete_seller_listings(db, request.app.state.settings.storage_dir, user["_id"])
+    request.app.state.listing_index.invalidate()
     db.users.delete_one({"_id": user["_id"]})
     shutil.rmtree(request.app.state.settings.storage_dir / str(user["_id"]), ignore_errors=True)
 
@@ -219,3 +224,39 @@ def sources(request: Request):
             "in_stock": db.listings.count_documents({"source_id": sid, "status": "active", "in_stock": True}),
         })
     return {"sources": out, "file": "mappings/listing_sources.csv"}
+
+
+# ------------------------------------------------------------------ seller listings (moderation)
+@router.get("/listings")
+def review_queue(request: Request, status: Literal["pending", "active", "rejected", "gone"] = "pending",
+                 page: int = Query(1, ge=1), size: int = Query(30, ge=1, le=100)):
+    """Friperie sellers' listings, oldest first (the review queue), with the seller's email."""
+    db = request.app.state.db
+    query = {"source_id": SELLERS, "status": status}
+    docs = list(db.listings.find(query, {"vector": 0}).sort("created_at", 1)
+                .skip((page - 1) * size).limit(size))
+    emails = {u["_id"]: u["email"] for u in db.users.find(
+        {"_id": {"$in": [d["seller_id"] for d in docs]}}, {"email": 1})}
+    return {"total": db.listings.count_documents(query),
+            "listings": [{**listing_out(d), "seller_email": emails.get(d["seller_id"], "")} for d in docs]}
+
+
+class Review(BaseModel):
+    status: Literal["active", "rejected"]
+    note: str = ""          # shown to the seller, e.g. why it was rejected
+
+
+@router.patch("/listings/{listing_id}")
+def review(listing_id: str, body: Review, request: Request):
+    db = request.app.state.db
+    oid = object_id(listing_id)
+    doc = oid and db.listings.find_one({"_id": oid, "source_id": SELLERS})
+    if not doc:
+        raise HTTPException(404, "Listing not found")
+    if doc["status"] == "gone":
+        raise HTTPException(409, "The seller marked this item as sold")
+    db.listings.update_one({"_id": oid}, {"$set": {"status": body.status, "review_note": body.note[:200],
+                                                   "reviewed_at": datetime.now(timezone.utc)}})
+    request.app.state.listing_index.invalidate()
+    doc = db.listings.find_one({"_id": oid}, {"vector": 0})
+    return listing_out(doc)
