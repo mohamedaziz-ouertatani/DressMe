@@ -3,7 +3,7 @@
 import type {
   AdminSource, AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Insights, Item, ItemPatch,
   Listing, ListingFilters, ListingPage, ModelQuality, Occasion, Outfit, Season, Similar, Stats, User,
-  ChatAttachment,
+  ChatAttachment, TryOnResult,
 } from './types'
 
 const BASE = '/api'
@@ -144,6 +144,13 @@ export const api = {
   listing: (id: string) => request<Listing>(`/listings/${id}`),
   /** "Should I buy this?" on a listing: it becomes a candidate, then use buyAdvice. */
   listingCandidate: (id: string) => request<Item>(`/listings/${id}/candidate`, { method: 'POST' }),
+  /** Can take minutes (about one per garment): the AI runs on a shared GPU. */
+  tryOn: (person: Blob, itemIds: string[], candidateId?: string) => {
+    const form = photoForm(person)
+    itemIds.forEach((id) => form.append('item_ids', id))
+    if (candidateId) form.append('candidate_id', candidateId)
+    return request<TryOnResult>('/tryon', { method: 'POST', body: form })
+  },
 
   chat: (message: string) =>
     request<{ reply: string; tools_used: string[]; attachments: ChatAttachment[] }>('/chat', json('POST', { message })),

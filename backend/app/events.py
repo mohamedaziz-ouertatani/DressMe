@@ -6,11 +6,12 @@ action worth counting is written here once:
     verdict     a buy-advice answer        (extra: verdict = buy / think / skip)
     correction  a user corrected an item   (extra: fields = [...])
     chat        a chat message answered
+    tryon       a virtual try-on picture made (extra: garments = how many)
 """
 
 from datetime import datetime, timezone
 
-EVENT_TYPES = ["upload", "scan", "verdict", "correction", "chat"]
+EVENT_TYPES = ["upload", "scan", "verdict", "correction", "chat", "tryon"]
 
 
 def log_event(db, kind, user_id, **extra):

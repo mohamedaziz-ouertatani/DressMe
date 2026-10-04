@@ -1,16 +1,16 @@
 """
 Wardrobe items: upload a photo (analysed by the models), list, correct, delete.
 Also /analyze: a friperie photo analysed WITHOUT adding it to the wardrobe
-(a "candidate", kept 24 h for /buy-advice and /similar).
+(a "candidate", kept 24 h with its cleaned photo, for /buy-advice, /similar and /tryon).
 Both first remove the photo's background (see background.py).
 """
 
 import io
 from datetime import datetime, timezone
 
-from bson import ObjectId
+from bson import Binary, ObjectId
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from ..background import on_white
@@ -26,7 +26,14 @@ router = APIRouter(tags=["wardrobe"])
 
 async def read_photo(upload, request):
     """The uploaded file as a PIL image on white; 400 if it is not a picture or too big."""
-    settings = request.app.state.settings
+    img = await open_photo(upload, request.app.state.settings)
+    remover = request.app.state.remover
+    return on_white(img, remover.mask(img)) if remover else img
+
+
+async def open_photo(upload, settings):
+    """The uploaded file as an upright RGB PIL image, at most max_image_side
+    pixels; 400 if it is not a picture, 413 if too big."""
     data = await upload.read(settings.max_upload_mb * 1024 * 1024 + 1)
     if len(data) > settings.max_upload_mb * 1024 * 1024:
         raise HTTPException(413, f"Photo larger than {settings.max_upload_mb} MB")
@@ -39,8 +46,7 @@ async def read_photo(upload, request):
     # apply it, or the models (and the saved photo) would see the item lying on its side
     img = ImageOps.exif_transpose(img).convert("RGB")
     img.thumbnail((settings.max_image_side, settings.max_image_side))   # also faster to clean
-    remover = request.app.state.remover
-    return on_white(img, remover.mask(img)) if remover else img
+    return img
 
 
 def analyse(img, user, request):
@@ -132,8 +138,10 @@ def item_image(item_id: str, request: Request, user=Depends(current_user)):
 @router.get("/candidates/{candidate_id}/image")
 def candidate_image(candidate_id: str, request: Request, user=Depends(current_user)):
     doc = own_item(request, user, candidate_id, collection="candidates")
+    if doc.get("photo"):                 # a scan: the photo is in the document
+        return Response(bytes(doc["photo"]), media_type="image/jpeg")
     path = request.app.state.settings.storage_dir / str(user["_id"]) / f"{doc['_id']}.jpg"
-    if not path.exists():
+    if not path.exists():                # a shop listing: its picture was copied as a file
         raise HTTPException(404, "Image missing")
     return FileResponse(path, media_type="image/jpeg")
 
@@ -143,6 +151,11 @@ async def analyze(request: Request, photo: UploadFile = File(...), user=Depends(
     """Analyse a photo without adding it to the wardrobe (e.g. in a friperie)."""
     img = await read_photo(photo, request)
     doc = analyse(img, user, request)
+    # the cleaned photo is kept IN the document (for try-on), so the 24 h
+    # expiry deletes it too and no file is left behind
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=85)
+    doc["photo"] = Binary(buf.getvalue())
     doc["_id"] = request.app.state.db.candidates.insert_one(doc).inserted_id
     log_event(request.app.state.db, "scan", user["_id"], category=doc["category"])
     return item_out(doc, kind="candidates")

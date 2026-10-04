@@ -202,6 +202,7 @@ export interface DayStats {
   verdict: number
   correction: number
   chat: number
+  tryon?: number
 }
 
 export interface Stats {
@@ -248,4 +249,11 @@ export interface Formula {
   pattern_mixing: { a: string; b: string; score: string; note: string }[]
   file: string
   note?: string
+}
+
+export interface TryOnResult {
+  image: string                // data: URL (JPEG), never stored by the backend
+  applied: string[]            // ids put on, in dressing order
+  failed: string[]             // ids not put on because the AI stopped mid-way
+  skipped: { id: string; reason: 'unsupported' }[]   // shoes, bags, accessories
 }

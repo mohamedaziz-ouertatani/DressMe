@@ -13,6 +13,7 @@ import { ScanPage } from './pages/ScanPage'
 import { ListingPage, ShopPage } from './pages/ShopPage'
 import { SimilarPage } from './pages/SimilarPage'
 import { TodayPage } from './pages/TodayPage'
+import { TryOnPage } from './pages/TryOnPage'
 import { ItemPage, WardrobePage } from './pages/WardrobePage'
 import { AppShell, Wordmark } from './shell'
 import { ErrorNote } from './ui/states'
@@ -64,6 +65,7 @@ export default function App() {
               <Route path="wardrobe/:id" element={<ItemPage />} />
               <Route path="insights" element={<InsightsPage />} />
               <Route path="build" element={<BuildPage />} />
+              <Route path="tryon" element={<TryOnPage />} />
               <Route path="chat" element={<ChatPage />} />
               <Route path="similar" element={<SimilarPage />} />
               <Route path="shop" element={<ShopPage />} />

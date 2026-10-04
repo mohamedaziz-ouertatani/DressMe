@@ -104,6 +104,7 @@ export function AdminOverview() {
               ['Verdicts', s.totals.verdict],
               ['Corrections', s.totals.correction],
               ['Chat messages', s.totals.chat],
+              ['Try-ons', s.totals.tryon ?? 0],
             ]} />
             <section>
               <h2 className="mb-3 text-[15px] font-semibold text-carbon">Verdict mix</h2>

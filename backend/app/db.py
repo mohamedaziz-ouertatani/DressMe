@@ -2,8 +2,8 @@
 MongoDB access (pymongo). Collections:
     users       email, password_hash, profile
     items       one wardrobe item per document (always filtered by user_id)
-    candidates  photos analysed with /analyze, not in the wardrobe; deleted
-                automatically after 24 h (TTL index)
+    candidates  photos analysed with /analyze, not in the wardrobe (the cleaned
+                JPEG is in `photo`); deleted automatically after 24 h (TTL index)
     chats       chat history per user
     events      usage log for the admin dashboard (see events.py)
     outfit_feedback  per-user like/dislike feedback with vector snapshots
