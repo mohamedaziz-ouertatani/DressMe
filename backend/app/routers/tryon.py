@@ -9,6 +9,7 @@ returned inline (base64) and not stored either.
 
 import base64
 import io
+import logging
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
@@ -24,6 +25,7 @@ from ..wardrobe import to_compat
 from .items import open_photo, own_item
 
 router = APIRouter(tags=["try-on"])
+log = logging.getLogger("uvicorn.error")   # shown in the uvicorn terminal
 
 
 def item_photo(request, user, doc):
@@ -77,6 +79,7 @@ async def try_on(request: Request, photo: UploadFile = File(...),
         except TryOnUnavailable as e:
             raise HTTPException(503, str(e))
         except TryOnBusy as e:
+            log.warning("try-on failed (%s garment): %s", KIND[doc["category"]], e)
             if not applied:                  # nothing made: the app falls back to its overlay
                 raise HTTPException(502, str(e))
             break                            # keep what was made; the rest is listed in `failed`
