@@ -165,6 +165,8 @@ def test_next_space_is_tried_when_one_is_broken(settings, tmp_path):
     img = engine.dress(*person_and_garment(), "upper")
     assert img.getpixel((0, 0)) == (0, 200, 0)                   # the picture the Space made
     assert engine.last_space == "yisol/IDM-VTON"
+    assert [r.split(":")[0] for r in engine.last_skipped] == [
+        "zhengchong/CatVTON", "Kwai-Kolors/Kolors-Virtual-Try-On"]
     assert made["yisol/IDM-VTON"].calls == ["/tryon"]
 
 
