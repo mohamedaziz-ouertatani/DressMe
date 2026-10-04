@@ -42,9 +42,17 @@ COLUMNS = ["id", "brand", "country", "gender", "name", "colour_name", "category_
            "availability_level", "sizes_in_stock", "checked_at"]
 
 
+# who we are, never a fake browser (the same words as src/connectors/http.py)
+USER_AGENT = "DressMe student project (ESPRIT, academic, non-commercial)"
+
+
+class NoScrapedRows(Exception):
+    """No data/raw/Shops/*/products.csv on this computer: nothing to freeze."""
+
+
 def download(url, path):
     """Save one picture; True if it worked."""
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             path.write_bytes(resp.read())
@@ -54,20 +62,20 @@ def download(url, path):
         return False
 
 
-def main():
-    ap = argparse.ArgumentParser(description="Freeze the scraped shop rows into a demo snapshot")
-    ap.add_argument("--no-images", action="store_true", help="do not download the pictures")
-    ap.add_argument("--delay", type=float, default=1.0, help="seconds between picture downloads")
-    args = ap.parse_args()
-
+def freeze(images=True, delay=1.0, should_stop=lambda: False):
+    """Build data/processed/shop_demo.csv (+ pictures) from the scraped rows.
+    Returns (csv path, number of rows, number of pictures saved).
+    Also called by the snapshot connector (src/connectors/snapshot.py) when the
+    file is missing. A row whose picture could not be saved keeps its
+    image_url, and the collector tries it once more."""
     files = sorted(OUT_DIR.glob("*/products.csv"))
     if not files:
-        sys.exit(f"ERROR: no products.csv under {OUT_DIR}. Nothing was scraped on this machine.")
+        raise NoScrapedRows(f"no products.csv under {OUT_DIR}: nothing was scraped on this computer")
     df = pd.concat([pd.read_csv(f, dtype=str, keep_default_na=False) for f in files],
                    ignore_index=True)
     df = df.drop_duplicates("id")
     print(f"{len(df)} product colours from {len(files)} file(s): "
-          + ", ".join(f"{b} {n}" for b, n in df["brand"].value_counts().items()))
+          + ", ".join(f"{b} {n}" for b, n in df["brand"].value_counts().items()), flush=True)
 
     # price: the scraper already divided price_raw by 100 (checked on zara.com/tn)
     df["price_tnd"] = df["price"]
@@ -80,20 +88,38 @@ def main():
     df.loc[df["availability_level"] == "product", "sizes_in_stock"] = ""
 
     df["image_path"] = ""
-    if not args.no_images:
+    if images:
         IMG_DIR.mkdir(parents=True, exist_ok=True)
-        for i, row in df.iterrows():
+        for n, (i, row) in enumerate(df.iterrows(), 1):
+            if should_stop():
+                raise InterruptedError("stopped while saving the pictures")
             path = IMG_DIR / f"{row['id']}.jpg"
-            if row["image_url"] and (path.exists() or download(row["image_url"], path)):
+            if path.exists():
                 df.at[i, "image_path"] = str(path.relative_to(ROOT / "data")).replace("\\", "/")
-                time.sleep(args.delay)
-        print(f"{(df['image_path'] != '').sum()} / {len(df)} pictures saved in {IMG_DIR}")
+            elif row["image_url"] and download(row["image_url"], path):
+                df.at[i, "image_path"] = str(path.relative_to(ROOT / "data")).replace("\\", "/")
+                time.sleep(delay)
+            if n % 50 == 0:
+                print(f"  pictures {n}/{len(df)}", flush=True)
+        print(f"{(df['image_path'] != '').sum()} / {len(df)} pictures saved in {IMG_DIR}", flush=True)
 
     OUT_CSV.parent.mkdir(parents=True, exist_ok=True)
     df[COLUMNS].to_csv(OUT_CSV, index=False)
     print(f"wrote {OUT_CSV}")
     print("availability:", df["availability"].value_counts().to_dict(),
           "| level:", df["availability_level"].value_counts().to_dict())
+    return OUT_CSV, len(df), int((df["image_path"] != "").sum())
+
+
+def main():
+    ap = argparse.ArgumentParser(description="Freeze the scraped shop rows into a demo snapshot")
+    ap.add_argument("--no-images", action="store_true", help="do not download the pictures")
+    ap.add_argument("--delay", type=float, default=1.0, help="seconds between picture downloads")
+    args = ap.parse_args()
+    try:
+        freeze(images=not args.no_images, delay=args.delay)
+    except NoScrapedRows as err:
+        sys.exit(f"ERROR: {err}.")
 
 
 if __name__ == "__main__":
