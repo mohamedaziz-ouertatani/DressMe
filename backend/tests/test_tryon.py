@@ -70,6 +70,17 @@ def test_space_failure(make_client):
     assert try_on(client, headers, [top]).status_code == 502              # app shows the overlay
 
 
+def test_a_garment_no_space_can_dress_does_not_stop_the_others(make_client):
+    engine = FakeTryOn(fail_kinds=("lower",))      # e.g. CatVTON down: nobody does trousers
+    client = make_client(tryon=engine)
+    headers = sign_up(client)
+    top, jeans = upload(client, headers, RED)["id"], upload(client, headers, BLUE)["id"]
+    r = try_on(client, headers, [top, jeans])
+    assert r.status_code == 200, r.text
+    assert r.json()["applied"] == [top] and r.json()["failed"] == [jeans]
+    assert engine.calls == ["upper"]
+
+
 def test_failure_mid_chain_keeps_the_first_garment(make_client):
     client = make_client(tryon=FakeTryOn(fail_after=1))
     headers = sign_up(client)

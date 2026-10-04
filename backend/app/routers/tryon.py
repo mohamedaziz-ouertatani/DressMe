@@ -50,8 +50,8 @@ async def try_on(request: Request, photo: UploadFile = File(...),
                  user=Depends(current_user)):
     """Dress the person in `photo` with the given wardrobe items and/or scanned
     candidate. Shoes, bags and accessories are skipped (the model can't draw
-    them). If a later garment of a chain fails, the picture made so far is
-    returned and that garment is listed in `failed`."""
+    them). A garment no Space could put on is listed in `failed` and the
+    others are still dressed; 502 only when none could be put on."""
     engine = request.app.state.tryon
     settings = request.app.state.settings
     if engine is None:
@@ -71,7 +71,7 @@ async def try_on(request: Request, photo: UploadFile = File(...),
         raise HTTPException(422, f"Try on at most {settings.tryon_max_garments} garments at once")
 
     result = await open_photo(photo, settings)
-    applied = []
+    applied, failed, reasons = [], [], []
     for doc in garments:
         try:
             result = await run_in_threadpool(
@@ -79,11 +79,14 @@ async def try_on(request: Request, photo: UploadFile = File(...),
         except TryOnUnavailable as e:
             raise HTTPException(503, str(e))
         except TryOnBusy as e:
+            # e.g. no working Space can dress trousers: skip this piece, keep
+            # dressing the others; it is listed in `failed`
             log.warning("try-on failed (%s garment): %s", KIND[doc["category"]], e)
-            if not applied:                  # nothing made: the app falls back to its overlay
-                raise HTTPException(502, str(e))
-            break                            # keep what was made; the rest is listed in `failed`
+            failed.append(str(doc["_id"]))
+            reasons.append(str(e))
+            continue
         applied.append(str(doc["_id"]))
-    failed = [str(d["_id"]) for d in garments[len(applied):]]
+    if not applied:                          # nothing made: the app falls back to its overlay
+        raise HTTPException(502, " / ".join(reasons))
     log_event(request.app.state.db, "tryon", user["_id"], garments=len(applied))
     return {"image": as_data_url(result), "applied": applied, "failed": failed, "skipped": skipped}

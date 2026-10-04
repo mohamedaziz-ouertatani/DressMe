@@ -80,13 +80,14 @@ class FakeTryOn:
     """Records each call and returns the person photo with a band of the
     garment's colour, so a test can see what was "put on" and in what order."""
 
-    def __init__(self, fail_after=None):
+    def __init__(self, fail_after=None, fail_kinds=()):
         self.calls = []
         self.fail_after = fail_after     # raise TryOnBusy from this call number on
+        self.fail_kinds = fail_kinds     # raise TryOnBusy for these kinds (e.g. "lower")
 
     def dress(self, person, garment, kind):
         from app.tryon import TryOnBusy
-        if self.fail_after is not None and len(self.calls) >= self.fail_after:
+        if kind in self.fail_kinds or (self.fail_after is not None and len(self.calls) >= self.fail_after):
             raise TryOnBusy("Space asleep")
         self.calls.append(kind)
         out = person.copy()
