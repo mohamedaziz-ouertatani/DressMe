@@ -95,9 +95,14 @@ def evaluate(url, model, rows):
     examples = []
     for row in rows:
         msgs = row["messages"]
+        # The language can change from one question to the next, so each answer is
+        # checked against its own turn's language (older files: the last turn's only)
+        answer_languages = iter(row.get("answer_languages", []))
         for k, gold in enumerate(msgs):
             if gold["role"] != "assistant" or k == 0:
                 continue
+            if not gold.get("tool_calls"):
+                expected_language = next(answer_languages, row["language"])
             if not any(m["role"] == "user" for m in msgs[:k]):
                 continue
             started = time.time()
@@ -116,7 +121,7 @@ def evaluate(url, model, rows):
             else:
                 m["tool_decision"].append(int(not calls))
                 if not calls:
-                    m["language"].append(int(language(pred.get("content", "")) == row["language"]))
+                    m["language"].append(int(language(pred.get("content", "")) == expected_language))
                     if len(examples) < 6 and k == len(msgs) - 1:
                         examples.append({"question": next(x["content"] for x in reversed(msgs[:k])
                                                           if x["role"] == "user"),
