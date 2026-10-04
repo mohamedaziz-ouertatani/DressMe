@@ -6,6 +6,7 @@ import { Page } from '../shell'
 import { ItemPhoto } from '../ui/ItemPhoto'
 import { ErrorNote, Skeleton } from '../ui/states'
 import { useLoad } from '../useLoad'
+import { ListingCard } from './ShopPage'
 
 export function SimilarPage() {
   const { t, lang } = useI18n()
@@ -42,6 +43,17 @@ export function SimilarPage() {
               </ul>
             )}
           </section>
+          {res.data.listings && res.data.listings.length > 0 && (
+            <section>
+              <h2 className="text-[18px] font-semibold text-carbon">{t('listingsTitle')}</h2>
+              <p className="mb-3 mt-1 text-[13px] text-carbon-soft">{t('listingsNote')}</p>
+              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                {res.data.listings.map((l) => (
+                  <li key={l.id}><ListingCard listing={l} note={pct(l.score)} /></li>
+                ))}
+              </ul>
+            </section>
+          )}
           {res.data.shop && res.data.shop.length > 0 && (
             <section>
               <h2 className="text-[18px] font-semibold text-carbon">{t('shopTitle')}</h2>

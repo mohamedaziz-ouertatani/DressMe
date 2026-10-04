@@ -89,6 +89,77 @@ export interface Similar {
   wardrobe: (Item & { similarity: number })[]
   catalog: CatalogHit[]
   shop?: ShopHit[]   // missing or empty when the server has no shop catalogue
+  listings?: ListingHit[]   // shop listings in stock now (empty until the collector has run)
+}
+
+/** A shop product collected by src/collect_listings.py (backend/app/listings.py, listing_out).
+ *  category / colour / ... are our models' predictions on its picture. */
+export interface Listing {
+  id: string
+  source_id: string
+  brand: string
+  title: string          // the shop's own words, not translated
+  shop_colour: string
+  url: string            // the product page: always link to it
+  price_tnd: number | null
+  sizes: string[]
+  sizes_in_stock: string[]
+  in_stock: boolean | null
+  availability_level: '' | 'colour' | 'product' | 'catalogue'
+  category: Category | ''
+  sub_category: string
+  pattern: string
+  colour: string
+  status: 'active' | 'gone'
+  seen_at: string | null
+  image_url: string
+}
+
+export interface ListingHit extends Listing {
+  score: number
+}
+
+export interface ListingPage {
+  total: number
+  page: number
+  per_page: number
+  items: Listing[]
+}
+
+export interface ListingFilters {
+  category?: Category
+  source?: string
+  max_price?: number
+  sort?: 'new' | 'price'
+  page?: number
+}
+
+/** GET /admin/sources: one line of mappings/listing_sources.csv + its runs. */
+export interface ListingRun {
+  result: 'ok' | 'blocked' | 'error' | 'skipped'
+  mode: string
+  message: string
+  counts: Record<string, number>
+  started_at: string
+  finished_at: string
+}
+
+export interface AdminSource {
+  source_id: string
+  kind: string
+  brand: string
+  country: string
+  enabled: string
+  approved_on: string
+  delay_s: string
+  refresh_days: string
+  catalogue_days: string
+  note: string
+  refused: string        // why the collector may not run it ('' = it may)
+  last_run: ListingRun | null
+  last_ok: ListingRun | null
+  active: number
+  in_stock: number
 }
 
 /** GET /insights (backend/app/routers/insights.py). */

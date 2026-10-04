@@ -8,6 +8,7 @@ Admin dashboard API (admins only: python -m app.make_admin <email>).
     DELETE /admin/users/{id}      delete an account and everything it owns
     GET    /admin/formula         compatibility weights and settings (+ rule tables)
     PUT    /admin/formula         edit them: rewrites mappings/compatibility_weights.csv
+    GET    /admin/sources         listing sources (mappings/listing_sources.csv) + their last runs
 """
 
 import csv
@@ -25,6 +26,7 @@ import compatibility
 
 from ..db import object_id
 from ..events import EVENT_TYPES
+from ..listings import last_run, load_sources, usable
 from ..ml import colour_min_confidence
 from ..security import current_admin
 from ..wardrobe import PREDICTED_FIELDS
@@ -191,3 +193,29 @@ def put_formula(body: FormulaUpdate, request: Request):
     return {**get_formula(request),
             "note": "Saved. Commit mappings/compatibility_weights.csv so the team keeps this change, "
                     "and re-measure with: python src/evaluate_compatibility.py"}
+
+
+# ------------------------------------------------------------------ listing sources
+def run_out(run):
+    if not run:
+        return None
+    return {"result": run["result"], "mode": run.get("mode", ""), "message": run.get("message", ""),
+            "counts": run.get("counts", {}), "started_at": run["started_at"].isoformat(),
+            "finished_at": run["finished_at"].isoformat()}
+
+
+@router.get("/sources")
+def sources(request: Request):
+    """Every source the team listed, whether the collector may run it, its last
+    run (ok / blocked / error) and how many of its listings the app shows."""
+    db = request.app.state.db
+    out = []
+    for s in load_sources(request.app.state.settings.mappings_dir):
+        sid = s["source_id"]
+        out.append({
+            **s, "refused": usable(s),
+            "last_run": run_out(last_run(db, sid)), "last_ok": run_out(last_run(db, sid, "ok")),
+            "active": db.listings.count_documents({"source_id": sid, "status": "active"}),
+            "in_stock": db.listings.count_documents({"source_id": sid, "status": "active", "in_stock": True}),
+        })
+    return {"sources": out, "file": "mappings/listing_sources.csv"}

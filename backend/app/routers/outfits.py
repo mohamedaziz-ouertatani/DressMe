@@ -141,7 +141,7 @@ def buy_advice(body: BuyAdvice, request: Request, user=Depends(current_user)):
 def similar(request: Request, item_id: str | None = None, candidate_id: str | None = None,
             k: int = Query(6, ge=1, le=20), user=Depends(current_user)):
     """Look-alikes in your wardrobe ('you already have this'), dataset inspiration,
-    and H&M products to buy ('shop')."""
+    H&M products ('shop', no price or stock) and shop listings in stock now ('listings')."""
     if bool(item_id) == bool(candidate_id):
         raise HTTPException(422, "Give exactly one of item_id or candidate_id")
     doc = own_item(request, user, item_id or candidate_id,
@@ -154,8 +154,12 @@ def similar(request: Request, item_id: str | None = None, candidate_id: str | No
     shop = request.app.state.catalog.search_shop(query, k=k, category=doc["category"])
     for c in catalog + shop:
         c["image_url"] = f"/catalog/{c['id']}/image"
+    listings = request.app.state.listing_index.search(
+        request.app.state.db, query, k=k + 1, category=doc["category"])
+    # a candidate made from a listing: leave the listing itself out
+    listings = [x for x in listings if x["id"] != str(doc.get("listing_id"))][:k]
     return {"wardrobe": [{**item_out(d), "similarity": round(s, 3)} for s, d in mine],
-            "catalog": catalog, "shop": shop}
+            "catalog": catalog, "shop": shop, "listings": listings}
 
 
 @router.get("/catalog/{item_id}/image")
