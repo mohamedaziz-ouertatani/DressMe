@@ -250,3 +250,29 @@ def test_connectors_stop_between_pages_when_asked():
 def test_inditex_stop_is_reported():
     from connectors import inditex
     assert inditex.outcome(-15, "[zara] opening\nSTOPPED by an admin\n")[0] == "stopped"
+
+
+def test_check_script_saves_the_kind_but_never_enables(tmp_path, monkeypatch, capsys):
+    import shutil
+    from app.listings import load_sources, usable
+    csv_path = tmp_path / "listing_sources.csv"
+    shutil.copy(Path(__file__).parents[2] / "mappings" / "listing_sources.csv", csv_path)
+    monkeypatch.setattr(check_shop_source, "Settings", lambda: SimpleNamespace(mappings_dir=tmp_path))
+    found = {"https://www.exist.com.tn/": "shopify", "https://ha.com.tn/": "woocommerce", "https://zen.com.tn/fr/": ""}
+    checked = []
+
+    def fake_check(url):
+        checked.append(url)
+        return [f"  checked {url}"], found[url]
+
+    monkeypatch.setattr(check_shop_source, "check", fake_check)
+    monkeypatch.setattr("sys.argv", ["check_shop_source.py", "--all", "--save"])
+    check_shop_source.main()
+    assert sorted(checked) == sorted(found)            # only the shops, never Inditex or the snapshot
+    rows = {s["source_id"]: s for s in load_sources(tmp_path)}
+    assert rows["exist_tn"]["kind"] == "shopify" and rows["hamadiabid_tn"]["kind"] == "woocommerce"
+    assert rows["zen_tn"]["kind"] == ""                  # nothing supported found: left empty
+    assert all(rows[s]["enabled"] == "no" and rows[s]["approved_on"] == "" for s in ("exist_tn", "hamadiabid_tn"))
+    assert usable(rows["exist_tn"]) == "not enabled"     # the team still has to read the terms
+    assert rows["zara_tn"] == {**rows["zara_tn"]} and rows["inditex_snapshot"]["kind"] == "snapshot"
+    assert "no platform we support" in capsys.readouterr().out

@@ -61,7 +61,7 @@ def load_sources(mappings_dir):
 def usable(source):
     """Why the collector must NOT run this source ("" = it may)."""
     if not source.get("kind"):
-        return "kind not set yet: run python src/check_shop_source.py <site>"
+        return "kind not set yet: run python src/check_shop_source.py --all --save"
     if source.get("kind") not in KINDS:
         return f"no connector for kind '{source.get('kind')}'"
     if source.get("kind") in ("shopify", "woocommerce") and not source.get("base_url"):
