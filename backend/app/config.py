@@ -5,6 +5,10 @@ Settings, read from environment variables (or backend/.env, never committed).
     MONGO_DB         default dressme
     JWT_SECRET       REQUIRED in real use: a long random string
     JWT_HOURS        how long a log-in lasts (default 72)
+    CHAT_ENGINE      gemini (default) or ollama (a local model, see LLM.md)
+    OLLAMA_URL       default http://localhost:11434
+    OLLAMA_MODEL     default qwen3:4b-instruct (our fine-tuned one: dressme-chat)
+    OLLAMA_NUM_CTX   context window in tokens (default 8192: prompt + tools + history + tool answers)
     GEMINI_API_KEY   for /chat (without it, /chat answers 503)
     GEMINI_MODEL     default gemini-3.8-flash (model names change: set it here)
     STORAGE_DIR      where uploaded photos go (default backend/storage)
@@ -32,6 +36,12 @@ class Settings:
     mongo_db: str = field(default_factory=lambda: os.getenv("MONGO_DB", "dressme"))
     jwt_secret: str = field(default_factory=lambda: os.getenv("JWT_SECRET", ""))
     jwt_hours: int = field(default_factory=lambda: int(os.getenv("JWT_HOURS", "72")))
+    chat_engine: str = field(default_factory=lambda: os.getenv("CHAT_ENGINE", "gemini").lower())
+    ollama_url: str = field(default_factory=lambda: os.getenv("OLLAMA_URL", "http://localhost:11434"))
+    ollama_model: str = field(default_factory=lambda: os.getenv("OLLAMA_MODEL", "qwen3:4b-instruct"))
+    ollama_num_ctx: int = field(default_factory=lambda: int(os.getenv("OLLAMA_NUM_CTX", "8192")))
+    ollama_timeout: float = 180.0      # seconds; the first answer also loads the model
+    ollama_temperature: float = 0.3
     gemini_api_key: str = field(default_factory=lambda: os.getenv("GEMINI_API_KEY", ""))
     gemini_model: str = field(default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-3.8-flash"))
     storage_dir: Path = field(default_factory=lambda: Path(os.getenv("STORAGE_DIR", BACKEND_DIR / "storage")))

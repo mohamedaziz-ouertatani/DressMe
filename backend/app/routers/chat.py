@@ -1,5 +1,5 @@
 """
-The DressMe chat assistant (Gemini). It answers from the user's REAL wardrobe
+The DressMe chat assistant (Gemini or a local model, see app/chat_engine.py). It answers from the user's REAL wardrobe
 by calling our functions (tools) instead of inventing clothes.
 """
 
@@ -34,7 +34,7 @@ Rules:
 
 
 def tools_for(request, user):
-    """The functions Gemini may call, already bound to this user."""
+    """The functions the model may call, already bound to this user."""
     def list_wardrobe(category: str = "") -> list[dict]:
         """List the user's clothes. category: optional filter (top, bottom, dress, outerwear,
         shoes, bag, accessory, traditional, swimwear)."""
@@ -95,7 +95,7 @@ def chat(body: ChatMessage, request: Request, user=Depends(current_user)):
         raise HTTPException(503, str(e))
     except ChatQuota as e:             # the key's (daily) quota is used up
         raise HTTPException(429, str(e))
-    except ChatBusy as e:              # Gemini down or overloaded: try again later
+    except ChatBusy as e:              # the model is down or overloaded: try again later
         raise HTTPException(502, str(e))
     now = datetime.now(timezone.utc)
     db.chats.insert_many([

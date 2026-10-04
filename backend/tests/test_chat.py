@@ -117,3 +117,93 @@ def test_used_up_quota_is_not_retried(make_client, settings, monkeypatch):
     client = make_client(chat_engine=engine_with(FlakyClient(429), settings))
     r = client.post("/chat", json={"message": "hello"}, headers=sign_up(client))
     assert r.status_code == 429
+
+
+# ------------------------------------------------------------------ local model (Ollama)
+import copy  # noqa: E402
+
+from app.chat_engine import ChatUnavailable, OllamaEngine, make_engine, tool_schema  # noqa: E402
+
+
+def test_tool_schema_reads_signature_and_docstring():
+    def score_outfit(item_ids: list[str], n: int = 3) -> dict:
+        """Score an
+        outfit."""
+    s = tool_schema(score_outfit)["function"]
+    assert s["name"] == "score_outfit" and s["description"] == "Score an outfit."
+    assert s["parameters"]["properties"] == {"item_ids": {"type": "array", "items": {"type": "string"}},
+                                             "n": {"type": "integer"}}
+    assert s["parameters"]["required"] == ["item_ids"]
+
+
+class FakeOllama:
+    """Answers /api/chat like Ollama: first a tool call, then text. Keeps the requests."""
+
+    def __init__(self, *answers, status=200):
+        self.answers, self.status, self.requests = list(answers), status, []
+
+    def post(self, url, json, timeout):
+        self.requests.append(copy.deepcopy(json))   # httpx sends a copy too
+        return SimpleNamespace(status_code=self.status, text="error",
+                               json=lambda: {"message": self.answers.pop(0)})
+
+
+def ollama_engine(settings, monkeypatch, fake):
+    import httpx
+    monkeypatch.setattr(httpx, "post", fake.post)
+    settings.chat_engine = "ollama"
+    return make_engine(settings)
+
+
+def test_ollama_runs_the_tools_it_asks_for(settings, monkeypatch):
+    fake = FakeOllama(
+        {"role": "assistant", "content": "", "tool_calls": [
+            {"function": {"name": "list_wardrobe", "arguments": {"category": "shoes"}}}]},
+        {"role": "assistant", "content": " You have black sneakers. "})
+    engine = ollama_engine(settings, monkeypatch, fake)
+    assert isinstance(engine, OllamaEngine)
+    seen = []
+
+    def list_wardrobe(category: str = "") -> list[dict]:
+        """List the clothes."""
+        seen.append(category)
+        return [{"id": "1", "category": "shoes", "colour": "black"}]
+
+    answer, used = engine.reply("system", [{"role": "model", "text": "hello"}], "my shoes?",
+                                {"list_wardrobe": list_wardrobe})
+    assert answer == "You have black sneakers." and used == ["list_wardrobe"] and seen == ["shoes"]
+    first, second = fake.requests
+    assert [m["role"] for m in first["messages"]] == ["system", "assistant", "user"]
+    assert first["tools"][0]["function"]["name"] == "list_wardrobe"
+    assert second["messages"][-1]["role"] == "tool" and "black" in second["messages"][-1]["content"]
+
+
+def test_ollama_tool_errors_go_back_to_the_model(settings, monkeypatch):
+    fake = FakeOllama(
+        {"content": "", "tool_calls": [{"function": {"name": "score_outfit", "arguments": "{\"wrong\": 1}"}}]},
+        {"content": "", "tool_calls": [{"function": {"name": "no_such_tool", "arguments": {}}}]},
+        {"content": "Sorry, try again."})
+
+    def score_outfit(item_ids: list[str]) -> dict:
+        """Score."""
+        return {}
+
+    answer, used = ollama_engine(settings, monkeypatch, fake).reply(
+        "system", [], "score", {"score_outfit": score_outfit})
+    assert answer == "Sorry, try again." and used == ["score_outfit", "no_such_tool"]
+    assert "TypeError" in fake.requests[1]["messages"][-1]["content"]
+    assert "unknown tool" in fake.requests[2]["messages"][-1]["content"]
+
+
+def test_ollama_missing_model_or_server(settings, monkeypatch):
+    with pytest.raises(ChatUnavailable):
+        ollama_engine(settings, monkeypatch, FakeOllama(status=404)).reply("s", [], "hi", {})
+    with pytest.raises(ChatBusy):
+        ollama_engine(settings, monkeypatch, FakeOllama(status=500)).reply("s", [], "hi", {})
+    import httpx
+
+    def refuse(*args, **kwargs):
+        raise httpx.ConnectError("refused")
+    monkeypatch.setattr(httpx, "post", refuse)
+    with pytest.raises(ChatUnavailable):
+        OllamaEngine(settings).reply("s", [], "hi", {})
