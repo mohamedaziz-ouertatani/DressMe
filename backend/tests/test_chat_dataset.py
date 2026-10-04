@@ -29,6 +29,12 @@ def test_conversations_are_well_formed():
                 json.loads(msgs[k + 1]["content"])
         if r["language"] == "ar":
             assert any("؀" <= c <= "ۿ" for c in msgs[-1]["content"])
+        # one language per plain answer (what evaluate_chat.py checks each answer against)
+        answers = [m for m in msgs if m["role"] == "assistant" and not m.get("tool_calls")]
+        assert len(r["answer_languages"]) == len(answers)
+        assert r["answer_languages"][-1] == r["language"]
+        for m, lang in zip(answers, r["answer_languages"]):
+            assert any("؀" <= c <= "ۿ" for c in m["content"]) == (lang == "ar")
 
 
 def test_score_uses_the_ids_from_list_wardrobe():

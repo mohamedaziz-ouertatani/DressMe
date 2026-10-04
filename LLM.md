@@ -74,7 +74,7 @@ This writes `models/llm/dressme-chat/Modelfile`, using the GGUF and the chat tem
 python src/evaluate_chat.py            # qwen3:4b-instruct vs dressme-chat, 150 test conversations
 ```
 
-Baseline before fine-tuning (`qwen3:4b-instruct`, `--limit 30`, 75 decisions, 2026-10-04, old language rule): tool decision 76.0%, tool name 33.3%, **arguments 13.9%** (0% on score and suggest), language 94.9%, 8.6 s per decision. It knows *when* to use a tool, but rarely picks the right one with the right ids, and it invents reasons (e.g. "two tops is too revealing" for the max-1-top rule). The language check only looks for Arabic script, so MSA counts as Darija.
+Baseline before fine-tuning (`qwen3:4b-instruct`, `--limit 30`, 75 decisions, 2026-10-04, old language rule): tool decision 76.0%, tool name 33.3%, **arguments 13.9%** (0% on score and suggest), language 94.9%, 8.6 s per decision. It knows *when* to use a tool, but rarely picks the right one with the right ids, and it invents reasons (e.g. "two tops is too revealing" for the max-1-top rule). The language check only looks for Arabic script, so MSA counts as Darija. Until 2026-10-04 the language check compared every answer with the language of the conversation's *last* question, but the language can change between questions, so even the expected answers scored only 93.9% (now 100%; `answer_languages` in the dataset gives one language per answer). The baseline language figure above used the old check; rebuild the dataset before re-running.
 
 Answers are capped at 600 tokens (`num_predict`, backend and evaluation; our longest training answer is ~150): at temperature 0 the base model once repeated itself until Ollama's 5-minute timeout.
 
