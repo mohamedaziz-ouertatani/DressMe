@@ -138,9 +138,12 @@ def item_image(item_id: str, request: Request, user=Depends(current_user)):
 @router.get("/candidates/{candidate_id}/image")
 def candidate_image(candidate_id: str, request: Request, user=Depends(current_user)):
     doc = own_item(request, user, candidate_id, collection="candidates")
-    if not doc.get("photo"):
+    if doc.get("photo"):                 # a scan: the photo is in the document
+        return Response(bytes(doc["photo"]), media_type="image/jpeg")
+    path = request.app.state.settings.storage_dir / str(user["_id"]) / f"{doc['_id']}.jpg"
+    if not path.exists():                # a shop listing: its picture was copied as a file
         raise HTTPException(404, "Image missing")
-    return Response(bytes(doc["photo"]), media_type="image/jpeg")
+    return FileResponse(path, media_type="image/jpeg")
 
 
 @router.post("/analyze", status_code=201)

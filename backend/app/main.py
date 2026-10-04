@@ -18,7 +18,8 @@ from .background import load_remover
 from .chat_engine import make_engine
 from .config import Settings
 from .db import connect
-from .routers import admin, auth, chat, insights, items, outfits, tryon
+from .listings import ListingIndex
+from .routers import admin, auth, chat, insights, items, listings, outfits, tryon
 from .tryon import make_tryon
 
 
@@ -40,13 +41,14 @@ def create_app(settings=None, analyzer=None, catalog=None, chat_engine=None, rem
         app.state.remover = remover or load_remover(settings, classifier)   # None = keep backgrounds
         app.state.chat_engine = chat_engine or make_engine(settings)
         app.state.tryon = tryon_engine or make_tryon(settings)   # None = switched off
+        app.state.listing_index = ListingIndex()
         yield
 
     app = FastAPI(title="DressMe API", version="0.1", lifespan=lifespan)
     app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins,
                        allow_methods=["*"], allow_headers=["*"])
-    for r in (auth.router, items.router, outfits.router, insights.router, chat.router, tryon.router,
-              admin.router):
+    for r in (auth.router, items.router, outfits.router, insights.router, chat.router,
+              listings.router, tryon.router, admin.router):
         app.include_router(r)
 
     @app.get("/health")

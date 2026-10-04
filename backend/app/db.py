@@ -7,6 +7,9 @@ MongoDB access (pymongo). Collections:
     chats       chat history per user
     events      usage log for the admin dashboard (see events.py)
     outfit_feedback  per-user like/dislike feedback with vector snapshots
+    listings    shop products to buy, shared by all users (app/listings.py,
+                filled by src/collect_listings.py)
+    listing_runs  one line per collector run and source (admin page)
 
 FashionCLIP vectors are stored as raw float16 bytes (1 KB per item).
 """
@@ -27,6 +30,9 @@ def connect(settings):
     db.events.create_index([("at", ASCENDING), ("type", ASCENDING)])
     db.outfit_feedback.create_index(
         [("user_id", ASCENDING), ("outfit_key", ASCENDING)], unique=True)
+    db.listings.create_index([("source_id", ASCENDING), ("external_id", ASCENDING)], unique=True)
+    db.listings.create_index([("status", ASCENDING), ("in_stock", ASCENDING), ("category", ASCENDING)])
+    db.listing_runs.create_index([("source_id", ASCENDING), ("finished_at", ASCENDING)])
     return db
 
 

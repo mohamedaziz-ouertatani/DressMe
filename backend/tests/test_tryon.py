@@ -96,3 +96,16 @@ def test_corrected_scan_is_dressed_as_corrected(make_client):
     assert r.status_code == 200
     assert try_on(client, headers, candidate_id=cand["id"]).status_code == 200
     assert engine.calls == ["overall"]
+
+
+def test_shop_listing_can_be_tried_on(make_client):
+    from tests.test_listings import raw, sync
+    engine = FakeTryOn()
+    client = make_client(tryon=engine)
+    headers = sign_up(client)
+    sync(client, [raw("a")])
+    listing = client.get("/listings", headers=headers).json()["items"][0]
+    cand = client.post(f"/listings/{listing['id']}/candidate", headers=headers).json()
+    r = try_on(client, headers, candidate_id=cand["id"])            # picture copied as a file
+    assert r.status_code == 200, r.text
+    assert engine.calls == ["upper"]
