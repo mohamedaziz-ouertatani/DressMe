@@ -1,0 +1,18 @@
+{"products": [
+  {"id": 101, "title": "Chemise en lin", "handle": "chemise-en-lin",
+   "options": [{"name": "Couleur", "position": 1, "values": ["Blanc", "Bleu"]},
+               {"name": "Taille", "position": 2, "values": ["S", "M", "L"]}],
+   "variants": [
+     {"id": 1, "option1": "Blanc", "option2": "S", "price": "89.000", "available": true, "featured_image": {"src": "//cdn.example.tn/blanc.jpg?v=3"}},
+     {"id": 2, "option1": "Blanc", "option2": "M", "price": "89.000", "available": false, "featured_image": {"src": "//cdn.example.tn/blanc.jpg?v=3"}},
+     {"id": 3, "option1": "Bleu", "option2": "S", "price": "79.000", "available": false, "featured_image": null},
+     {"id": 4, "option1": "Bleu", "option2": "L", "price": "79.000", "available": false, "featured_image": null}],
+   "images": [{"src": "https://cdn.example.tn/bleu.jpg", "variant_ids": [3, 4]},
+              {"src": "https://cdn.example.tn/blanc.jpg", "variant_ids": [1, 2]}]},
+  {"id": 102, "title": "Sac cabas", "handle": "sac-cabas",
+   "options": [{"name": "Title", "position": 1, "values": ["Default Title"]}],
+   "variants": [{"id": 5, "option1": "Default Title", "price": "45.500", "available": true}],
+   "images": [{"src": "https://cdn.example.tn/sac.jpg", "variant_ids": []}]},
+  {"id": 103, "title": "Carte cadeau", "handle": "carte-cadeau", "options": [],
+   "variants": [{"id": 6, "price": "50.000", "available": true}], "images": []}
+]}

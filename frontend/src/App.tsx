@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import { AdminFormula, AdminLayout, AdminOverview, AdminQuality, AdminSources, AdminUsers } from './admin/AdminPages'
+import { AdminFormula, AdminLayout, AdminModeration, AdminOverview, AdminQuality, AdminSources, AdminUsers } from './admin/AdminPages'
 import { AuthProvider, useAuth } from './auth'
 import { I18nProvider } from './i18n'
 import { AuthPage } from './pages/AuthPage'
@@ -11,6 +11,7 @@ import { InsightsPage } from './pages/InsightsPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { ScanPage } from './pages/ScanPage'
 import { ListingPage, ShopPage } from './pages/ShopPage'
+import { SellPage } from './pages/SellPage'
 import { SimilarPage } from './pages/SimilarPage'
 import { TodayPage } from './pages/TodayPage'
 import { TryOnPage } from './pages/TryOnPage'
@@ -70,6 +71,7 @@ export default function App() {
               <Route path="similar" element={<SimilarPage />} />
               <Route path="shop" element={<ShopPage />} />
               <Route path="shop/:id" element={<ListingPage />} />
+              <Route path="sell" element={<SellPage />} />
               <Route path="me" element={<ProfilePage />} />
             </Route>
             <Route path="/admin" element={<Gate admin><AdminLayout /></Gate>}>
@@ -78,6 +80,7 @@ export default function App() {
               <Route path="users" element={<AdminUsers />} />
               <Route path="formula" element={<AdminFormula />} />
               <Route path="sources" element={<AdminSources />} />
+              <Route path="moderation" element={<AdminModeration />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

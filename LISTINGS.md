@@ -1,6 +1,11 @@
 # Listings: shop and friperie items in the app
 
-Status (2026-10-04): **phase 1 is built for the Inditex sites** (Zara, Bershka, Pull&Bear Tunisia), after the team vote of 2026-10-04 to retry them politely. Not run on the real sites yet. Shopify / WooCommerce shops, feeds and seller uploads are still designs. Everything marked **REVIEW** is a team decision that is still open.
+Status (2026-10-04, after the first real run):
+- **Inditex (Zara, Bershka, Pull&Bear): OFF.** The first run got "Access Denied" on the very first page, so the sites refuse the automated browser itself (no delay would help). They are switched off in the sources table; never work around it.
+- **Frozen snapshot: ON.** The rows scraped before the block (`data/processed/shop_demo.csv`) are listed as a dated snapshot, never refreshed.
+- **Tunisian shops: connectors built, shops not enabled yet.** Shopify and WooCommerce connectors are ready. Exist, Hamadi Abid and Zen are in the table, switched off until someone checks them (section 0).
+- **Friperie sellers: built.** Sellers post items in the app; an admin approves them first.
+- Official feeds: still a design. Everything marked **REVIEW** is a team decision that is still open.
 
 ## 0. What is built, and how to run it
 
@@ -8,23 +13,31 @@ Status (2026-10-04): **phase 1 is built for the Inditex sites** (Zara, Bershka, 
 |---|---|
 | Sources the team approved | `mappings/listing_sources.csv` |
 | Collector job (nightly) | `src/collect_listings.py` |
-| Inditex connector (runs `src/scrape_shops.py`) | `src/connectors/inditex.py` |
+| Connectors | `src/connectors/`: `shopify.py`, `woocommerce.py` (through the polite client `http.py`), `snapshot.py`, `inditex.py` (runs `src/scrape_shops.py`; off) |
+| Check a shop before adding it | `src/check_shop_source.py` |
 | Saving runs, search, sources table | `backend/app/listings.py` |
-| API | `backend/app/routers/listings.py`, `listings` row in `/similar`, `/admin/sources` |
-| App pages | `frontend/src/pages/ShopPage.tsx` (Shops + one listing with the verdict), Admin > Sources |
-| Tests | `backend/tests/test_listings.py` (fake shop, fake models, no real site) |
+| API | `backend/app/routers/listings.py` (browse, sell, seller edits, "Should I buy this?"), `listings` row in `/similar`, `/admin/sources`, `/admin/listings` (moderation) |
+| App pages | `ShopPage.tsx` (Shops + one listing with the verdict), `SellPage.tsx` (sell + my listings), Admin > Sources and Admin > Moderation |
+| Tests | `backend/tests/test_listings.py`, `test_connectors.py` (recorded answers in `tests/fixtures/`), `test_sellers.py`; never a real site |
 
+**Frozen snapshot (once):**
 ```
-pip install -r requirements-scraping.txt         # Playwright, once (see scrape_shops.py)
-python src/collect_listings.py --list            # which sources would run, and why not
-python src/collect_listings.py --source zara_tn --catalogue --limit 30   # smoke test first
-python src/collect_listings.py > data/logs/listings.log 2>&1             # the real run (hours)
+python src/freeze_shop_demo.py                               # if data/processed/shop_demo.csv is missing
+python src/collect_listings.py --source inditex_snapshot     # analyses the saved pictures; add --force to reload it
 ```
 
-- **Schedule:** Windows Task Scheduler, every night at 02:00 (program = the venv's `python.exe`, arguments = `src\collect_listings.py`, start in = the project folder). Each source only runs when its last good run is older than `refresh_days` (2), and reads the whole catalogue every `catalogue_days` (7); the other runs only re-check stock, which is much lighter.
-- **When a site blocks us:** the scraper stops at an "Access Denied" page or after 3 URLs in a row still refused (403 / 429) after its waits; the collector also stops after 5 pictures in a row that cannot be downloaded. The run is saved as `blocked` (Admin > Sources shows the message), nothing is marked gone, and the next scheduled run tries again days later. Never try to get around it; if it keeps happening, raise `delay_s` or switch the source off (`enabled = no`).
-- **Labels:** our models only (category, sub_category, pattern, colour), like a wardrobe upload. The shop's own category words are not mapped yet (that needs `mappings/listings_<source>_*.csv` rules, see section 4).
-- **In the app:** the Shops page (desktop rail, phone header icon, and a link on the Scan page) lists in-stock products with filters; a listing shows its price, its stock as far as we know it, a link to the shop, and "Should I buy this?", which turns it into a candidate and reuses `/buy-advice` unchanged. Similar pieces gets an "In shops now" row.
+**Adding a Tunisian shop (Exist, Hamadi Abid, Zen, ...):**
+1. `python src/check_shop_source.py https://<the shop's site> exist_tn`: reads robots.txt and one product, says whether the shop runs Shopify or WooCommerce, shows a price to confirm it is in TND, and prints the CSV line. A shop whose robots.txt forbids those paths is not listed.
+2. A team member reads the shop's terms of use. If nothing forbids it, fill `kind` and `base_url`, set `enabled = yes` and `approved_on` = that date.
+3. Smoke test: `python src/collect_listings.py --source exist_tn --limit 30` (a `--limit` run never marks anything gone).
+4. The nightly job then refreshes it every `refresh_days` (2).
+
+**The nightly job:** `python src/collect_listings.py > data/logs/listings.log 2>&1`, from Windows Task Scheduler every night at 02:00 (program = the venv's `python.exe`, arguments = `src\collect_listings.py`, start in = the project folder). `--list` shows which sources would run, and why not.
+
+- **When a site blocks us:** a 403, a 429, or an HTML page (bot check) where JSON was expected stops the source; the collector also stops after 5 pictures in a row that cannot be downloaded. The run is saved as `blocked` (Admin > Sources shows the message) and nothing is marked gone. Never try to get around it; if it happens again, switch the source off (`enabled = no`). The connectors also ask robots.txt before every path and never read a forbidden one.
+- **Labels:** our models only (category, sub_category, pattern, colour), like a wardrobe upload. The shops' own category words are not mapped yet (that needs `mappings/listings_<source>_*.csv` rules, see section 4).
+- **Stock:** Shopify gives stock per size and colour (`availability_level = colour`), WooCommerce only per product (`product`). The snapshot shows "in stock on <date>" and "snapshot from <date>", never as live.
+- **In the app:** the Shops page (desktop rail, phone header icon, and links on the Scan page) lists in-stock products from every source, with filters; a listing shows its price, its stock as far as we know it, a link to the shop (or the seller's city and contact), and "Should I buy this?", which turns it into a candidate and reuses `/buy-advice` unchanged. Similar pieces gets an "In shops now" row.
 
 ## 1. Goal
 
@@ -43,25 +56,28 @@ The team owns one rules file, `mappings/listing_sources.csv` (rules live in CSVs
 
 | Column | Meaning |
 |---|---|
-| `source_id` | short id, also the listing id prefix (e.g. `ts1`) |
-| `kind` | `upload`, `shopify`, `woocommerce`, `feed`, `inditex` |
-| `base_url` | the shop's site or feed address |
+| `source_id` | short id (e.g. `exist_tn`) |
+| `kind` | `shopify`, `woocommerce`, `snapshot`, `inditex` (empty until `check_shop_source.py` has run) |
+| `brand`, `country` | shown in the app; `country` is `tn` |
+| `base_url` | the shop's site (Shopify / WooCommerce) |
 | `enabled` | `yes` / `no` |
-| `terms_checked_on` | date a team member read the site's terms and found collection allowed |
-| `robots_ok` | `yes` if `robots.txt` allows the pages we read |
-| `delay_s` | seconds between two requests (at least 2) |
+| `approved_on` | date a team member read the site's terms and found nothing against it |
+| `delay_s` | seconds between two requests (5) |
+| `refresh_days` | a source runs at most this often (2) |
+| `catalogue_days` | Inditex only: full catalogue this often, stock-only in between |
 | `contact` | who in the team is responsible for this source |
-| `note` | free text; `REVIEW` = open decision |
+| `note` | free text: why it is on or off |
 
-The collector **refuses** any source that is not `enabled = yes` and has no `terms_checked_on` date.
+The collector **refuses** any source that is not `enabled = yes`, has no `approved_on` date, or has no connector for its `kind`. Friperie sellers are not a row here: they post in the app (section 6).
 
 The kinds of source:
 
-- **`upload`:** friperie sellers post their own items in the app (section 6). Fully allowed, and it fits our users best (56% shop second-hand).
+- **Friperie sellers** (`source_id = sellers`): they post their own items in the app (section 6). Fully allowed, and it fits our users best (56% shop second-hand).
 - **`shopify`:** many small Tunisian e-shops run on Shopify, which publishes a public product list at `/products.json?page=N`. We still check the terms and `robots.txt` per shop.
+- **`snapshot`:** the Inditex rows scraped before the block, frozen (`src/connectors/snapshot.py`). Never contacts a site.
 - **`woocommerce`:** WooCommerce shops publish their products through the Store API at `/wp-json/wc/store/v1/products`. Same checks.
 - **`feed`:** a product feed given to us officially (affiliate programme or a brand that agrees), in CSV or XML (Google Merchant format). This needs a sign-up per brand.
-- **`inditex`:** Zara / Bershka / Pull&Bear through the existing `src/scrape_shops.py` (full catalogue weekly, `--stock-only` in between). **Approved by the team vote of 2026-10-04** (polite retry): `delay_s` = 5, a run every 2 days at most, and the run stops at the first block (section 0).
+- **`inditex`:** Zara / Bershka / Pull&Bear through the existing `src/scrape_shops.py` (full catalogue weekly, `--stock-only` in between). Approved by the team vote of 2026-10-04 (polite retry), but **switched off the same day**: the first run got "Access Denied" on the home page. Do not switch it on again without a team decision.
 
 ## 3. Connectors
 
@@ -114,10 +130,11 @@ The thumbnail (≤ 320 px) is stored under `STORAGE_DIR/listings/`. The full pic
 
 ## 6. Seller uploads
 
-- `POST /listings`: photo + price + size + city + a contact handle the seller chooses. It reuses `read_photo` and `analyse` from `backend/app/routers/items.py`, so the seller sees the same analysis and can correct it.
-- New seller listings start as `pending`. An admin approves or rejects them in a new tab of the admin pages (`current_admin`).
-- A seller can edit or delete only their own listings. Another user's listing answers 404, the same privacy rule as wardrobe items.
-- **REVIEW:** moderation rules, and whether sellers may show a phone number or only an Instagram / WhatsApp handle.
+- `POST /listings/sell`: photo + price + size + city + one free-text contact (an Instagram @name or a WhatsApp number, at most 60 characters; team choice 2026-10-04) + an optional name. It reuses `read_photo` and `analyse` from `backend/app/routers/items.py`, so the seller sees the same analysis and corrects it on the Sell page. The cleaned photo is kept at 640 px (it is the only picture buyers get).
+- New seller listings start as `pending`, at most 20 per seller. An admin approves or rejects them (with an optional note to the seller) in Admin > Moderation (`/admin/listings`). Pending and rejected listings answer 404 to everyone but their seller and the admins.
+- `GET /listings/mine`, `PATCH /listings/{id}` (fields, price, size, or `sold`), `DELETE /listings/{id}`: the seller's own listings only; another user's answers 404, the same privacy rule as wardrobe items. Changing the name, city or contact sends the listing back to review. Deleting an account deletes its listings.
+- The contact is shown only to logged-in users, on the listing page.
+- **REVIEW:** the moderation rules (Admin > Moderation shows the current checklist: one piece per photo, no face or person, a plain contact).
 
 ## 7. API
 
@@ -139,10 +156,10 @@ The thumbnail (≤ 320 px) is stored under `STORAGE_DIR/listings/`. The full pic
 
 ## 9. Building it in phases
 
-1. Connector framework, the `listings` collection, the collector job, `GET /listings` + the Shop page: **done** (with the Inditex connector). Still to do: the `shopify` and `woocommerce` connectors, once the team has checked some shops.
-2. Seller uploads and moderation.
+1. Connector framework, the `listings` collection, the collector job, `GET /listings` + the Shop page: **done**. The `shopify` and `woocommerce` connectors are **done**; Exist, Hamadi Abid and Zen wait for their check (section 0).
+2. Seller uploads and moderation: **done**.
 3. Affiliate / official feeds, once the team has signed up for one.
-4. ~~Inditex, only if the team votes to reopen it~~: voted 2026-10-04, built first (section 0).
+4. Inditex: voted 2026-10-04, built, then **switched off** the same day (Access Denied on the first page). Only the frozen snapshot is shown.
 
 ## 10. Testing
 
@@ -152,8 +169,8 @@ The thumbnail (≤ 320 px) is stored under `STORAGE_DIR/listings/`. The full pic
 
 ## 11. Open team decisions (REVIEW)
 
-1. Which Tunisian online shops to list. Each needs a team member to read its terms and fill its line in `listing_sources.csv`.
-2. ~~Whether to reopen the Inditex sites~~: yes, polite retry (team vote 2026-10-04).
+1. Which Tunisian online shops to list: Exist, Hamadi Abid and Zen chosen (2026-10-04). Each still needs `check_shop_source.py` and a team member to read its terms before `enabled = yes`.
+2. ~~Whether to reopen the Inditex sites~~: yes, polite retry (team vote 2026-10-04); they refused our browser on the first page, so they are off again.
 3. Which `source` value shop and seller items get (already open in `HANDOFF.md`).
-4. Moderation rules for seller listings, and which contact details sellers may show.
+4. Moderation rules for seller listings. (~~Which contact details sellers may show~~: one free-text handle, 2026-10-04.)
 5. How long a `gone` listing is kept before it is deleted.

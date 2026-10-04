@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, ExternalLink, Search } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ExternalLink, MessageCircle, Search, Tag } from 'lucide-react'
 import { api } from '../api/client'
 import type { BuyAdvice, Category, Item, Listing, ListingFilters } from '../api/types'
 import { useI18n } from '../i18n'
 import { plural } from '../i18n/plurals'
 import { CATEGORY_LABELS, SUB_LABELS, vocab } from '../i18n/vocab'
+import { ListingCard, StockLine } from '../ui/ListingCard'
+import { brandName, useListingFormat } from '../ui/listingText'
 import { Page } from '../shell'
 import { Button, Chip } from '../ui/controls'
 import { ItemPhoto } from '../ui/ItemPhoto'
@@ -16,40 +18,6 @@ import { Ticket } from '../ui/ticket'
 import { useLoad } from '../useLoad'
 
 const CATEGORIES: Category[] = ['top', 'bottom', 'dress', 'outerwear', 'shoes', 'bag', 'accessory']
-const BRANDS: Record<string, string> = { zara: 'Zara', bershka: 'Bershka', pullandbear: 'Pull&Bear' }
-const brandName = (b: string) => BRANDS[b] ?? b
-
-function usePrice() {
-  const { t, lang } = useI18n()
-  return (p: number | null) =>
-    p === null ? '' : t('priceTnd', { p: p.toLocaleString(lang === 'ar' ? 'ar-TN' : lang, { maximumFractionDigits: 3 }) })
-}
-
-/** What we know about stock: per size only when the shop answered for this exact colour. */
-function StockLine({ listing }: { listing: Listing }) {
-  const { t } = useI18n()
-  if (listing.in_stock === false) return <>{t('outOfStock')}</>
-  if (listing.availability_level === 'colour' && listing.sizes_in_stock.length) {
-    return <>{t('sizesInStock', { s: listing.sizes_in_stock.join(' · ') })}</>
-  }
-  return <>{t('stockSizesUnknown')}</>
-}
-
-/** A listing as a small ticket: picture, the shop's own name, brand and price. */
-export function ListingCard({ listing, note }: { listing: Listing; note?: string }) {
-  const price = usePrice()
-  return (
-    <Link to={`/shop/${listing.id}`} className="ticket block p-2">
-      <div className="flex justify-center"><ItemPhoto src={listing.image_url} alt={listing.title} size={112} /></div>
-      {/* the shop's own product name, as it wrote it (not translated) */}
-      <p className="perf-h mt-2 truncate pt-2 text-[14px] font-medium text-carbon" dir="auto" title={listing.title}>{listing.title}</p>
-      <p className="truncate font-mono text-[11px] text-ink-soft tabular">
-        {brandName(listing.brand)} · {note ?? price(listing.price_tnd)}
-      </p>
-    </Link>
-  )
-}
-
 export function ShopPage() {
   const { t, lang } = useI18n()
   const [filters, setFilters] = useState<ListingFilters>({ sort: 'new' })
@@ -89,7 +57,12 @@ export function ShopPage() {
   const shown = [...(res.data?.items ?? []), ...extra]
   return (
     <Page title={t('shopPageTitle')}>
-      <p className="mb-4 max-w-[70ch] text-[13px] text-carbon-soft">{t('shopPageNote')}</p>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <p className="max-w-[70ch] text-[13px] text-carbon-soft">{t('shopPageNote')}</p>
+        <Link to="/sell" className="inline-flex min-h-11 shrink-0 items-center gap-2 self-start border-[1.5px] border-ink bg-paper px-4 text-[15px] font-medium text-ink">
+          <Tag className="size-4" aria-hidden /> {t('sellLink')}
+        </Link>
+      </div>
 
       <div className="mb-5 flex flex-col gap-3">
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
@@ -106,7 +79,7 @@ export function ShopPage() {
               <Chip selected={!filters.source} onClick={() => set({ source: undefined })}>{t('allShops')}</Chip>
               {sources.data!.map((s) => (
                 <Chip key={s.source_id} selected={filters.source === s.source_id} onClick={() => set({ source: s.source_id })}>
-                  {brandName(s.brand)}
+                  {s.source_id === 'sellers' ? t('friperieSellers') : s.brands.map(brandName).join(' · ')}
                 </Chip>
               ))}
               <span aria-hidden className="mx-1 h-6 border-s border-perf" />
@@ -157,7 +130,7 @@ export function ShopPage() {
 export function ListingPage() {
   const { id = '' } = useParams()
   const { t, lang, reason } = useI18n()
-  const price = usePrice()
+  const { price, day, name } = useListingFormat()
   const res = useLoad(() => api.listing(id), [id])
   // the verdict belongs to one listing: opening another one starts clean
   const [state, setState] = useState<{ id: string; candidate?: Item; advice?: BuyAdvice; error?: unknown }>({ id })
@@ -193,21 +166,21 @@ export function ListingPage() {
           <>
             <Ticket className="relative">
               <div className="flex items-end gap-4 p-3">
-                <ItemPhoto src={l.image_url} alt={l.title} size={160} />
+                <ItemPhoto src={l.image_url} alt={name(l)} size={160} />
                 <div className="min-w-0 pb-1">
-                  <p className="text-[20px] font-semibold leading-tight text-carbon" dir="auto">{l.title}</p>
+                  <p className="text-[20px] font-semibold leading-tight text-carbon" dir="auto">{name(l)}</p>
                   <p className="mt-1 text-[14px] text-carbon-soft">
-                    {brandName(l.brand)}{l.shop_colour ? <> · <span dir="auto">{l.shop_colour}</span></> : null}{kind ? ` · ${kind}` : ''}
+                    {l.seller ? t('friperieSellers') : brandName(l.brand)}{l.shop_colour ? <> · <span dir="auto">{l.shop_colour}</span></> : null}{kind && l.title ? ` · ${kind}` : ''}
                   </p>
                   {l.price_tnd !== null && <p className="mt-2 font-mono text-[18px] text-carbon tabular">{price(l.price_tnd)}</p>}
                   <p className="mt-1 text-[13px] text-carbon-soft">
                     {l.status === 'gone' ? t('listingGone') : <StockLine listing={l} />}
                   </p>
-                  {l.seen_at && (
-                    <p className="font-mono text-[11px] text-ink-soft tabular">
-                      {t('lastChecked', { d: new Date(l.seen_at).toLocaleDateString(lang === 'ar' ? 'ar-TN' : lang === 'en' ? 'en-GB' : lang) })}
-                    </p>
-                  )}
+                  {l.snapshot ? (
+                    <p className="mt-1 text-[12px] text-stamp-deep">{t('snapshotFrom', { d: day(l.checked_at) })}</p>
+                  ) : l.checked_at && !l.seller ? (
+                    <p className="font-mono text-[11px] text-ink-soft tabular">{t('lastChecked', { d: day(l.checked_at) })}</p>
+                  ) : null}
                 </div>
               </div>
               {/* the stamp lands over the photo, so it never hides the price */}
@@ -219,6 +192,12 @@ export function ListingPage() {
               )}
             </Ticket>
 
+            {l.seller && (
+              <p className="ticket mt-3 flex items-center gap-2 px-4 py-3 text-[15px] text-carbon">
+                <MessageCircle className="size-4 shrink-0 text-ink" aria-hidden />
+                <span>{t('sellerCity', { c: l.seller.city })} · <span dir="auto">{t('sellerContact', { c: l.seller.contact })}</span></span>
+              </p>
+            )}
             <div className="mt-4 flex flex-wrap gap-2">
               {l.url && (
                 <a href={l.url} target="_blank" rel="noopener noreferrer"

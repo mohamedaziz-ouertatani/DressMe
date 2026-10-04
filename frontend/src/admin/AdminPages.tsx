@@ -4,9 +4,10 @@ import { useState, type FormEvent } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { ArrowLeft, ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import { api } from '../api/client'
-import type { AdminSource, Formula, ListingRun } from '../api/types'
+import type { AdminSource, Formula, ListingRun, ReviewListing } from '../api/types'
 import { useAuth } from '../auth'
 import { Wordmark } from '../shell'
+import { ItemPhoto } from '../ui/ItemPhoto'
 import { Button, Chip } from '../ui/controls'
 import { ErrorNote, Skeleton } from '../ui/states'
 import { useLoad } from '../useLoad'
@@ -17,7 +18,7 @@ const TYPES = [['scan', 'scans'], ['verdict', 'verdicts'], ['upload', 'uploads']
 const pct = (v: number | null) => (v === null ? '-' : `${(v * 100).toFixed(1)}%`)
 
 export function AdminLayout() {
-  const tabs = [['/admin', 'Overview'], ['/admin/quality', 'Model quality'], ['/admin/users', 'Users'], ['/admin/formula', 'Formula'], ['/admin/sources', 'Sources']]
+  const tabs = [['/admin', 'Overview'], ['/admin/quality', 'Model quality'], ['/admin/users', 'Users'], ['/admin/formula', 'Formula'], ['/admin/sources', 'Sources'], ['/admin/moderation', 'Moderation']]
   return (
     <div className="min-h-dvh" dir="ltr" lang="en">
       <header className="border-b border-perf/60 bg-stock-deep/60">
@@ -431,6 +432,67 @@ export function AdminSources() {
           {res.data.sources.map((s) => <SourceCard key={s.source_id} s={s} />)}
         </div>
       )}
+    </>
+  )
+}
+
+// ------------------------------------------------------------------ seller listings (moderation)
+function ReviewCard({ l, onDone }: { l: ReviewListing; onDone: () => void }) {
+  const [note, setNote] = useState('')
+  const [busy, setBusy] = useState<'' | 'active' | 'rejected'>('')
+  const [error, setError] = useState<unknown>(null)
+  const decide = async (status: 'active' | 'rejected') => {
+    setBusy(status)
+    setError(null)
+    try {
+      await api.admin.review(l.id, status, note)
+      onDone()
+    } catch (e) {
+      setError(e)
+      setBusy('')
+    }
+  }
+  const fields = [l.category, l.sub_category, l.colour, l.pattern].filter(Boolean).join(' · ')
+  return (
+    <section className="ticket flex flex-col gap-3 p-3 sm:flex-row">
+      <ItemPhoto src={l.image_url} alt={l.title || fields} size={140} />
+      <div className="min-w-0 flex-1 text-[13px]">
+        <p className="text-[15px] font-semibold text-carbon" dir="auto">{l.title || '(no name)'}</p>
+        <p className="text-carbon-soft">{fields || 'no fields'} · size {l.sizes.join(', ') || '-'}</p>
+        <p className="mt-1 font-mono text-carbon tabular">{l.price_tnd} TND</p>
+        <p className="mt-1 text-carbon" dir="auto">{l.seller?.city} · {l.seller?.contact}</p>
+        <p className="text-carbon-soft">{l.seller_email} · {l.seen_at ? new Date(l.seen_at).toLocaleString('en-GB') : ''}</p>
+        <label className="mt-2 block">
+          <span className="sr-only">Note to the seller</span>
+          <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} placeholder="Note to the seller (optional, e.g. why it is rejected)"
+            className="min-h-10 w-full border-b-[1.5px] border-perf bg-transparent px-1 text-[14px] outline-none focus:border-ink" />
+        </label>
+        <div className="mt-3 flex gap-2">
+          <Button busy={busy === 'active'} disabled={!!busy} onClick={() => decide('active')}>Approve</Button>
+          <Button variant="secondary" busy={busy === 'rejected'} disabled={!!busy} onClick={() => decide('rejected')}>Reject</Button>
+        </div>
+        {error ? <div className="mt-2"><ErrorNote error={error} /></div> : null}
+      </div>
+    </section>
+  )
+}
+
+export function AdminModeration() {
+  const res = useLoad(() => api.admin.reviewQueue('pending'), [])
+  return (
+    <>
+      <Title note="Friperie sellers' listings, oldest first. Only approved listings show in the app. Check that the photo shows one piece, with no face or person, and that the contact is a handle or a number (nothing offensive). The note is shown to the seller.">
+        Moderation
+      </Title>
+      {res.error ? <ErrorNote error={res.error} onRetry={res.reload} /> : !res.data ? <Skeleton className="h-72" />
+        : res.data.listings.length === 0 ? <p className="text-[14px] text-carbon-soft">Nothing waiting for review.</p> : (
+          <>
+            <p className="mb-3 text-[14px] text-carbon-soft">{res.data.total} waiting</p>
+            <div className="grid gap-4 lg:grid-cols-2">
+              {res.data.listings.map((l) => <ReviewCard key={l.id} l={l} onDone={res.reload} />)}
+            </div>
+          </>
+        )}
     </>
   )
 }
