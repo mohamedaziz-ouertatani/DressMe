@@ -82,6 +82,8 @@ Paths are relative to `data/` (never committed to git).
    - **Serving:** `src/make_ollama_model.py` → `ollama create dressme-chat` with the base model's template.
    - **Evaluation:** `src/evaluate_chat.py` → `reports/chat_evaluation.md`: base vs fine-tuned, per turn: tool decision, name, arguments, answer language. `models/llm/` and `*.gguf` are git-ignored.
 
+6. **Listings (design only, nothing built):** `LISTINGS.md`. A nightly collector job lists shop / friperie items in the app through allowed routes only (seller uploads, Shopify / WooCommerce public product lists, official feeds), gated by the team-owned `mappings/listing_sources.csv`; it stops on any block. Reopening Inditex is an open team decision.
+
 ## Rules
 
 - Never commit anything under `data/` or model weights; keep them in `.gitignore`.
