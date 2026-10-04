@@ -47,8 +47,8 @@ export function ChatPage() {
     setLocal([])
   }
 
-  const unavailable = error instanceof ApiError && error.status === 503   // no Gemini key on the server
-  const busy = error instanceof ApiError && error.status === 502          // Gemini overloaded: try again
+  const unavailable = error instanceof ApiError && error.status === 503   // no Gemini key / Ollama not running
+  const busy = error instanceof ApiError && error.status === 502          // the model is overloaded: try again
   const quota = error instanceof ApiError && error.status === 429         // the key's daily quota is used up
 
   return (

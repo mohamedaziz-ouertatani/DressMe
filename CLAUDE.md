@@ -11,7 +11,7 @@ Phases 1 (Empathize), 2 (Ideate) and 3 (Data collection) are done. **Current pha
 - **Frontend:** React + TailwindCSS
 - **Backend:** FastAPI
 - **Database:** MongoDB
-- **Models:** EfficientNet (classification), FashionCLIP (embeddings, similarity), Gemini API (chat assistant)
+- **Models:** EfficientNet (classification), FashionCLIP (embeddings, similarity), Gemini API or a local Qwen3-4B fine-tuned with QLoRA and served by Ollama (chat assistant)
 - **Outfit compatibility:** custom weighted compatibility formula
 
 ## Local datasets
@@ -60,7 +60,7 @@ Paths are relative to `data/` (never committed to git).
    - **Results with the team weights:** PolyVore AUC 66.6% / FITB 42.6%; Fashionpedia 78.7% / 59.5%. Style alone does better (72.9% / 84.6% AUC), and colour, pattern and structure add no signal in the swap test (structure can't, by design).
 
 4. **Backend (done):** `backend/` (FastAPI + pymongo, local MongoDB 4.0, so pymongo is pinned below 4.14). Run it from `backend/` with `uvicorn app.main:create_app --factory --port 8000`; the docs are at `/docs`.
-   - **Settings:** `backend/.env` (git-ignored; see `.env.example`): `JWT_SECRET` (required), `GEMINI_API_KEY`, `GEMINI_MODEL`.
+   - **Settings:** `backend/.env` (git-ignored; see `.env.example`): `JWT_SECRET` (required), `GEMINI_API_KEY`, `GEMINI_MODEL`, `CHAT_ENGINE` (gemini / ollama), `OLLAMA_MODEL`.
    - **`app/ml.py`:** wraps the src/ models (`Analyzer`: classifier + colour model + FashionCLIP; `Catalog`: `SimilarityIndex` on PolyVore / Fashion Product). `src/estimate_colours.py` now also saves `models/checkpoints/colour_model.joblib`; re-running it gave identical estimates.
    - **Auth:** email + password, bcrypt + JWT. Image endpoints also accept `?token=`, for `<img>` tags.
    - **Endpoints:**
@@ -70,10 +70,16 @@ Paths are relative to `data/` (never committed to git).
      - `/buy-advice`, `/outfits/score|suggest|complete`, `/similar`, `/catalog/{id}/image`;
      - `/chat` (Gemini with function calling: `list_wardrobe`, `suggest_outfits`, `score_outfit`, `buy_advice_last_scan`; history per user). Errors: 503 = no key, 502 = Gemini busy (500 / 503 retried twice), 429 = quota used up (never retried). The free key allows only 20 requests a day per model and one answer with tools costs 2 to 7, so keep live chat tests rare.
    - **Privacy:** every query is filtered by `user_id`, and another user's item answers 404.
-   - **Tests:** `python -m pytest` in `backend/`, using fakes and the `dressme_test` database (36 tests, ~20 s). `DRESSME_SLOW=1` adds the real-model tests.
+   - **Tests:** `python -m pytest` in `backend/`, using fakes and the `dressme_test` database (43 tests, ~20 s). `DRESSME_SLOW=1` adds the real-model tests.
    - **Background removal:** `app/background.py`: every upload (`/items`, `/analyze`) is shrunk to 1024 px, its background removed with rembg (U2-Net, models downloaded once), pasted on white and cropped around the item, so it looks like the white product shots the models were trained on. The cleaned photo is analysed and saved, and the original is not kept. When the item is worn, U2-Net keeps the whole person, so U2-Net cloth-seg (upper / lower / full-body clothes) cuts it down to the biggest garment (`keep_garment`). It is used only when that garment is under 85% of the main object, because cloth-seg often misses items lying flat on white. This takes ~3-5 s per photo on the CPU, and `CLOTH_MODEL=` (empty) switches it off. If the mask finds less than 3% of the photo, the original is kept. `REMOVE_BACKGROUND=0` switches it off, and so does a missing rembg (with a warning). Tests use a fake remover.
    - **Colour on uploads:** a colour below 0.7 confidence is left empty (the guess is kept in `predicted`), so the UI must let the user confirm it.
    - **Shop:** `/similar` also returns `shop` = the nearest H&M products (`Catalog.search_shop`, `SimilarityIndex.load_shop`), images at `/catalog/hm_<id>/image`; empty if the H&M files are missing.
+
+5. **Local chat model (code done, training not run yet):** `LLM.md`. `CHAT_ENGINE=ollama` makes `/chat` use `OllamaEngine` (`app/chat_engine.py`): the same prompt and tools as Gemini, sent as JSON schemas built by `tool_schema` from each function's signature and docstring. The backend runs the tool calls (max 6 rounds), and tool errors go back to the model. Default model `qwen3:4b-instruct`.
+   - **Dataset:** `src/build_chat_dataset.py` → `data/processed/chat_sft/{train,val,test}.jsonl`: synthetic chats in en / fr / Darija (+ Arabizi questions). The backend's real tools run on random wardrobes through a fake DB, and the prompt and tools are imported from `routers/chat.py`. Sentences are in `src/chat_phrases.py`; the Darija still needs a native check. The train split never sees the last of 3+ phrasings.
+   - **Training:** `src/finetune_chat.py` (Unsloth QLoRA on `unsloth/Qwen3-4B-Instruct-2507`, assistant turns only, GGUF export). It runs on Kaggle (`kaggle/chat_finetune/`, private dataset `mohameddazizz/dressme-chat-sft`), because 4 GB is too small for 4B. The notebook runs the copy of the script inside the dataset folder.
+   - **Serving:** `src/make_ollama_model.py` → `ollama create dressme-chat` with the base model's template.
+   - **Evaluation:** `src/evaluate_chat.py` → `reports/chat_evaluation.md`: base vs fine-tuned, per turn: tool decision, name, arguments, answer language. `models/llm/` and `*.gguf` are git-ignored.
 
 ## Rules
 

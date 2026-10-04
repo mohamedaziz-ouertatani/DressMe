@@ -1,0 +1,13 @@
+{
+  "id": "mohameddazizz/dressme-chat-finetune",
+  "title": "dressme-chat-finetune",
+  "code_file": "chat_finetune_kernel.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": ["mohameddazizz/dressme-chat-sft"],
+  "competition_sources": [],
+  "kernel_sources": []
+}

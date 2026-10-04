@@ -6,8 +6,7 @@ Run from the backend/ folder (models load in ~1 min, then the API is ready):
 Interactive documentation: http://localhost:8000/docs
 
 `create_app` takes optional replacements for the models, the background remover
-and Gemini, so the
-tests run in seconds with small fakes (see tests/conftest.py).
+and the chat engine, so the tests run in seconds with small fakes (see tests/conftest.py).
 """
 
 from contextlib import asynccontextmanager
@@ -16,7 +15,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .background import load_remover
-from .chat_engine import GeminiEngine
+from .chat_engine import make_engine
 from .config import Settings
 from .db import connect
 from .routers import admin, auth, chat, items, outfits
@@ -36,7 +35,7 @@ def create_app(settings=None, analyzer=None, catalog=None, chat_engine=None, rem
         app.state.analyzer = analyzer or Analyzer()
         app.state.catalog = catalog or Catalog()
         app.state.remover = remover or load_remover(settings)   # None = keep backgrounds
-        app.state.chat_engine = chat_engine or GeminiEngine(settings)
+        app.state.chat_engine = chat_engine or make_engine(settings)
         yield
 
     app = FastAPI(title="DressMe API", version="0.1", lifespan=lifespan)
