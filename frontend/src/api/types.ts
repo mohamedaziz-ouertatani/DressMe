@@ -91,6 +91,22 @@ export interface Similar {
   shop?: ShopHit[]   // missing or empty when the server has no shop catalogue
 }
 
+/** GET /insights (backend/app/routers/insights.py). */
+export interface Insights {
+  total: number
+  categories: { category: Category; count: number }[]
+  colours: { colour: string; count: number; neutral: boolean }[]
+  patterns: { pattern: Pattern; count: number }[]
+  to_confirm: Record<'colour' | 'coverage' | 'season' | 'usage', number>
+  outfits: { good: number; complete: boolean; good_score: number }
+  versatile: (OutfitItem & { outfits: number })[]
+  unmatched: OutfitItem[]
+  filtered: number
+  new_pairs: { top: number; bottom: number }
+  missing: ('main' | 'top' | 'bottom' | 'shoes')[]
+  twins: { items: [OutfitItem, OutfitItem]; similarity: number }[]
+}
+
 export interface ChatTurn {
   role: 'user' | 'model'
   text: string

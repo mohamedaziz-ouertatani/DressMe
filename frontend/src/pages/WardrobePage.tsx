@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, CheckCheck, Search, Trash2 } from 'lucide-react'
+import { ArrowLeft, ChartBar, CheckCheck, Search, Trash2 } from 'lucide-react'
 import { api } from '../api/client'
 import type { Category, Item, ItemPatch } from '../api/types'
 import { useAuth } from '../auth'
@@ -51,9 +51,16 @@ export function WardrobePage() {
   return (
     <Page title={t('wardrobeTitle')}>
       <section className="ticket mb-6 flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-[15px] text-carbon">
-          {uploading ? t('uploading') : items.data ? plural('pieces', all.length, lang) : t('loading')}
-        </p>
+        <div className="flex items-center justify-between gap-4 sm:justify-start">
+          <p className="text-[15px] text-carbon">
+            {uploading ? t('uploading') : items.data ? plural('pieces', all.length, lang) : t('loading')}
+          </p>
+          {all.length > 0 && (
+            <Link to="/insights" className="inline-flex min-h-11 items-center gap-1.5 text-[15px] text-ink underline decoration-1 underline-offset-4">
+              <ChartBar className="size-4" aria-hidden /> {t('insightsLink')}
+            </Link>
+          )}
+        </div>
         <div className="sm:w-[420px]"><PhotoPicker onPick={add} busy={uploading} /></div>
       </section>
       {uploadError ? <div className="mb-4"><ErrorNote error={uploadError} /></div> : null}

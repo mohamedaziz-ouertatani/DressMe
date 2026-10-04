@@ -7,6 +7,7 @@ import { AuthPage } from './pages/AuthPage'
 import { LandingPage } from './pages/LandingPage'
 import { BuildPage } from './pages/BuildPage'
 import { ChatPage } from './pages/ChatPage'
+import { InsightsPage } from './pages/InsightsPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { ScanPage } from './pages/ScanPage'
 import { SimilarPage } from './pages/SimilarPage'
@@ -60,6 +61,7 @@ export default function App() {
               <Route path="scan" element={<ScanPage />} />
               <Route path="wardrobe" element={<WardrobePage />} />
               <Route path="wardrobe/:id" element={<ItemPage />} />
+              <Route path="insights" element={<InsightsPage />} />
               <Route path="build" element={<BuildPage />} />
               <Route path="chat" element={<ChatPage />} />
               <Route path="similar" element={<SimilarPage />} />

@@ -1,7 +1,7 @@
 // One small fetch wrapper for every API call. The log-in token lives in
 // localStorage; a 401 anywhere logs the user out (see AuthProvider).
 import type {
-  AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Item, ItemPatch, ModelQuality,
+  AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Insights, Item, ItemPatch, ModelQuality,
   Occasion, Outfit, Season, Similar, Stats, User, ChatAttachment,
 } from './types'
 
@@ -107,6 +107,8 @@ export const api = {
   addItem: (file: Blob) => request<Item>('/items', { method: 'POST', body: photoForm(file) }),
   updateItem: (id: string, patch: ItemPatch) => request<Item>(`/items/${id}`, json('PATCH', patch)),
   deleteItem: (id: string) => request<void>(`/items/${id}`, { method: 'DELETE' }),
+
+  insights: () => request<Insights>('/insights'),
 
   analyze: (file: Blob) => request<Item>('/analyze', { method: 'POST', body: photoForm(file) }),
   buyAdvice: (candidateId: string, corrections?: ItemPatch) =>
