@@ -222,7 +222,7 @@ python -m pytest                                      # 25 fast tests (fake mode
 | `GET /insights` | wardrobe insights: good outfits, most versatile and unmatched pieces, what to add next, near twins, colour / category / pattern mix, fields left empty |
 | `GET /similar` | look-alikes in your wardrobe + dataset inspiration + H&M products to buy (`shop`) |
 | `POST /chat`, `GET/DELETE /chat/history` | Gemini or local Ollama assistant that uses your real wardrobe |
-| `POST /tryon` | virtual try-on: your photo + wardrobe pieces and/or a scan → you wearing them (CatVTON on a Hugging Face Space, chained for a full outfit) |
+| `POST /tryon` | virtual try-on: your photo + wardrobe pieces and/or a scan → you wearing them (hosted Hugging Face Spaces tried in order, chained for a full outfit) |
 
 ## Phase 4: the app (frontend + admin)
 
