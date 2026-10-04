@@ -80,7 +80,7 @@ def thumbnail_path(storage_dir, listing_id):
     return storage_dir / "listings" / f"{listing_id}.jpg"
 
 
-def sync_listings(db, source_id, raws, label, storage_dir, now=None, mark_gone=True):
+def sync_listings(db, source_id, raws, label, storage_dir, now=None, mark_gone=True, on_item=None):
     """Save the listings of one run of a source and return what changed.
 
     `label(raw)` downloads and analyses the picture: it returns
@@ -92,11 +92,17 @@ def sync_listings(db, source_id, raws, label, storage_dir, now=None, mark_gone=T
     Only after a complete run (mark_gone=True; never for a --limit test run),
     listings of this source that were not seen become "gone" (sold out for
     good or removed by the shop).
+
+    `on_item(done, total)` is called before each listing (the admin page's
+    progress bar). It may raise to stop the run (an admin pressed Stop):
+    then too, nothing is marked gone.
     """
     now = now or datetime.now(timezone.utc)
     counts = {"added": 0, "updated": 0, "relabelled": 0, "no_picture": 0, "gone": 0}
     (storage_dir / "listings").mkdir(parents=True, exist_ok=True)
-    for raw in raws:
+    for i, raw in enumerate(raws):
+        if on_item:
+            on_item(i, len(raws))
         old = db.listings.find_one({"source_id": source_id, "external_id": raw.external_id},
                                    {"_id": 1, "image_url": 1})
         doc = {"source_id": source_id, "external_id": raw.external_id, "url": raw.url,

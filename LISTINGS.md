@@ -32,6 +32,11 @@ python src/collect_listings.py --source inditex_snapshot     # analyses the save
 3. Smoke test: `python src/collect_listings.py --source exist_tn --limit 30` (a `--limit` run never marks anything gone).
 4. The nightly job then refreshes it every `refresh_days` (2).
 
+**From the app (Admin > Listings):** admins see the listing counts, every source (can it run, why not, its last run) and two charts (listed by category, source runs per day). They can **start a run** (chosen sources or every due one, with the same options as the command line: whole catalogue, ignore refresh_days, limit), **follow it live** (phase, progress bar, results per source, the log) and **stop it**. `backend/app/jobs.py` starts `src/collect_listings.py` as a separate process with `--status-file` / `--stop-file` (`src/job_progress.py`), logs under `STORAGE_DIR/jobs/`, one document per run in MongoDB `listing_jobs`.
+- One run at a time (the models need the GPU memory, and a shop must never get two of us at once); the same gate as the command line (enabled + approved only).
+- Stop is polite: the run finishes its current item, keeps what it saved and marks nothing gone (result `stopped`). If it has not ended after 30 s, the whole process tree (scraper and browser too) is ended.
+- A run whose heartbeat (every 10 s) is older than 2 minutes, e.g. after the backend restarted, is shown as `lost`.
+
 **The nightly job:** `python src/collect_listings.py > data/logs/listings.log 2>&1`, from Windows Task Scheduler every night at 02:00 (program = the venv's `python.exe`, arguments = `src\collect_listings.py`, start in = the project folder). `--list` shows which sources would run, and why not.
 
 - **When a site blocks us:** a 403, a 429, or an HTML page (bot check) where JSON was expected stops the source; the collector also stops after 5 pictures in a row that cannot be downloaded. The run is saved as `blocked` (Admin > Sources shows the message) and nothing is marked gone. Never try to get around it; if it happens again, switch the source off (`enabled = no`). The connectors also ask robots.txt before every path and never read a forbidden one.

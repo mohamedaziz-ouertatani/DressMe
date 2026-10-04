@@ -166,3 +166,17 @@ def test_snapshot_rows_keep_their_date_and_local_picture(tmp_path, monkeypatch):
     assert r.image_path == str(tmp_path / "processed/shop_demo_images/zr_1_2.jpg")
     monkeypatch.setattr(snapshot, "SNAPSHOT", tmp_path / "missing.csv")
     assert snapshot.fetch({}, ARGS).status == "error"
+
+
+def test_connectors_stop_between_pages_when_asked():
+    site = FakeSite({"/products.json": paged(SHOPIFY, {"products": []})})
+    result = shopify.fetch(source("shopify"), SimpleNamespace(limit=0, should_stop=lambda: True), opener=site)
+    assert result.status == "stopped" and not any("products.json" in u for u in site.urls)
+    site = FakeSite({"/wp-json/": paged(WOO, [])})
+    result = woocommerce.fetch(source("woocommerce"), SimpleNamespace(limit=0, should_stop=lambda: True), opener=site)
+    assert result.status == "stopped"
+
+
+def test_inditex_stop_is_reported():
+    from connectors import inditex
+    assert inditex.outcome(-15, "[zara] opening\nSTOPPED by an admin\n")[0] == "stopped"

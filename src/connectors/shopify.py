@@ -67,6 +67,8 @@ def fetch(source, args, opener=None):
     listings, data = [], None
     try:
         for page in range(1, MAX_PAGES + 1):
+            if getattr(args, "should_stop", lambda: False)():
+                return FetchResult("stopped", f"stopped by an admin after {page - 1} page(s)", mode="catalogue")
             data = client.get_json(f"products.json?limit={PAGE_SIZE}&page={page}")
             products = (data or {}).get("products") or []
             if not products:

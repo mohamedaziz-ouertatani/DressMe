@@ -10,6 +10,7 @@ MongoDB access (pymongo). Collections:
     listings    shop products to buy, shared by all users (app/listings.py,
                 filled by src/collect_listings.py)
     listing_runs  one line per collector run and source (admin page)
+    listing_jobs  collector runs started from the admin page (app/jobs.py)
 
 FashionCLIP vectors are stored as raw float16 bytes (1 KB per item).
 """
@@ -33,6 +34,7 @@ def connect(settings):
     db.listings.create_index([("source_id", ASCENDING), ("external_id", ASCENDING)], unique=True)
     db.listings.create_index([("status", ASCENDING), ("in_stock", ASCENDING), ("category", ASCENDING)])
     db.listing_runs.create_index([("source_id", ASCENDING), ("finished_at", ASCENDING)])
+    db.listing_jobs.create_index([("started_at", ASCENDING)])
     return db
 
 

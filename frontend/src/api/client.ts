@@ -1,7 +1,7 @@
 // One small fetch wrapper for every API call. The log-in token lives in
 // localStorage; a 401 anywhere logs the user out (see AuthProvider).
 import type {
-  AdminSource, AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Insights, Item, ItemPatch,
+  AdminSource, Job, JobStart, ListingsOverview, AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Insights, Item, ItemPatch,
   Listing, ListingFilters, ListingPage, ListingPatch, ModelQuality, ReviewListing, SellForm, Occasion, Outfit, Season, Similar, Stats, User,
   ChatAttachment, TryOnResult,
 } from './types'
@@ -177,6 +177,13 @@ export const api = {
     formula: () => request<Formula>('/admin/formula'),
     saveFormula: (values: Record<string, number>) => request<Formula>('/admin/formula', json('PUT', { values })),
     sources: () => request<{ sources: AdminSource[]; file: string }>('/admin/sources'),
+    listingsOverview: () => request<ListingsOverview>('/admin/listings/overview'),
+    jobs: () => request<Job[]>('/admin/jobs'),
+    job: (id: string) => request<Job>(`/admin/jobs/${id}`),
+    startJob: (body: JobStart) => request<Job>('/admin/jobs', json('POST', body)),
+    stopJob: (id: string) => request<Job>(`/admin/jobs/${id}/stop`, { method: 'POST' }),
+    jobLog: (id: string, offset: number) =>
+      request<{ text: string; offset: number; status: Job['status'] }>(`/admin/jobs/${id}/log?offset=${offset}`),
     reviewQueue: (status = 'pending') =>
       request<{ total: number; listings: ReviewListing[] }>(`/admin/listings?status=${status}`),
     review: (id: string, status: 'active' | 'rejected', note = '') =>

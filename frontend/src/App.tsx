@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import { AdminFormula, AdminLayout, AdminModeration, AdminOverview, AdminQuality, AdminSources, AdminUsers } from './admin/AdminPages'
+import { AdminFormula, AdminLayout, AdminModeration, AdminOverview, AdminQuality, AdminUsers } from './admin/AdminPages'
+import { AdminListings } from './admin/ListingsDashboard'
 import { AuthProvider, useAuth } from './auth'
 import { I18nProvider } from './i18n'
 import { AuthPage } from './pages/AuthPage'
@@ -79,7 +80,8 @@ export default function App() {
               <Route path="quality" element={<AdminQuality />} />
               <Route path="users" element={<AdminUsers />} />
               <Route path="formula" element={<AdminFormula />} />
-              <Route path="sources" element={<AdminSources />} />
+              <Route path="listings" element={<AdminListings />} />
+              <Route path="sources" element={<Navigate to="/admin/listings" replace />} />
               <Route path="moderation" element={<AdminModeration />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
