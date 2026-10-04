@@ -34,6 +34,7 @@ Main functions (used by the API):
                                             outfits where the new item beats what you own
     complete_outfit(items, candidates, profile, k)  the best missing piece
     clashes(items)                          why the items can't be worn together
+    wardrobe_insights(wardrobe, profile)    good outfits, unmatched pieces, gaps, near twins
 """
 
 from itertools import combinations
@@ -387,3 +388,77 @@ def complete_outfit(items, candidates, profile=None, k=5, rules=RULES):
         ranked.append({**score_outfit(items + [c], rules, style_profile=style_profile), "item": c})
     ranked.sort(key=lambda r: r["score"], reverse=True)
     return ranked[:k]
+
+
+# ------------------------------------------------------------------ wardrobe insights
+MAIN_SLOTS = ("upper", "lower", "full")   # the pieces an outfit is built around
+
+
+def near_twins(items, rules=RULES):
+    """Pairs of items of the same category that look almost the same
+    (FashionCLIP similarity >= similar_item, the same cut as buy_advice)."""
+    with_vec = [i for i in items if i.get("vector") is not None]
+    twins = []
+    for a, b in combinations(with_vec, 2):
+        if a["category"] != b["category"]:
+            continue
+        sim = float(np.asarray(a["vector"], np.float32) @ np.asarray(b["vector"], np.float32))
+        if sim >= rules.settings["similar_item"]:
+            twins.append((a, b, sim))
+    twins.sort(key=lambda t: -t[2])
+    return twins
+
+
+def wardrobe_insights(wardrobe, profile=None, rules=RULES):
+    """What the wardrobe can do and where it is short, in plain facts (no new rules:
+    'good' is the team's good_outfit score, 'twin' is their similar_item cut).
+
+    Returns a dict:
+        good_outfits  completed outfits scoring >= good_outfit
+        complete      False if there were more top+bottom / full-piece combinations
+                      than TOP_CORES, so good_outfits is a lower bound
+        outfit_use    {item id: number of good outfits it is in}
+        versatile     main pieces (top, bottom, full piece) in good outfits, most used first
+        unmatched     main pieces in no good outfit
+        filtered      ids hidden by the personal filters (e.g. under the modesty level)
+        new_pairs     {"top": n, "bottom": n}: new top+bottom pairs one more piece would make
+        missing       categories the outfits lack: "shoes", "top", "bottom", or "main"
+                      (no top, bottom or full piece at all)
+        twins         [(item, item, similarity)] near-identical pieces
+    """
+    items, removed = filter_items(wardrobe, profile)
+    style_profile = (profile or {}).get("style_vector")
+    slot = lambda i: rules.slot[i["category"]]
+    uppers = sum(slot(i) == "upper" for i in items)
+    lowers = sum(slot(i) == "lower" for i in items)
+    fulls = sum(slot(i) == "full" for i in items)
+
+    good = [(r, o) for r, o in _outfits(items, rules, style_profile=style_profile)
+            if r["score"] >= rules.settings["good_outfit"]]
+    use = {i["id"]: 0 for i in items}
+    for _, outfit in good:
+        for i in outfit:
+            use[i["id"]] += 1
+
+    main = [i for i in items if slot(i) in MAIN_SLOTS]   # shoes / bags are in almost every outfit
+    missing = []
+    if not (uppers or lowers or fulls):
+        missing.append("main")
+    elif uppers and not lowers and not fulls:
+        missing.append("bottom")
+    elif lowers and not uppers and not fulls:
+        missing.append("top")
+    if not any(i["category"] == "shoes" for i in items):
+        missing.append("shoes")
+
+    return {
+        "good_outfits": len(good),
+        "complete": uppers * lowers + fulls <= TOP_CORES,
+        "outfit_use": use,
+        "versatile": sorted((i for i in main if use[i["id"]]), key=lambda i: -use[i["id"]]),
+        "unmatched": [i for i in main if use[i["id"]] == 0],
+        "filtered": list(removed),
+        "new_pairs": {"top": lowers, "bottom": uppers},
+        "missing": missing,
+        "twins": near_twins(items, rules),
+    }

@@ -26,6 +26,16 @@ export const PLURALS = {
     fr: { one: '{n} pièce de type {c}', other: '{n} pièces de type {c}' },
     ar: { two: 'قطعتان من صنف {c}', few: '{n} قطع من صنف {c}', many: '{n} قطعة من صنف {c}', other: '{n} قطعة من صنف {c}' },
   },
+  inOutfits: {
+    en: { one: 'in {n} good outfit', other: 'in {n} good outfits' },
+    fr: { one: 'dans {n} bonne tenue', other: 'dans {n} bonnes tenues' },
+    ar: { one: 'في لبسة جيدة واحدة', two: 'في لبستين جيدتين', few: 'في {n} لبسات جيدة', many: 'في {n} لبسة جيدة', other: 'في {n} لبسة جيدة' },
+  },
+  newPairs: {
+    en: { one: '{n} new pair', other: '{n} new pairs' },
+    fr: { one: '{n} nouvelle paire', other: '{n} nouvelles paires' },
+    ar: { zero: 'لا تركيبة جديدة', one: 'تركيبة جديدة واحدة', two: 'تركيبتان جديدتان', few: '{n} تركيبات جديدة', many: '{n} تركيبة جديدة', other: '{n} تركيبة جديدة' },
+  },
 } satisfies Record<string, Table>
 
 const rules = new Map<Language, Intl.PluralRules>()

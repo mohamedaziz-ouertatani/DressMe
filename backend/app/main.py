@@ -18,7 +18,7 @@ from .background import load_remover
 from .chat_engine import make_engine
 from .config import Settings
 from .db import connect
-from .routers import admin, auth, chat, items, outfits
+from .routers import admin, auth, chat, insights, items, outfits
 
 
 def create_app(settings=None, analyzer=None, catalog=None, chat_engine=None, remover=None):
@@ -42,7 +42,7 @@ def create_app(settings=None, analyzer=None, catalog=None, chat_engine=None, rem
     app = FastAPI(title="DressMe API", version="0.1", lifespan=lifespan)
     app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins,
                        allow_methods=["*"], allow_headers=["*"])
-    for r in (auth.router, items.router, outfits.router, chat.router, admin.router):
+    for r in (auth.router, items.router, outfits.router, insights.router, chat.router, admin.router):
         app.include_router(r)
 
     @app.get("/health")

@@ -219,6 +219,7 @@ python -m pytest                                      # 25 fast tests (fake mode
 | `POST /items`, `GET /items`, `PATCH /items/{id}`, `DELETE /items/{id}` | wardrobe: upload a photo (analysed), list, correct, delete |
 | `POST /analyze`, `POST /buy-advice` | friperie photo → "should I buy this?" (buy / think / skip) |
 | `POST /outfits/score`, `GET /outfits/suggest`, `POST /outfits/complete` | outfits from your wardrobe |
+| `GET /insights` | wardrobe insights: good outfits, most versatile and unmatched pieces, what to add next, near twins, colour / category / pattern mix, fields left empty |
 | `GET /similar` | look-alikes in your wardrobe + dataset inspiration + H&M products to buy (`shop`) |
 | `POST /chat`, `GET/DELETE /chat/history` | Gemini or local Ollama assistant that uses your real wardrobe |
 
@@ -240,7 +241,7 @@ python -m app.make_admin you@example.com # give an existing account the admin ro
 ```
 
 - **What's in it:**
-  - Today's outfit, Scan ("should I buy this?" with a stamped BUY / THINK / SKIP), Wardrobe (every predicted field correctable), Build, the Assistant chat, Similar pieces, and Profile (modesty level, language);
+  - Today's outfit, Scan ("should I buy this?" with a stamped BUY / THINK / SKIP), Wardrobe (every predicted field correctable), Insights (`/insights`, linked from Wardrobe), Build, the Assistant chat, Similar pieces, and Profile (modesty level, language);
   - English, French and Arabic (right-to-left).
   - Admins also get `/admin`: usage stats, model quality (how often users correct each prediction), user management, and the formula editor.
 - **Design:** the visual system ("Ticket & Recharge-Card Stock") is documented in [`DESIGN.md`](DESIGN.md), and the product brief in [`PRODUCT.md`](PRODUCT.md).
