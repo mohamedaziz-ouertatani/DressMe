@@ -76,6 +76,24 @@ class FakeChatEngine:
         return f"(history {len(history)}) Hello!", []
 
 
+class FakeTryOn:
+    """Records each call and returns the person photo with a band of the
+    garment's colour, so a test can see what was "put on" and in what order."""
+
+    def __init__(self, fail_after=None):
+        self.calls = []
+        self.fail_after = fail_after     # raise TryOnBusy from this call number on
+
+    def dress(self, person, garment, kind):
+        from app.tryon import TryOnBusy
+        if self.fail_after is not None and len(self.calls) >= self.fail_after:
+            raise TryOnBusy("Space asleep")
+        self.calls.append(kind)
+        out = person.copy()
+        out.paste(garment.resize((out.width, 8)), (0, 0))
+        return out
+
+
 def photo(rgb, size=(64, 80)):
     buf = io.BytesIO()
     Image.new("RGB", size, rgb).save(buf, format="PNG")
@@ -97,9 +115,10 @@ def make_client(settings):
     MongoClient(settings.mongo_url).drop_database(TEST_DB)
     clients = []
 
-    def make(chat_engine=None, remover=None):
+    def make(chat_engine=None, remover=None, tryon=None):
         app = create_app(settings, analyzer=FakeAnalyzer(), catalog=FakeCatalog(),
-                         chat_engine=chat_engine or FakeChatEngine(), remover=remover)
+                         chat_engine=chat_engine or FakeChatEngine(), remover=remover,
+                         tryon_engine=tryon or FakeTryOn())
         c = TestClient(app)
         c.__enter__()            # runs the start-up (database connection)
         clients.append(c)

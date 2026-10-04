@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Check, Plus } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Check, Plus, Sparkles } from 'lucide-react'
 import { api } from '../api/client'
 import type { Completion, Item, Outfit } from '../api/types'
 import { useI18n } from '../i18n'
@@ -74,6 +75,9 @@ export function BuildPage() {
               })
             }}
           />
+          <Link to={`/tryon?items=${picked.join(',')}`} className="mt-4 inline-flex min-h-11 items-center gap-2 border-[1.5px] border-ink bg-paper px-4 text-[15px] font-medium text-ink">
+            <Sparkles className="size-4" aria-hidden /> {t('tryOnBtn')}
+          </Link>
           {shownCompletions.length > 0 && (
             <div className="mt-6">
               <h2 className="mb-2 text-[13px] font-medium uppercase tracking-[0.06em] text-carbon-soft">{t('completeWith')}</h2>

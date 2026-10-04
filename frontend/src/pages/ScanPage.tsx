@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, Plus, ScanLine, Search, ShoppingBag, Tag } from 'lucide-react'
+import { ArrowRight, Plus, ScanLine, Search, ShoppingBag, Sparkles, Tag } from 'lucide-react'
 import { api } from '../api/client'
 import type { BuyAdvice, Item, ItemPatch } from '../api/types'
 import { useI18n } from '../i18n'
@@ -182,6 +182,9 @@ export function ScanPage() {
             <div className="mt-5 flex flex-wrap gap-2">
               <Link to={`/similar?candidate=${advice.candidate.id}`} className="inline-flex min-h-11 items-center gap-2 border-[1.5px] border-ink bg-paper px-4 text-[15px] font-medium text-ink">
                 <Search className="size-4" aria-hidden /> {t('seeSimilar')}
+              </Link>
+              <Link to={`/tryon?candidate=${advice.candidate.id}&ccat=${advice.candidate.category}`} className="inline-flex min-h-11 items-center gap-2 border-[1.5px] border-ink bg-paper px-4 text-[15px] font-medium text-ink">
+                <Sparkles className="size-4" aria-hidden /> {t('tryOnBtn')}
               </Link>
               <Button variant="secondary" onClick={reset}>
                 <ScanLine className="size-4" aria-hidden /> {t('newScan')}
