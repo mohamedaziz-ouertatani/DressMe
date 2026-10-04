@@ -11,6 +11,12 @@ Admin dashboard API (admins only: python -m app.make_admin <email>).
     GET    /admin/sources         listing sources (mappings/listing_sources.csv) + their last runs
     GET    /admin/listings        friperie sellers' listings to review (?status=pending)
     PATCH  /admin/listings/{id}   approve (active) or reject one, with an optional note
+    GET    /admin/listings/overview  the Listings dashboard: counts, sources, runs, jobs
+    GET    /admin/jobs            collector runs started from the app (newest first)
+    POST   /admin/jobs            start one (one at a time; same source gate as the command line)
+    GET    /admin/jobs/{id}       one run, with its live progress
+    GET    /admin/jobs/{id}/log   its output from ?offset= (the page polls it)
+    POST   /admin/jobs/{id}/stop  stop it (politely, then the whole process tree after 30 s)
 """
 
 import csv
@@ -21,7 +27,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .. import ml  # noqa: F401  (puts src/ on the import path)
 import compatibility
@@ -30,6 +36,7 @@ from ..db import object_id
 from ..events import EVENT_TYPES
 from ..listings import SELLERS, last_run, listing_out, load_sources, usable
 from .listings import delete_seller_listings
+from ..jobs import JobBusy
 from ..ml import colour_min_confidence
 from ..security import current_admin
 from ..wardrobe import PREDICTED_FIELDS
@@ -260,3 +267,122 @@ def review(listing_id: str, body: Review, request: Request):
     request.app.state.listing_index.invalidate()
     doc = db.listings.find_one({"_id": oid}, {"vector": 0})
     return listing_out(doc)
+
+
+# ------------------------------------------------------------------ listings dashboard + collector jobs
+def job_out(request, job):
+    if not job:
+        return None
+    runner = request.app.state.jobs
+    job = runner.refresh(job)
+    progress = runner.progress(job["_id"])
+    iso = lambda d: d.isoformat() if d else None   # noqa: E731
+    return {"id": str(job["_id"]), "status": job["status"], "sources": job["sources"],
+            "catalogue": job["catalogue"], "force": job["force"], "limit": job["limit"],
+            "started_by": job.get("started_by", ""), "started_at": iso(job.get("started_at")),
+            "finished_at": iso(job.get("finished_at")), "exit_code": job.get("exit_code"),
+            "results": job.get("results") or progress.get("results", {}),
+            "plan": job.get("plan") or progress.get("plan", {}),
+            "progress": {k: progress.get(k) for k in ("phase", "source", "done", "total", "heartbeat")}}
+
+
+class JobStart(BaseModel):
+    sources: list[str] = []      # empty = every source that may run and is due
+    catalogue: bool = False      # Inditex: read the whole catalogue, not only stock
+    force: bool = False          # ignore refresh_days (never the enabled / approved gate)
+    limit: int = Field(0, ge=0, le=10000)   # smoke test: stop after ~N products, nothing marked gone
+
+
+@router.get("/jobs")
+def list_jobs(request: Request, n: int = Query(20, ge=1, le=100)):
+    jobs = request.app.state.db.listing_jobs.find().sort("started_at", -1).limit(n)
+    return [job_out(request, j) for j in jobs]
+
+
+@router.post("/jobs", status_code=201)
+def start_job(body: JobStart, request: Request, admin=Depends(current_admin)):
+    sources = {s["source_id"]: s for s in load_sources(request.app.state.settings.mappings_dir)}
+    unknown = sorted(set(body.sources) - set(sources))
+    if unknown:
+        raise HTTPException(422, f"Unknown sources: {unknown}")
+    refused = {sid: usable(sources[sid]) for sid in body.sources if usable(sources[sid])}
+    if refused:   # never start a source the team has not enabled and approved
+        raise HTTPException(422, "Not allowed to run: " + "; ".join(f"{k}: {v}" for k, v in refused.items()))
+    try:
+        job = request.app.state.jobs.start(body.sources, body.catalogue, body.force, body.limit, admin)
+    except JobBusy as err:
+        raise HTTPException(409, f"A run is already going on (job {err}): stop it or wait for it")
+    return job_out(request, job)
+
+
+def find_job(request, job_id):
+    oid = object_id(job_id)
+    job = oid and request.app.state.db.listing_jobs.find_one({"_id": oid})
+    if not job:
+        raise HTTPException(404, "Job not found")
+    return job
+
+
+@router.get("/jobs/{job_id}")
+def get_job(job_id: str, request: Request):
+    return job_out(request, find_job(request, job_id))
+
+
+@router.get("/jobs/{job_id}/log")
+def job_log(job_id: str, request: Request, offset: int = Query(0, ge=0)):
+    job = find_job(request, job_id)
+    return {**request.app.state.jobs.log(job["_id"], offset), "status": job_out(request, job)["status"]}
+
+
+@router.post("/jobs/{job_id}/stop")
+def stop_job(job_id: str, request: Request):
+    job = find_job(request, job_id)
+    return job_out(request, request.app.state.jobs.stop(job["_id"]))
+
+
+@router.get("/listings/overview")
+def listings_overview(request: Request, days: int = Query(30, ge=1, le=365)):
+    """Everything the Listings dashboard shows, in one answer."""
+    db = request.app.state.db
+    count = db.listings.count_documents
+    by_status = {r["_id"]: r["n"] for r in db.listings.aggregate(
+        [{"$group": {"_id": "$status", "n": {"$sum": 1}}}])}
+    per_source = {r["_id"]: r for r in db.listings.aggregate([{"$group": {
+        "_id": "$source_id", "active": {"$sum": {"$cond": [{"$eq": ["$status", "active"]}, 1, 0]}},
+        "in_stock": {"$sum": {"$cond": [{"$and": [{"$eq": ["$status", "active"]},
+                                                 {"$eq": ["$in_stock", True]}]}, 1, 0]}},
+        "gone": {"$sum": {"$cond": [{"$eq": ["$status", "gone"]}, 1, 0]}}}}])}
+    categories = [{"category": r["_id"] or "", "count": r["n"]} for r in db.listings.aggregate([
+        {"$match": {"status": "active"}}, {"$group": {"_id": "$category", "n": {"$sum": 1}}},
+        {"$sort": {"n": -1}}])]
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+    runs = {}
+    for r in db.listing_runs.find({"finished_at": {"$gte": since}}, {"finished_at": 1, "result": 1}):
+        day = r["finished_at"].strftime("%Y-%m-%d")
+        runs.setdefault(day, {}).setdefault(r["result"], 0)
+        runs[day][r["result"]] += 1
+    sources = []
+    for s in load_sources(request.app.state.settings.mappings_dir):
+        sid = s["source_id"]
+        counts = per_source.get(sid, {})
+        sources.append({"source_id": sid, "kind": s.get("kind", ""), "brand": s.get("brand", ""),
+                        "enabled": s.get("enabled", ""), "approved_on": s.get("approved_on", ""),
+                        "refused": usable(s), "note": s.get("note", ""),
+                        "active": counts.get("active", 0), "in_stock": counts.get("in_stock", 0),
+                        "gone": counts.get("gone", 0),
+                        "last_run": run_out(last_run(db, sid)), "last_ok": run_out(last_run(db, sid, "ok"))})
+    sellers = per_source.get(SELLERS, {})
+    running = request.app.state.jobs.running()
+    last = db.listing_jobs.find_one(sort=[("started_at", -1)])
+    return {
+        "totals": {"active": by_status.get("active", 0), "gone": by_status.get("gone", 0),
+                   "in_stock": count({"status": "active", "in_stock": True}),
+                   "pending": count({"source_id": SELLERS, "status": "pending"}),
+                   "rejected": count({"source_id": SELLERS, "status": "rejected"}),
+                   "sellers_active": sellers.get("active", 0),
+                   "sources_on": sum(1 for s in sources if not s["refused"]),
+                   "sources_total": len(sources)},
+        "sources": sources, "categories": categories,
+        "runs_by_day": [{"day": d, **runs[d]} for d in sorted(runs)],
+        "running": job_out(request, running), "last_job": job_out(request, last),
+    }

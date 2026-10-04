@@ -54,6 +54,8 @@ def fetch(source, args, opener=None):
     listings, data = [], None
     try:
         for page in range(1, MAX_PAGES + 1):
+            if getattr(args, "should_stop", lambda: False)():
+                return FetchResult("stopped", f"stopped by an admin after {page - 1} page(s)", mode="catalogue")
             data = client.get_json(f"wp-json/wc/store/v1/products?per_page={PAGE_SIZE}&page={page}")
             if not data:             # empty page (or 404): the end
                 break

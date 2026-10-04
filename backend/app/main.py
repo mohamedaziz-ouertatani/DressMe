@@ -18,6 +18,7 @@ from .background import load_remover
 from .chat_engine import make_engine
 from .config import Settings
 from .db import connect
+from .jobs import JobRunner
 from .listings import ListingIndex
 from .routers import admin, auth, chat, insights, items, listings, outfits, tryon
 from .tryon import make_tryon
@@ -42,6 +43,7 @@ def create_app(settings=None, analyzer=None, catalog=None, chat_engine=None, rem
         app.state.chat_engine = chat_engine or make_engine(settings)
         app.state.tryon = tryon_engine or make_tryon(settings)   # None = switched off
         app.state.listing_index = ListingIndex()
+        app.state.jobs = JobRunner(app.state.db, settings.storage_dir)   # collector runs (admin)
         yield
 
     app = FastAPI(title="DressMe API", version="0.1", lifespan=lifespan)

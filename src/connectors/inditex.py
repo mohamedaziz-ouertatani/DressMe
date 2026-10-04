@@ -26,6 +26,7 @@ SRC = Path(__file__).resolve().parents[1]
 SCRAPER = SRC / "scrape_shops.py"
 SHOPS_DIR = SRC.parent / "data" / "raw" / "Shops"
 
+STOPPED = "STOPPED by an admin"
 # phrases of the scraper's own stop messages (scrape_shops.py) when a site blocks it
 BLOCK_PHRASES = ("refused the automated browser", "keeps refusing our requests")
 IN_STOCK = {"in_stock", "low_on_stock"}
@@ -56,6 +57,8 @@ def command(source, catalogue, limit=0):
 def outcome(returncode, output):
     """(status, message) from the scraper's exit code and the end of its output."""
     tail = "\n".join(output.strip().splitlines()[-15:])
+    if STOPPED in output:
+        return "stopped", tail
     if returncode == 0:
         return "ok", tail
     if any(p in output for p in BLOCK_PHRASES):
@@ -98,21 +101,28 @@ def read_rows(path):
     return [to_raw(r) for r in rows if r.get("url") and r.get("image_url")]
 
 
-def run(cmd):
-    """Run the scraper, echo its output to our log, return (exit code, output)."""
+def run(cmd, should_stop=lambda: False):
+    """Run the scraper, echo its output to our log, return (exit code, output).
+    When an admin presses Stop, the scraper is ended at its next line of output
+    (the backend also ends the whole process tree if that takes too long)."""
     lines = []
     with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
                           encoding="utf-8", errors="replace", cwd=SRC.parent) as proc:
         for line in proc.stdout:
             print("   ", line, end="", flush=True)
             lines.append(line)
+            if should_stop():
+                proc.terminate()
+                lines.append(f"\n{STOPPED}\n")
+                break
     return proc.returncode, "".join(lines)
 
 
-def fetch(source, args, runner=run):
+def fetch(source, args, runner=None):
     path = products_file(source)
     catalogue = getattr(args, "catalogue", False) or catalogue_due(path, source.get("catalogue_days"))
     mode = "catalogue" if catalogue else "stock"
+    runner = runner or (lambda cmd: run(cmd, getattr(args, "should_stop", lambda: False)))
     code, output = runner(command(source, catalogue, getattr(args, "limit", 0)))
     status, message = outcome(code, output)
     if status != "ok":
