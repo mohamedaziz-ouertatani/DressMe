@@ -81,15 +81,16 @@ class FakeTryOn:
     garment's colour, so a test can see what was "put on" and in what order."""
 
     def __init__(self, fail_after=None, fail_kinds=()):
-        self.calls = []
+        self.calls, self.descriptions = [], []
         self.fail_after = fail_after     # raise TryOnBusy from this call number on
         self.fail_kinds = fail_kinds     # raise TryOnBusy for these kinds (e.g. "lower")
 
-    def dress(self, person, garment, kind):
+    def dress(self, person, garment, kind, description=""):
         from app.tryon import TryOnBusy
         if kind in self.fail_kinds or (self.fail_after is not None and len(self.calls) >= self.fail_after):
             raise TryOnBusy("Space asleep")
         self.calls.append(kind)
+        self.descriptions.append(description)
         out = person.copy()
         out.paste(garment.resize((out.width, 8)), (0, 0))
         return out

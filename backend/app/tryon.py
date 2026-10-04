@@ -19,8 +19,10 @@ TRYON_ENGINE in backend/.env:
 Garments are dressed one at a time: "upper" (top, jacket), "lower" (trousers,
 skirt) or "overall" (dress). A full outfit is made by chaining: the result of
 one garment is the person photo of the next. Only CatVTON knows all three;
-IDM-VTON's automatic mask is for tops only, and Kolors was trained mostly on
-tops (dresses work less well, trousers are not sent to it).
+OOTDiffusion knows all three too; IDM-VTON's automatic mask is for tops only,
+and Kolors was trained mostly on tops (dresses work less well, trousers are
+not sent to it). IDM-VTON also reads a short description ("grey hoodie"):
+without it a hood lying flat was drawn as a high collar.
 
 PRIVACY: the user's photo of themself is SENT TO THE SPACE (a third party).
 The backend never saves it nor the result; the app tells the user before
@@ -33,7 +35,7 @@ TryOnBusy (HTTP 502), and the app falls back to the overlay.
 
 The router only needs:
 
-    engine.dress(person, garment, kind) -> PIL image   (kind: upper / lower / overall)
+    engine.dress(person, garment, kind, description) -> PIL image   (kind: upper / lower / overall)
 
 Tests use a fake engine with the same method. From your machine (backend/):
     python -m app.tryon --check                          state of every Space in TRYON_SPACES
@@ -80,9 +82,10 @@ def plan(docs):
 # ------------------------------------------------------------------ Space adapters
 # Each one sends (person, garment, kind) to one Space's API, using the inputs
 # shown on that Space's "Use via API" page, and returns what the Space answers.
-# `files` holds the paths of person.png, garment.png and an empty mask.png.
+# `files` holds the paths of person.png, garment.png and an empty mask.png;
+# `description` is a few words such as "grey hoodie" (see describe()).
 
-def catvton(client, files, kind, settings):
+def catvton(client, files, kind, settings, description):
     """zhengchong/CatVTON: the person input is an image editor (background = the
     photo, one layer = a hand-drawn mask; an empty layer = find the mask itself)."""
     from gradio_client import handle_file
@@ -98,13 +101,13 @@ def catvton(client, files, kind, settings):
         api_name="/submit_function")
 
 
-def idm_vton(client, files, kind, settings):
+def idm_vton(client, files, kind, settings, description):
     """yisol/IDM-VTON: its automatic mask (is_checked) only covers the upper body."""
     from gradio_client import handle_file
     return client.submit(
         {"background": handle_file(files["person"]), "layers": [], "composite": None},
         handle_file(files["garment"]),
-        "a garment",              # garment_des: a short description of the garment
+        description or "a garment",   # garment_des: guides the shape (a hood, the length)
         True,                     # is_checked: make the mask automatically
         False,                    # is_checked_crop: the photo is not cropped
         settings.tryon_steps,     # denoise_steps
@@ -112,7 +115,7 @@ def idm_vton(client, files, kind, settings):
         api_name="/tryon")
 
 
-def kolors(client, files, kind, settings):
+def kolors(client, files, kind, settings, description):
     """Kwai-Kolors/Kolors-Virtual-Try-On: no garment type, mostly trained on tops.
     Answers (picture, seed, message); the picture is empty when it is too busy."""
     from gradio_client import handle_file
@@ -121,12 +124,34 @@ def kolors(client, files, kind, settings):
                          api_name="/tryon")
 
 
+def ootd(client, files, kind, settings, description):
+    """levihsu/OOTDiffusion, its "full-body" model: upper body, lower body or
+    dress. Answers a gallery (a list of pictures)."""
+    from gradio_client import handle_file
+    category = {"upper": "Upper-body", "lower": "Lower-body", "overall": "Dress"}[kind]
+    return client.submit(handle_file(files["person"]), handle_file(files["garment"]),
+                         category,
+                         1,                                      # n_samples
+                         max(20, min(40, settings.tryon_steps)),  # n_steps (Space allows 20-40)
+                         2.0,                                    # image_scale (Space default)
+                         42,                                     # seed
+                         api_name="/process_dc")
+
+
 # adapter name -> (function, the kinds of garment it can dress)
 ADAPTERS = {
     "catvton": (catvton, {"upper", "lower", "overall"}),
     "idm": (idm_vton, {"upper"}),
     "kolors": (kolors, {"upper", "overall"}),
+    "ootd": (ootd, {"upper", "lower", "overall"}),
 }
+
+
+def describe(doc):
+    """A few words about a wardrobe item for the Spaces that read text, e.g.
+    "grey hoodie" (colour + sub_category, or the category when it is unknown)."""
+    words = [doc.get("colour", ""), doc.get("sub_category") or doc.get("category", "")]
+    return " ".join(w for w in words if w)
 
 
 def parse_spaces(text):
@@ -145,11 +170,14 @@ def parse_spaces(text):
 
 
 def picture_from(out):
-    """The Space's answer -> the path of the picture it made (or None)."""
-    if isinstance(out, (list, tuple)):     # several outputs: the picture comes first
-        out = out[0] if out else None
-    if isinstance(out, dict):              # some Spaces answer {"path": ...}
-        out = out.get("path")
+    """The Space's answer -> the path of the picture it made (or None).
+    Answers can be a path, several outputs (the picture first), a gallery
+    ([{"image": ..., "caption": ...}]) or a file dict ({"path": ...})."""
+    while isinstance(out, (list, tuple, dict)):
+        if isinstance(out, dict):
+            out = out.get("path") or out.get("image")
+        else:
+            out = out[0] if out else None
     return out
 
 
@@ -166,7 +194,7 @@ class SpaceTryOn:
         from gradio_client import Client   # imported here: only needed when used
         return Client(space, token=self.settings.hf_token or None, verbose=False)
 
-    def dress(self, person, garment, kind):
+    def dress(self, person, garment, kind, description=""):
         """Try each Space in order; TryOnBusy (with every Space's reason) if none worked."""
         reasons = []
         with tempfile.TemporaryDirectory() as tmp:
@@ -182,7 +210,7 @@ class SpaceTryOn:
                 try:
                     if space not in self._clients:
                         self._clients[space] = self._make_client(space)   # fails if broken / private
-                    job = call(self._clients[space], files, kind, self.settings)
+                    job = call(self._clients[space], files, kind, self.settings, description)
                     path = picture_from(job.result(timeout=self.settings.tryon_timeout))
                     if not path:
                         raise RuntimeError("no picture in the answer (too busy?)")
