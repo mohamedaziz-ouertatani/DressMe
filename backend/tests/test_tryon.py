@@ -31,6 +31,7 @@ def test_outfit_is_chained_bottom_first_and_shoes_skipped(make_client, settings)
     assert r.status_code == 200, r.text
     body = r.json()
     assert engine.calls == ["lower", "upper"]              # trousers before the top
+    assert engine.descriptions == ["blue jeans", "red t-shirt"]   # helps the Spaces that read text
     assert body["applied"] == [jeans, top] and body["failed"] == []
     assert body["skipped"] == [{"id": shoes, "reason": "unsupported"}]
     assert decode(body["image"]).size == (60, 100)          # the person photo, dressed
@@ -141,6 +142,7 @@ class FakeSpace:
 
     def submit(self, *args, api_name=None):
         self.calls.append(api_name)
+        self.args = args
         return FakeJob(self.answer)
 
 
@@ -200,3 +202,30 @@ def test_unknown_space_needs_an_adapter():
     assert parse_spaces("a/My-CatVTON, b/x=kolors") == [("a/My-CatVTON", "catvton"), ("b/x", "kolors")]
     with pytest.raises(ValueError, match="no adapter"):
         parse_spaces("someone/try-on")
+
+
+def test_lower_garments_go_to_ootd_while_catvton_is_broken(settings, tmp_path):
+    engine, made = space_engine(
+        settings, tmp_path, "zhengchong/CatVTON, yisol/IDM-VTON, levihsu/OOTDiffusion",
+        {"zhengchong/CatVTON": "broken", "yisol/IDM-VTON": "ok", "levihsu/OOTDiffusion": "ok"})
+    engine.dress(*person_and_garment(), "lower", "beige shorts")
+    assert engine.last_space == "levihsu/OOTDiffusion"
+    assert made["levihsu/OOTDiffusion"].calls == ["/process_dc"]
+    assert made["levihsu/OOTDiffusion"].args[2] == "Lower-body"
+    assert "yisol/IDM-VTON" not in made                            # can't dress shorts
+
+
+def test_idm_vton_gets_the_description(settings, tmp_path):
+    engine, made = space_engine(settings, tmp_path, "yisol/IDM-VTON", {"yisol/IDM-VTON": "ok"})
+    engine.dress(*person_and_garment(), "upper", "grey hoodie")
+    assert made["yisol/IDM-VTON"].args[2] == "grey hoodie"
+
+
+def test_picture_from_every_answer_shape():
+    from app.tryon import describe, picture_from
+    assert picture_from("/a.png") == "/a.png"
+    assert picture_from(("/a.png", 42, "")) == "/a.png"                       # several outputs
+    assert picture_from([{"image": {"path": "/a.png"}, "caption": None}]) == "/a.png"   # gallery
+    assert picture_from([{"image": "/a.png", "caption": None}]) == "/a.png"
+    assert picture_from((None, 42, "Too many users")) is None
+    assert describe({"colour": "grey", "sub_category": "", "category": "top"}) == "grey top"

@@ -20,7 +20,7 @@ import compatibility
 
 from ..events import log_event
 from ..security import current_user
-from ..tryon import KIND, TryOnBusy, TryOnUnavailable, plan
+from ..tryon import KIND, TryOnBusy, TryOnUnavailable, describe, plan
 from ..wardrobe import to_compat
 from .items import open_photo, own_item
 
@@ -75,7 +75,8 @@ async def try_on(request: Request, photo: UploadFile = File(...),
     for doc in garments:
         try:
             result = await run_in_threadpool(
-                engine.dress, result, item_photo(request, user, doc), KIND[doc["category"]])
+                engine.dress, result, item_photo(request, user, doc), KIND[doc["category"]],
+                describe(doc))
         except TryOnUnavailable as e:
             raise HTTPException(503, str(e))
         except TryOnBusy as e:

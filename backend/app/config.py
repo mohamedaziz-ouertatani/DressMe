@@ -52,7 +52,8 @@ class Settings:
     storage_dir: Path = field(default_factory=lambda: Path(os.getenv("STORAGE_DIR", BACKEND_DIR / "storage")))
     tryon_engine: str = field(default_factory=lambda: os.getenv("TRYON_ENGINE", "space").lower())
     tryon_spaces: str = field(default_factory=lambda: os.getenv(
-        "TRYON_SPACES", "zhengchong/CatVTON, Kwai-Kolors/Kolors-Virtual-Try-On, yisol/IDM-VTON"))
+        "TRYON_SPACES",
+        "zhengchong/CatVTON, Kwai-Kolors/Kolors-Virtual-Try-On, yisol/IDM-VTON, levihsu/OOTDiffusion"))
     tryon_steps: int = field(default_factory=lambda: int(os.getenv("TRYON_STEPS", "30")))
     tryon_timeout: float = 180.0       # seconds per garment (a sleeping Space wakes up first)
     tryon_max_garments: int = 3        # chained garments per try-on (each costs GPU quota)
