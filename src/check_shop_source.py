@@ -31,7 +31,7 @@ sys.path.insert(0, str(ROOT / "backend"))
 
 from app.config import Settings  # noqa: E402
 from app.listings import SOURCES_FILE, SourceBlocked, load_sources  # noqa: E402
-from connectors.http import Client, Forbidden  # noqa: E402
+from connectors.http import Client, Forbidden, NotJSON  # noqa: E402
 
 TRIES = [  # (kind, path of one product)
     ("shopify", "products.json?limit=1"),
@@ -64,7 +64,10 @@ def check(base_url, client=None):
     lines, kind_found = [], ""
     for kind, path in TRIES:
         try:
-            data = client.get_json(path)
+            data = client.get_json(path, html_is_block=False)
+        except NotJSON:
+            lines.append(f"  {kind:<12} no (a web page answered: not this platform)")
+            continue
         except Forbidden:
             lines.append(f"  {kind:<12} robots.txt FORBIDS {path.split('?')[0]}: we must not read it")
             continue

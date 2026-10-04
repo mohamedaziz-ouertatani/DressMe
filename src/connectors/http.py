@@ -31,6 +31,11 @@ class Forbidden(Exception):
     """robots.txt does not allow this path: the connector must not read it."""
 
 
+class NotJSON(Exception):
+    """A web page answered where JSON was expected (only raised when the caller
+    says a web page is not a block: the platform check, see get_json)."""
+
+
 def urlopen(url, timeout=30):
     """(status, content type, body bytes). Tests replace this function."""
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT,
@@ -70,8 +75,14 @@ class Client:
                 self.robots.parse([])
         return self.robots.can_fetch(USER_AGENT, urljoin(self.base, path))
 
-    def get_json(self, path):
-        """The JSON answer of `path` (relative to the shop's base URL), or None for a 404."""
+    def get_json(self, path, html_is_block=True):
+        """The JSON answer of `path` (relative to the shop's base URL), or None for a 404.
+
+        A web page (HTML) where JSON was expected: during a real run it may be a
+        bot check, so it stops the source (SourceBlocked). The platform check
+        (check_shop_source.py) passes html_is_block=False: many sites answer an
+        unknown address with an ordinary page, which only means "not this
+        platform" (NotJSON). 403 / 429 always count as a block."""
         if not self.allowed(path):
             raise Forbidden(f"robots.txt forbids {path}")
         url = urljoin(self.base, path)
@@ -84,6 +95,8 @@ class Client:
         if status != 200:
             raise RuntimeError(f"HTTP {status} on {url}")
         if "json" not in ctype.lower():
+            if not html_is_block:
+                raise NotJSON(f"{url} answered a web page ({ctype or 'no content type'})")
             # a bot check or a login page instead of the data
             raise SourceBlocked(f"{url} answered {ctype or 'no content type'}, not JSON (a bot check?)")
         data = json.loads(body)
