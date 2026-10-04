@@ -64,6 +64,10 @@ GENDER_WORDS = {
     "men": {"man", "men", "homme", "hommes", "hombre", "él", "رجال", "رجل"},
 }
 
+# Stop the whole run when this many URLs in a row stay refused (403 / 429)
+# after their retries: the site is blocking us, and we never work around it.
+MAX_REFUSED_IN_A_ROW = 3
+
 # Stock values the shops use that mean "can be bought now".
 IN_STOCK = {"in_stock", "low_on_stock"}
 
@@ -170,6 +174,7 @@ class Shop:
         self.origin = args.origin or BRANDS[brand]["origin"]
         self.delay = args.delay
         self.fresh = args.fresh
+        self.refused_in_a_row = 0   # URLs still refused after the retries (see get_json)
         self.context = browser.new_context(locale=f"{args.language}-{args.country.upper()}")
         self.page = self.context.new_page()
 
@@ -266,6 +271,15 @@ class Shop:
                 self.page.reload(wait_until="domcontentloaded")
             else:
                 break
+        if status in (0, 403, 429):
+            self.refused_in_a_row += 1
+            if self.refused_in_a_row >= MAX_REFUSED_IN_A_ROW:
+                sys.exit(f"ERROR: {self.brand} keeps refusing our requests (HTTP {status} on "
+                         f"{MAX_REFUSED_IN_A_ROW} URLs in a row, after waiting): the site is blocking "
+                         "or slowing us down. Wait a few hours, then retry with a larger --delay. "
+                         "Do not try to get around the block.")
+        else:
+            self.refused_in_a_row = 0
         if status != 200:
             print(f"  skipped (HTTP {status}): {url}")
             return None

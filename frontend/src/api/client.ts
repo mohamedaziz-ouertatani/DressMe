@@ -1,8 +1,9 @@
 // One small fetch wrapper for every API call. The log-in token lives in
 // localStorage; a 401 anywhere logs the user out (see AuthProvider).
 import type {
-  AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Insights, Item, ItemPatch, ModelQuality,
-  Occasion, Outfit, Season, Similar, Stats, User, ChatAttachment,
+  AdminSource, AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Insights, Item, ItemPatch,
+  Listing, ListingFilters, ListingPage, ModelQuality, Occasion, Outfit, Season, Similar, Stats, User,
+  ChatAttachment,
 } from './types'
 
 const BASE = '/api'
@@ -134,6 +135,16 @@ export const api = {
     return request<Similar>(`/similar?${q}`)
   },
 
+  listings: (f: ListingFilters = {}) => {
+    const q = new URLSearchParams()
+    for (const [k, v] of Object.entries(f)) if (v !== undefined && v !== '') q.set(k, String(v))
+    return request<ListingPage>(`/listings?${q}`)
+  },
+  listingSources: () => request<{ source_id: string; brand: string; count: number }[]>('/listings/sources'),
+  listing: (id: string) => request<Listing>(`/listings/${id}`),
+  /** "Should I buy this?" on a listing: it becomes a candidate, then use buyAdvice. */
+  listingCandidate: (id: string) => request<Item>(`/listings/${id}/candidate`, { method: 'POST' }),
+
   chat: (message: string) =>
     request<{ reply: string; tools_used: string[]; attachments: ChatAttachment[] }>('/chat', json('POST', { message })),
   chatHistory: () => request<ChatTurn[]>('/chat/history'),
@@ -150,5 +161,6 @@ export const api = {
     deleteUser: (id: string) => request<void>(`/admin/users/${id}`, { method: 'DELETE' }),
     formula: () => request<Formula>('/admin/formula'),
     saveFormula: (values: Record<string, number>) => request<Formula>('/admin/formula', json('PUT', { values })),
+    sources: () => request<{ sources: AdminSource[]; file: string }>('/admin/sources'),
   },
 }

@@ -4,7 +4,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { ArrowLeft, ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import { api } from '../api/client'
-import type { Formula } from '../api/types'
+import type { AdminSource, Formula, ListingRun } from '../api/types'
 import { useAuth } from '../auth'
 import { Wordmark } from '../shell'
 import { Button, Chip } from '../ui/controls'
@@ -17,7 +17,7 @@ const TYPES = [['scan', 'scans'], ['verdict', 'verdicts'], ['upload', 'uploads']
 const pct = (v: number | null) => (v === null ? '-' : `${(v * 100).toFixed(1)}%`)
 
 export function AdminLayout() {
-  const tabs = [['/admin', 'Overview'], ['/admin/quality', 'Model quality'], ['/admin/users', 'Users'], ['/admin/formula', 'Formula']]
+  const tabs = [['/admin', 'Overview'], ['/admin/quality', 'Model quality'], ['/admin/users', 'Users'], ['/admin/formula', 'Formula'], ['/admin/sources', 'Sources']]
   return (
     <div className="min-h-dvh" dir="ltr" lang="en">
       <header className="border-b border-perf/60 bg-stock-deep/60">
@@ -374,3 +374,62 @@ export function AdminFormula() {
   )
 }
 
+
+// ------------------------------------------------------------------ listing sources
+const RESULT_TONE: Record<ListingRun['result'], string> = {
+  ok: 'text-carbon', blocked: 'text-stamp-deep', error: 'text-stamp-deep', skipped: 'text-carbon-soft',
+}
+
+function RunLine({ label, run }: { label: string; run: ListingRun | null }) {
+  if (!run) return <p className="text-[13px] text-carbon-soft">{label}: never</p>
+  const counts = Object.entries(run.counts).filter(([, n]) => n).map(([k, n]) => `${n} ${k.replace('_', ' ')}`).join(', ')
+  return (
+    <p className="text-[13px] text-carbon">
+      {label}: <span className={`font-semibold ${RESULT_TONE[run.result]}`}>{run.result}</span>
+      {run.mode && ` (${run.mode})`} · <span className="font-mono tabular">{new Date(run.finished_at).toLocaleString('en-GB')}</span>
+      {counts && <> · {counts}</>}
+    </p>
+  )
+}
+
+function SourceCard({ s }: { s: AdminSource }) {
+  const blocked = s.last_run && s.last_run.result !== 'ok'
+  return (
+    <section className="ticket px-4 py-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="font-mono text-[15px] font-semibold text-carbon">{s.source_id}</h2>
+        <span className={`text-[13px] font-medium ${s.refused ? 'text-carbon-soft' : 'text-ink'}`}>
+          {s.refused ? `not run: ${s.refused}` : `runs every ${s.refresh_days || 1} day(s), catalogue every ${s.catalogue_days || 7}`}
+        </span>
+      </div>
+      <p className="mt-1 text-[12px] text-carbon-soft">{s.kind} · {s.brand} · {s.country} · approved {s.approved_on || '-'} · delay {s.delay_s || '-'} s</p>
+      <div className="mt-2 space-y-0.5">
+        <RunLine label="Last run" run={s.last_run} />
+        {blocked && <RunLine label="Last good run" run={s.last_ok} />}
+      </div>
+      {blocked && s.last_run?.message && (
+        <pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap bg-stock-deep/60 p-2 font-mono text-[11px] text-carbon">{s.last_run.message}</pre>
+      )}
+      <p className="mt-2 text-[13px] text-carbon">
+        In the app: <span className="font-mono tabular">{s.active}</span> listed, <span className="font-mono tabular">{s.in_stock}</span> in stock
+      </p>
+      {s.note && <p className="mt-1 text-[12px] text-carbon-soft">{s.note}</p>}
+    </section>
+  )
+}
+
+export function AdminSources() {
+  const res = useLoad(() => api.admin.sources(), [])
+  return (
+    <>
+      <Title note={`Shops the listing collector reads, from ${res.data?.file ?? 'mappings/listing_sources.csv'} (edit it in the repository). A blocked source is stopped, never worked around: wait hours, then let the next run try again. Run: python src/collect_listings.py`}>
+        Sources
+      </Title>
+      {res.error ? <ErrorNote error={res.error} onRetry={res.reload} /> : !res.data ? <Skeleton className="h-72" /> : (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {res.data.sources.map((s) => <SourceCard key={s.source_id} s={s} />)}
+        </div>
+      )}
+    </>
+  )
+}

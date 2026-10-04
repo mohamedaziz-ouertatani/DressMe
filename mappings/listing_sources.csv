@@ -1,0 +1,4 @@
+source_id,kind,brand,country,enabled,approved_on,delay_s,refresh_days,catalogue_days,contact,note
+zara_tn,inditex,zara,tn,yes,2026-10-04,5,2,7,,"Team vote 2026-10-04: polite retry of the Inditex sites. Stops at the first block, never gets around it. Academic demo only: never redistribute."
+bershka_tn,inditex,bershka,tn,yes,2026-10-04,5,2,7,,"Team vote 2026-10-04: polite retry. Not tested on the real site yet. Academic demo only: never redistribute."
+pullandbear_tn,inditex,pullandbear,tn,yes,2026-10-04,5,2,7,,"Team vote 2026-10-04: polite retry. Not tested on the real site yet. Academic demo only: never redistribute."

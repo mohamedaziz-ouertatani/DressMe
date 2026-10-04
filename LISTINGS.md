@@ -1,6 +1,30 @@
-# Listings: shop and friperie items in the app (DESIGN, for team review)
+# Listings: shop and friperie items in the app
 
-Status: **design only, nothing built yet.** Everything marked **REVIEW** is a team decision that is still open.
+Status (2026-10-04): **phase 1 is built for the Inditex sites** (Zara, Bershka, Pull&Bear Tunisia), after the team vote of 2026-10-04 to retry them politely. Not run on the real sites yet. Shopify / WooCommerce shops, feeds and seller uploads are still designs. Everything marked **REVIEW** is a team decision that is still open.
+
+## 0. What is built, and how to run it
+
+| Part | File |
+|---|---|
+| Sources the team approved | `mappings/listing_sources.csv` |
+| Collector job (nightly) | `src/collect_listings.py` |
+| Inditex connector (runs `src/scrape_shops.py`) | `src/connectors/inditex.py` |
+| Saving runs, search, sources table | `backend/app/listings.py` |
+| API | `backend/app/routers/listings.py`, `listings` row in `/similar`, `/admin/sources` |
+| App pages | `frontend/src/pages/ShopPage.tsx` (Shops + one listing with the verdict), Admin > Sources |
+| Tests | `backend/tests/test_listings.py` (fake shop, fake models, no real site) |
+
+```
+pip install -r requirements-scraping.txt         # Playwright, once (see scrape_shops.py)
+python src/collect_listings.py --list            # which sources would run, and why not
+python src/collect_listings.py --source zara_tn --catalogue --limit 30   # smoke test first
+python src/collect_listings.py > data/logs/listings.log 2>&1             # the real run (hours)
+```
+
+- **Schedule:** Windows Task Scheduler, every night at 02:00 (program = the venv's `python.exe`, arguments = `src\collect_listings.py`, start in = the project folder). Each source only runs when its last good run is older than `refresh_days` (2), and reads the whole catalogue every `catalogue_days` (7); the other runs only re-check stock, which is much lighter.
+- **When a site blocks us:** the scraper stops at an "Access Denied" page or after 3 URLs in a row still refused (403 / 429) after its waits; the collector also stops after 5 pictures in a row that cannot be downloaded. The run is saved as `blocked` (Admin > Sources shows the message), nothing is marked gone, and the next scheduled run tries again days later. Never try to get around it; if it keeps happening, raise `delay_s` or switch the source off (`enabled = no`).
+- **Labels:** our models only (category, sub_category, pattern, colour), like a wardrobe upload. The shop's own category words are not mapped yet (that needs `mappings/listings_<source>_*.csv` rules, see section 4).
+- **In the app:** the Shops page (desktop rail, phone header icon, and a link on the Scan page) lists in-stock products with filters; a listing shows its price, its stock as far as we know it, a link to the shop, and "Should I buy this?", which turns it into a candidate and reuses `/buy-advice` unchanged. Similar pieces gets an "In shops now" row.
 
 ## 1. Goal
 
@@ -37,15 +61,17 @@ The kinds of source:
 - **`shopify`:** many small Tunisian e-shops run on Shopify, which publishes a public product list at `/products.json?page=N`. We still check the terms and `robots.txt` per shop.
 - **`woocommerce`:** WooCommerce shops publish their products through the Store API at `/wp-json/wc/store/v1/products`. Same checks.
 - **`feed`:** a product feed given to us officially (affiliate programme or a brand that agrees), in CSV or XML (Google Merchant format). This needs a sign-up per brand.
-- **`inditex`:** Zara / Bershka / Pull&Bear through the existing `src/scrape_shops.py --stock-only`. **Disabled, REVIEW:** it reverses the 2026-10-03 team decision, so it needs a team vote. Even then, it only runs with a large `--delay`, a few times a week at most, and the run stops at the first "Access Denied", as the script already does.
+- **`inditex`:** Zara / Bershka / Pull&Bear through the existing `src/scrape_shops.py` (full catalogue weekly, `--stock-only` in between). **Approved by the team vote of 2026-10-04** (polite retry): `delay_s` = 5, a run every 2 days at most, and the run stops at the first block (section 0).
 
 ## 3. Connectors
 
-One small file per kind: `src/listings/connectors/<kind>.py`. Each one has the same function:
+One small file per kind: `src/connectors/<kind>.py`. Each one has the same function:
 
 ```python
-def fetch(source) -> Iterator[RawListing]
-# RawListing: external_id, url, title, price_tnd, image_url, sizes, in_stock, raw
+def fetch(source, args) -> FetchResult(status, message, listings, mode)
+# status: ok / blocked / error; listings: RawListing (backend/app/listings.py):
+# external_id, url, title, image_url, brand, shop_colour, price_tnd, sizes, sizes_in_stock,
+# in_stock, availability_level
 ```
 
 The untouched answers are saved under `data/raw/Listings/<source_id>/<date>/` (never committed). If a parser breaks, we fix it and re-run on the saved answers without downloading again, the same pattern as `scrape_shops.py`.
@@ -96,7 +122,9 @@ The thumbnail (≤ 320 px) is stored under `STORAGE_DIR/listings/`. The full pic
 ## 7. API
 
 - `GET /listings`: active listings, with filters on category, sub_category, colour, max price, size, source and in stock. Paginated.
-- `GET /listings/{id}/image`: the thumbnail (also `?token=` for `<img>` tags, like the other image endpoints).
+- `GET /listings/{id}/image`: the thumbnail (loaded with the Authorization header, like the other images).
+- `POST /listings/{id}/candidate`: "Should I buy this?" (see below).
+- `GET /listings/sources`: the shops that have listings, for the filter chips.
 - `/similar`: a new `listings` row next to `shop` (H&M).
 - **Search:** brute-force numpy over the vectors of active listings, kept in memory and reloaded after each collector run. This is fine up to ~100k listings; `src/similarity.py` (`SimilarityIndex`) can take over if we grow past that.
 - "Should I buy this?" on a listing turns it into a candidate (as `/analyze` does) and reuses `/buy-advice` unchanged.
@@ -111,10 +139,10 @@ The thumbnail (≤ 320 px) is stored under `STORAGE_DIR/listings/`. The full pic
 
 ## 9. Building it in phases
 
-1. Connector framework, `shopify` and `woocommerce` connectors, the `listings` collection, the collector job and `GET /listings` + the Shop page. Start with the shops the team has checked.
+1. Connector framework, the `listings` collection, the collector job, `GET /listings` + the Shop page: **done** (with the Inditex connector). Still to do: the `shopify` and `woocommerce` connectors, once the team has checked some shops.
 2. Seller uploads and moderation.
 3. Affiliate / official feeds, once the team has signed up for one.
-4. Inditex, only if the team votes to reopen it (section 2).
+4. ~~Inditex, only if the team votes to reopen it~~: voted 2026-10-04, built first (section 0).
 
 ## 10. Testing
 
@@ -125,7 +153,7 @@ The thumbnail (≤ 320 px) is stored under `STORAGE_DIR/listings/`. The full pic
 ## 11. Open team decisions (REVIEW)
 
 1. Which Tunisian online shops to list. Each needs a team member to read its terms and fill its line in `listing_sources.csv`.
-2. Whether to reopen the Inditex sites (reverses the 2026-10-03 decision).
+2. ~~Whether to reopen the Inditex sites~~: yes, polite retry (team vote 2026-10-04).
 3. Which `source` value shop and seller items get (already open in `HANDOFF.md`).
 4. Moderation rules for seller listings, and which contact details sellers may show.
 5. How long a `gone` listing is kept before it is deleted.
