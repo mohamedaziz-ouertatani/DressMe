@@ -26,7 +26,8 @@ also measure questions the model has never seen.
 Run from the project root (needs the backend requirements, no GPU, ~1 min):
     python src/build_chat_dataset.py
 Output: data/processed/chat_sft/{train,val,test}.jsonl, one conversation per line:
-    {"id", "scenario", "language", "tools": [...], "messages": [...]}
+    {"id", "scenario", "language" (of the last question), "answer_languages" (one per
+     plain answer), "tools": [...], "messages": [...]}
 plus dataset-metadata.json and a copy of src/finetune_chat.py, so the folder can be
 uploaded as a PRIVATE Kaggle dataset and trained there (LLM.md).
 """
@@ -265,6 +266,7 @@ class Conversation:
         self.min_coverage = rng.choice([None, None, None, 3, 4, 5])
         self.user["profile"] = {"language": self.profile_language, "min_coverage": self.min_coverage}
         self.messages = []
+        self.answer_languages = []                     # language of each plain answer, in order
         self.new_turn()
 
     def new_turn(self):
@@ -291,6 +293,7 @@ class Conversation:
     def say(self, text):
         text = re.sub(r"\s+", " ", text).strip()
         self.messages.append({"role": "assistant", "content": capital(text)})
+        self.answer_languages.append(self.lang)
 
     def call(self, name, **args):
         """The assistant calls a tool; the real backend function answers."""
@@ -545,7 +548,7 @@ def build_split(split, n, tools_schema):
         conv = Conversation(rng, maker, split)
         messages = conv.build(scenario)
         rows.append({"id": f"{split}_{k:05d}", "scenario": conv.kind, "language": conv.lang,
-                     "tools": tools_schema, "messages": messages})
+                     "answer_languages": conv.answer_languages, "tools": tools_schema, "messages": messages})
     return rows
 
 

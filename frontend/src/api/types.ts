@@ -110,9 +110,37 @@ export interface Listing {
   sub_category: string
   pattern: string
   colour: string
-  status: 'active' | 'gone'
+  predicted: Item['predicted']
+  corrected: string[]
+  status: 'active' | 'gone' | 'pending' | 'rejected'
   seen_at: string | null
+  checked_at: string | null   // when price and stock were really checked
+  snapshot: boolean           // a frozen copy: price and stock only true on checked_at
   image_url: string
+  seller: { city: string; contact: string; review_note: string } | null   // friperie sellers only
+}
+
+/** PATCH /listings/{id}: what a seller may change on their own listing. */
+export type ListingPatch = ItemPatch & {
+  price_tnd?: number
+  size?: string
+  city?: string
+  contact?: string
+  title?: string
+  sold?: boolean
+}
+
+export interface SellForm {
+  price_tnd: number
+  size: string
+  city: string
+  contact: string
+  title: string
+}
+
+/** GET /admin/listings: the review queue. */
+export interface ReviewListing extends Listing {
+  seller_email: string
 }
 
 export interface ListingHit extends Listing {
@@ -256,4 +284,55 @@ export interface TryOnResult {
   applied: string[]            // ids put on, in dressing order
   failed: string[]             // ids not put on because the AI stopped mid-way
   skipped: { id: string; reason: 'unsupported' }[]   // shoes, bags, accessories
+}
+
+/** A collector run started from Admin > Listings (backend/app/jobs.py). */
+export type JobStatus = 'running' | 'stopping' | 'finished' | 'failed' | 'stopped' | 'lost'
+export interface Job {
+  id: string
+  status: JobStatus
+  sources: string[]          // empty = every source that may run and is due
+  catalogue: boolean
+  force: boolean
+  limit: number
+  started_by: string
+  started_at: string | null
+  finished_at: string | null
+  exit_code: number | null
+  results: Record<string, string>   // source -> running / ok / blocked / error / stopped / not started
+  plan: Record<string, string>      // source -> "run" or why it is skipped
+  progress: { phase: string | null; source: string | null; done: number | null; total: number | null; heartbeat: string | null }
+}
+
+export interface JobStart {
+  sources: string[]
+  catalogue: boolean
+  force: boolean
+  limit: number
+}
+
+export interface OverviewSource {
+  source_id: string
+  kind: string
+  brand: string
+  enabled: string
+  approved_on: string
+  refused: string
+  note: string
+  active: number
+  in_stock: number
+  gone: number
+  last_run: ListingRun | null
+  last_ok: ListingRun | null
+}
+
+/** GET /admin/listings/overview: the Listings dashboard. */
+export interface ListingsOverview {
+  totals: { active: number; in_stock: number; gone: number; pending: number; rejected: number;
+    sellers_active: number; sources_on: number; sources_total: number }
+  sources: OverviewSource[]
+  categories: { category: string; count: number }[]
+  runs_by_day: ({ day: string } & Record<string, number | string>)[]
+  running: Job | null
+  last_job: Job | null
 }

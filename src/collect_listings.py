@@ -19,6 +19,8 @@ hours (polite delays), so start it as a separate process writing a log:
     python src/collect_listings.py --list                     # what would run, and why not
     python src/collect_listings.py --source zara_tn --catalogue --limit 30   # smoke test
     python src/collect_listings.py > data/logs/listings.log 2>&1   # the nightly job
+Admins can also start, follow and stop a run from the app (Admin > Listings):
+the backend (app/jobs.py) then adds --status-file and --stop-file (src/job_progress.py).
 Windows Task Scheduler (nightly, e.g. 02:00): program = the venv's python.exe,
 arguments = src\\collect_listings.py, start in = the project folder.
 """
@@ -42,6 +44,7 @@ from app.listings import (THUMB_SIDE, SourceBlocked, last_run, load_sources,  # 
                           record_run, sync_listings, usable)
 from app.wardrobe import fields_from_analysis  # noqa: E402
 from connectors import CONNECTORS  # noqa: E402
+from job_progress import JobStopped, Progress, now_iso  # noqa: E402
 
 USER_AGENT = "DressMe student project (ESPRIT, academic, non-commercial)"
 MAX_FAILED_PICTURES_IN_A_ROW = 5    # then the image server is refusing us: stop the source
@@ -92,8 +95,17 @@ class Labeller:
         self.failed_in_a_row = 0
         return img.convert("RGB")
 
+    def open_local(self, path):
+        """A picture we already have (the frozen snapshot): no download, no delay."""
+        try:
+            with Image.open(path) as img:
+                return img.convert("RGB")
+        except OSError as err:
+            print(f"  no picture ({err}): {path}")
+            return None
+
     def __call__(self, raw):
-        img = self.download(raw.image_url)
+        img = self.open_local(raw.image_path) if raw.image_path else self.download(raw.image_url)
         if img is None:
             return None
         thumb = img.copy()
@@ -108,22 +120,40 @@ class Labeller:
                 "thumbnail": thumb}
 
 
-def collect(db, settings, source, args, labeller_for):
+def collect(db, settings, source, args, labeller_for, progress=None):
+    """Run one source and save it. Returns ok / blocked / error / stopped."""
+    progress = progress or Progress()
     sid, started = source["source_id"], datetime.now(timezone.utc)
     print(f"[{sid}] reading the shop")
+    progress.update(phase="reading the shop", source=sid, done=0, total=0)
     result = CONNECTORS[source["kind"]].fetch(source, args)
     if result.status != "ok":
         print(f"[{sid}] {result.status.upper()}: nothing saved. {result.message.splitlines()[-1:]}")
         record_run(db, sid, started, result.status, result.message, mode=result.mode)
         return result.status
     print(f"[{sid}] {len(result.listings)} products; saving (new pictures are analysed)")
+    labeller = labeller_for(source)            # may load the models (~1 min) the first time
+    progress.update(phase="saving (new pictures are analysed)", total=len(result.listings))
+    last = [0.0]
+
+    def on_item(done, total):
+        progress.check()                       # Stop pressed: JobStopped
+        if time.time() - last[0] > 1:          # at most one status write per second
+            progress.update(done=done, total=total)
+            last[0] = time.time()
+
     try:
-        counts = sync_listings(db, sid, result.listings, labeller_for(source), settings.storage_dir,
-                               now=started, mark_gone=not args.limit)
+        counts = sync_listings(db, sid, result.listings, labeller, settings.storage_dir,
+                               now=started, mark_gone=not args.limit, on_item=on_item)
     except SourceBlocked as err:
         print(f"[{sid}] BLOCKED while downloading pictures: {err}. Nothing marked gone.")
         record_run(db, sid, started, "blocked", str(err), mode=result.mode)
         return "blocked"
+    except JobStopped:
+        print(f"[{sid}] STOPPED by an admin: what was saved stays, nothing marked gone.")
+        record_run(db, sid, started, "stopped", "stopped by an admin", mode=result.mode)
+        return "stopped"
+    progress.update(done=len(result.listings))
     print(f"[{sid}] done: {counts}")
     record_run(db, sid, started, "ok", result.message, counts, mode=result.mode)
     return "ok"
@@ -137,7 +167,11 @@ def main():
     ap.add_argument("--catalogue", action="store_true", help="read the whole catalogue, not only stock")
     ap.add_argument("--limit", type=int, default=0,
                     help="stop after ~N products (smoke test; then nothing is marked gone)")
+    ap.add_argument("--status-file", help="write live progress here (set by the backend, app/jobs.py)")
+    ap.add_argument("--stop-file", help="stop when this file appears (set by the backend)")
     args = ap.parse_args()
+    progress = Progress(args.status_file, args.stop_file)
+    args.should_stop = progress.stopping       # the connectors check it between pages
 
     settings = Settings()
     db = connect(settings)
@@ -147,27 +181,45 @@ def main():
     if args.source and len(sources) != len(set(args.source)):
         sys.exit(f"ERROR: unknown source in {args.source} (see mappings/listing_sources.csv)")
 
-    todo = []
+    todo, plan = [], {}
     for s in sources:
         why_not = usable(s) or ("" if args.force else due(db, s, now))
         print(f"  {s['source_id']:<16} {'RUN' if not why_not else 'skip: ' + why_not}")
+        plan[s["source_id"]] = why_not or "run"
         if not why_not:
             todo.append(s)
+    progress.update(plan=plan, sources=[s["source_id"] for s in todo])
     if args.list or not todo:
+        progress.update(status="finished", phase="nothing to run" if not todo else "listed", finished_at=now_iso())
         return
 
     labellers = {}
 
     def labeller_for(source):            # the models load once, on first use
         if "models" not in labellers:
+            progress.update(phase="loading the models (~1 min)")
             labellers["models"] = Labeller(settings, 0)
         labeller = labellers["models"]
         labeller.delay = float(source.get("delay_s") or 5) / 2
         labeller.failed_in_a_row = 0
         return labeller
 
-    results = {s["source_id"]: collect(db, settings, s, args, labeller_for) for s in todo}
+    for s in todo:
+        if progress.stopping():                # Stop pressed: the next sources do not start
+            progress.result(s["source_id"], "not started")
+            continue
+        progress.result(s["source_id"], "running")
+        try:
+            outcome = collect(db, settings, s, args, labeller_for, progress)
+        except Exception as err:               # one broken source does not stop the others
+            print(f"[{s['source_id']}] ERROR: {err!r}")
+            record_run(db, s["source_id"], datetime.now(timezone.utc), "error", repr(err))
+            outcome = "error"
+        progress.result(s["source_id"], outcome)
+    results = progress.state["results"]
     print("summary:", results)
+    progress.update(status="stopped" if progress.stopping() else "finished", phase="done",
+                    source=None, finished_at=now_iso())
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ import { Page } from '../shell'
 import { ItemPhoto } from '../ui/ItemPhoto'
 import { ErrorNote, Skeleton } from '../ui/states'
 import { useLoad } from '../useLoad'
-import { ListingCard } from './ShopPage'
+import { ListingCard } from '../ui/ListingCard'
 
 export function SimilarPage() {
   const { t, lang } = useI18n()

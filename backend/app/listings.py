@@ -23,7 +23,8 @@ from bson import ObjectId
 from .db import vector_from_bson, vector_to_bson
 
 SOURCES_FILE = "listing_sources.csv"
-KINDS = {"inditex"}            # kinds with a connector in src/listings/
+KINDS = {"inditex", "snapshot", "shopify", "woocommerce"}   # kinds with a connector in src/connectors/
+SELLERS = "sellers"            # source_id of the listings friperie sellers post in the app
 THUMB_SIDE = 320               # we keep a small picture only, and link to the shop
 
 
@@ -42,6 +43,9 @@ class RawListing:
     sizes_in_stock: list = field(default_factory=list)
     in_stock: bool | None = None          # None = the shop did not say
     availability_level: str = ""          # colour / product / catalogue / "" (see collect_listings)
+    image_path: str = ""       # a local picture (the frozen snapshot): read it, never download
+    checked_at: str = ""       # when the shop was really checked, if older than this run (ISO date)
+    snapshot: bool = False     # a frozen copy: price and stock are only true on checked_at
 
 
 class SourceBlocked(Exception):
@@ -56,8 +60,12 @@ def load_sources(mappings_dir):
 
 def usable(source):
     """Why the collector must NOT run this source ("" = it may)."""
+    if not source.get("kind"):
+        return "kind not set yet: run python src/check_shop_source.py <site>"
     if source.get("kind") not in KINDS:
         return f"no connector for kind '{source.get('kind')}'"
+    if source.get("kind") in ("shopify", "woocommerce") and not source.get("base_url"):
+        return "no base_url"
     if source.get("enabled", "").strip().lower() != "yes":
         return "not enabled"
     try:
@@ -72,7 +80,7 @@ def thumbnail_path(storage_dir, listing_id):
     return storage_dir / "listings" / f"{listing_id}.jpg"
 
 
-def sync_listings(db, source_id, raws, label, storage_dir, now=None, mark_gone=True):
+def sync_listings(db, source_id, raws, label, storage_dir, now=None, mark_gone=True, on_item=None):
     """Save the listings of one run of a source and return what changed.
 
     `label(raw)` downloads and analyses the picture: it returns
@@ -84,11 +92,17 @@ def sync_listings(db, source_id, raws, label, storage_dir, now=None, mark_gone=T
     Only after a complete run (mark_gone=True; never for a --limit test run),
     listings of this source that were not seen become "gone" (sold out for
     good or removed by the shop).
+
+    `on_item(done, total)` is called before each listing (the admin page's
+    progress bar). It may raise to stop the run (an admin pressed Stop):
+    then too, nothing is marked gone.
     """
     now = now or datetime.now(timezone.utc)
     counts = {"added": 0, "updated": 0, "relabelled": 0, "no_picture": 0, "gone": 0}
     (storage_dir / "listings").mkdir(parents=True, exist_ok=True)
-    for raw in raws:
+    for i, raw in enumerate(raws):
+        if on_item:
+            on_item(i, len(raws))
         old = db.listings.find_one({"source_id": source_id, "external_id": raw.external_id},
                                    {"_id": 1, "image_url": 1})
         doc = {"source_id": source_id, "external_id": raw.external_id, "url": raw.url,
@@ -96,6 +110,7 @@ def sync_listings(db, source_id, raws, label, storage_dir, now=None, mark_gone=T
                "gender": raw.gender, "price_tnd": raw.price_tnd, "sizes": raw.sizes,
                "sizes_in_stock": raw.sizes_in_stock, "in_stock": raw.in_stock,
                "availability_level": raw.availability_level, "image_url": raw.image_url,
+               "checked_at": raw.checked_at or None, "snapshot": raw.snapshot,
                "seen_at": now, "status": "active"}
         if old is None or old.get("image_url") != raw.image_url:
             labels = label(raw)
@@ -149,9 +164,17 @@ def listing_out(doc):
         "in_stock": doc.get("in_stock"), "availability_level": doc.get("availability_level", ""),
         "category": doc.get("category", ""), "sub_category": doc.get("sub_category", ""),
         "pattern": doc.get("pattern", ""), "colour": doc.get("colour", ""),
-        "predicted": doc.get("predicted", {}), "status": doc.get("status", ""),
+        "predicted": doc.get("predicted", {}), "corrected": doc.get("corrected", []),
+        "status": doc.get("status", ""),
         "seen_at": doc["seen_at"].isoformat() if doc.get("seen_at") else None,
+        # when price and stock were really checked: the snapshot's own date, else this run
+        "checked_at": doc.get("checked_at") or (doc["seen_at"].isoformat() if doc.get("seen_at") else None),
+        "snapshot": bool(doc.get("snapshot")),
         "image_url": f"/listings/{lid}/image",
+        # a friperie seller's own listing: where to find them (shown to logged-in users only)
+        "seller": ({"city": doc.get("city", ""), "contact": doc.get("contact", ""),
+                    "review_note": doc.get("review_note", "")}
+                   if doc["source_id"] == SELLERS else None),
     }
 
 
@@ -164,6 +187,10 @@ class ListingIndex:
         self._key = None
         self._docs = []
         self._vectors = np.zeros((0, 512), np.float32)
+
+    def invalidate(self):
+        """Read the listings again on the next search (a seller listing changed)."""
+        self._key = None
 
     def _refresh(self, db):
         run = db.listing_runs.find_one(sort=[("finished_at", -1)], projection={"_id": 1})
