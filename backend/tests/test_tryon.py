@@ -70,6 +70,17 @@ def test_space_failure(make_client):
     assert try_on(client, headers, [top]).status_code == 502              # app shows the overlay
 
 
+def test_a_garment_no_space_can_dress_does_not_stop_the_others(make_client):
+    engine = FakeTryOn(fail_kinds=("lower",))      # e.g. CatVTON down: nobody does trousers
+    client = make_client(tryon=engine)
+    headers = sign_up(client)
+    top, jeans = upload(client, headers, RED)["id"], upload(client, headers, BLUE)["id"]
+    r = try_on(client, headers, [top, jeans])
+    assert r.status_code == 200, r.text
+    assert r.json()["applied"] == [top] and r.json()["failed"] == [jeans]
+    assert engine.calls == ["upper"]
+
+
 def test_failure_mid_chain_keeps_the_first_garment(make_client):
     client = make_client(tryon=FakeTryOn(fail_after=1))
     headers = sign_up(client)
@@ -165,6 +176,8 @@ def test_next_space_is_tried_when_one_is_broken(settings, tmp_path):
     img = engine.dress(*person_and_garment(), "upper")
     assert img.getpixel((0, 0)) == (0, 200, 0)                   # the picture the Space made
     assert engine.last_space == "yisol/IDM-VTON"
+    assert [r.split(":")[0] for r in engine.last_skipped] == [
+        "zhengchong/CatVTON", "Kwai-Kolors/Kolors-Virtual-Try-On"]
     assert made["yisol/IDM-VTON"].calls == ["/tryon"]
 
 

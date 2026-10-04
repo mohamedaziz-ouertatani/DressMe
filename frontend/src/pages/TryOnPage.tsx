@@ -36,6 +36,7 @@ export function TryOnPage() {
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<TryOnResult | null>(null)
   const [fallback, setFallback] = useState(false)
+  const [why, setWhy] = useState('')            // the backend's reason, shown under the preview note
   const [error, setError] = useState<unknown>(null)
 
   useEffect(() => () => { if (person) URL.revokeObjectURL(person.url) }, [person])
@@ -66,7 +67,10 @@ export function TryOnPage() {
       setFallback(false)
     } catch (e) {
       // the AI is off (503), failed or over quota (502), or we're offline: show the 2D preview
-      if (e instanceof ApiError && [0, 502, 503].includes(e.status)) setFallback(true)
+      if (e instanceof ApiError && [0, 502, 503].includes(e.status)) {
+        setFallback(true)
+        setWhy(e.status === 0 ? '' : e.message)
+      }
       else setError(e)
     } finally {
       setBusy(false)
@@ -121,6 +125,12 @@ export function TryOnPage() {
           <div className="flex flex-col items-start gap-3" aria-live="polite">
             {busy && <p className="text-[15px] text-carbon">{t('tryOnWorking')}</p>}
             {fallback && !busy && <p className="max-w-[48ch] text-[15px] text-carbon">{t('tryOnFallback')}</p>}
+            {fallback && !busy && why && (
+              <details className="max-w-[48ch] text-[12px] text-carbon-soft">
+                <summary className="cursor-pointer">{t('tryOnWhy')}</summary>
+                <p className="mt-1 break-words font-mono" dir="ltr">{why}</p>
+              </details>
+            )}
             {result && (
               <>
                 <p className="text-[13px] text-carbon-soft">{t('tryOnNote')}</p>

@@ -160,6 +160,7 @@ class SpaceTryOn:
         self._make_client = make_client or self._gradio_client
         self._clients = {}
         self.last_space = None             # which Space made the last picture
+        self.last_skipped = []             # and why the Spaces before it were skipped
 
     def _gradio_client(self, space):
         from gradio_client import Client   # imported here: only needed when used
@@ -191,7 +192,7 @@ class SpaceTryOn:
                     self._clients.pop(space, None)  # reconnect next time
                     reasons.append(f"{space}: {str(e).splitlines()[0] if str(e) else type(e).__name__}")
                     continue
-                self.last_space = space
+                self.last_space, self.last_skipped = space, reasons
                 return img.convert("RGB")
         raise TryOnBusy("No try-on Space worked. " + " | ".join(reasons))
 
@@ -224,3 +225,5 @@ if __name__ == "__main__":      # see the module docstring
                           Image.open(garment_path).convert("RGB"), kind)
     result.save("tryon_result.jpg")
     print(f"saved tryon_result.jpg {result.size}, made by {engine.last_space}")
+    for reason in engine.last_skipped:
+        print("  skipped", reason)
