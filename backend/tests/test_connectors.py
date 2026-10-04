@@ -276,3 +276,23 @@ def test_check_script_saves_the_kind_but_never_enables(tmp_path, monkeypatch, ca
     assert usable(rows["exist_tn"]) == "not enabled"     # the team still has to read the terms
     assert rows["zara_tn"] == {**rows["zara_tn"]} and rows["inditex_snapshot"]["kind"] == "snapshot"
     assert "no platform we support" in capsys.readouterr().out
+
+
+def test_check_moves_on_when_a_web_page_answers(monkeypatch):
+    """ha.com.tn, 2026-10-04: /products.json answered an ordinary page (200, text/html).
+    That means "not Shopify", not a block: the check must still try WooCommerce."""
+    site = FakeSite({"/products.json": (200, "text/html; charset=utf-8", b"<html>page</html>"),
+                     "/wp-json/": (200, "application/json", WOO)})
+    client = Client("https://shop.example.tn", delay=0, opener=site, save=False)
+    lines, kind = check_shop_source.check("https://shop.example.tn", client)
+    assert kind == "woocommerce"
+    assert "not this platform" in lines[0] and "YES" in lines[1]
+    # a real refusal still stops the check
+    refused = FakeSite({"/products.json": (403, "text/html", b"denied")})
+    lines, kind = check_shop_source.check(
+        "https://shop.example.tn", Client("https://shop.example.tn", delay=0, opener=refused, save=False))
+    assert kind == "" and "BLOCKED" in lines[0] and len(lines) == 1
+    # during a real run, a web page where JSON was expected still stops the source
+    result = shopify.fetch(source("shopify"), ARGS,
+                           opener=FakeSite({"/products.json": (200, "text/html", b"<html>captcha</html>")}))
+    assert result.status == "blocked"
