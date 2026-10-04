@@ -41,7 +41,7 @@ export function Page({ title, children, aside, serial }: {
   serial?: string
 }) {
   return (
-    <div className="mx-auto w-full max-w-[1080px] px-4 pb-32 pt-3 lg:px-10 lg:pb-16 lg:pt-10">
+    <div className="page-enter mx-auto w-full max-w-[1080px] px-4 pb-32 pt-3 lg:px-10 lg:pb-16 lg:pt-10">
       <header className="ticket mb-5 flex">
         <h1 className="min-w-0 flex-1 self-center px-3 py-3 text-[22px] font-semibold leading-tight tracking-[-0.015em] text-carbon min-[420px]:px-4 min-[420px]:text-[24px] lg:px-6 lg:py-4 lg:text-[32px]">
           {title}
@@ -69,6 +69,9 @@ export function AppShell() {
 
   return (
     <div className="min-h-dvh lg:flex">
+      <a href="#main-content" className="sr-only fixed start-3 top-3 z-50 bg-ink px-4 py-2 text-sm text-paper focus:not-sr-only">
+        Skip to content
+      </a>
       {/* desktop rail: the nav as a column of ticket stubs */}
       <nav aria-label="Main" className="sticky top-0 hidden h-dvh w-[236px] shrink-0 flex-col border-e border-perf/60 bg-stock-deep/60 px-4 py-6 lg:flex">
         <Wordmark className="mb-8 px-2" />
@@ -129,7 +132,7 @@ export function AppShell() {
             </NavLink>
           </div>
         </div>
-        <main>
+        <main id="main-content" tabIndex={-1}>
           <Outlet />
         </main>
       </div>

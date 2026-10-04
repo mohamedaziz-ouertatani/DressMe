@@ -5,7 +5,7 @@ import io
 import numpy as np
 from PIL import Image
 
-from app.background import keep_garment, on_white
+from app.background import keep_garment, on_white, use_cloth_mask
 from tests.conftest import GREEN, RED, sign_up
 
 ITEM_BOX = (40, 50, 120, 150)    # where the red "item" sits in the test photo
@@ -63,6 +63,32 @@ def test_worn_item_keeps_only_the_garment():
     assert kept[45, 30] and not kept[10, 30] and not kept[80, 30]   # top yes, head / legs no
 
 
+def test_worn_dark_garment_is_not_erased_by_weak_main_mask():
+    main = np.zeros((100, 60), np.uint8)
+    main[5:95, 15:45] = 255
+    main[35:55, 15:45] = 10  # U2-Net is uncertain on the black top
+    classes = np.zeros_like(main)
+    classes[30:60, 15:45] = 1
+
+    kept = keep_garment(main, classes)
+
+    assert kept[45, 30] > 128
+    assert kept[10, 30] == 0 and kept[80, 30] == 0
+
+
+def test_fragmented_garment_mask_keeps_the_black_garment_area():
+    main = np.zeros((100, 60), np.uint8)
+    main[5:95, 15:45] = 255
+    main[35:55, 15:45] = 10
+    classes = np.zeros_like(main)
+    classes[30:35, 15:45] = 1
+    classes[50:60, 15:45] = 1
+
+    kept = keep_garment(main, classes)
+
+    assert kept[45, 30] > 128
+
+
 def test_item_alone_keeps_the_main_mask():
     main = np.zeros((100, 60), np.uint8)
     main[20:80, 10:50] = 255
@@ -71,3 +97,9 @@ def test_item_alone_keeps_the_main_mask():
     assert (keep_garment(main, flat) == main).all()
     nothing = np.zeros_like(main)               # cloth-seg misses a flat item on white
     assert (keep_garment(main, nothing) == main).all()
+
+
+def test_efficientnet_guidance_requires_a_confident_garment_category():
+    assert use_cloth_mask("top", 0.80)
+    assert not use_cloth_mask("top", 0.54)
+    assert not use_cloth_mask("shoes", 0.95)

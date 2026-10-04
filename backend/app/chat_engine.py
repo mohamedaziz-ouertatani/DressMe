@@ -20,6 +20,7 @@ that uses tools costs several), so it is never retried: that would only waste mo
 """
 import inspect
 import json
+import re
 import time
 import typing
 
@@ -141,6 +142,30 @@ def run_tool(tools, name, arguments):
     return json.dumps(result, ensure_ascii=False)
 
 
+_TOOL_BLOCK = re.compile(r"<tool_call\b[^>]*>.*?</tool_call\s*>", re.IGNORECASE | re.DOTALL)
+_TOOL_TAG = re.compile(r"</?tool_call\b[^>]*>", re.IGNORECASE)
+
+
+def clean_model_text(text):
+    """Remove tool protocol artifacts that some local models echo to users."""
+    text = _TOOL_BLOCK.sub("", text or "")
+    text = _TOOL_TAG.sub("", text)
+    lines = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("{") and stripped.endswith("}"):
+            try:
+                value = json.loads(stripped)
+            except ValueError:
+                value = None
+            if isinstance(value, dict) and (
+                "tool_calls" in value or {"name", "arguments"} <= set(value)
+            ):
+                continue
+        lines.append(line)
+    return "\n".join(lines).strip()
+
+
 class OllamaEngine:
     """A local model served by Ollama (http://localhost:11434). Ollama does not run
     the tools itself: it answers with `tool_calls`, we run them, send the results
@@ -166,7 +191,14 @@ class OllamaEngine:
                                   f"run `ollama pull {self.settings.ollama_model}`")
         if r.status_code != 200:
             raise ChatBusy(f"Ollama error {r.status_code}: {r.text[:200]}")
-        return r.json()["message"]
+        try:
+            body = r.json()
+            message = body["message"]
+        except (ValueError, KeyError, TypeError) as e:
+            raise ChatBusy(f"Ollama returned an invalid response: {e}") from e
+        if not isinstance(message, dict):
+            raise ChatBusy("Ollama returned an invalid message")
+        return message
 
     def reply(self, system, history, message, tools):
         messages = [{"role": "system", "content": system}]
@@ -175,6 +207,7 @@ class OllamaEngine:
         messages.append({"role": "user", "content": message})
         schemas = [tool_schema(f) for f in tools.values()]
         used = []
+        last_content = ""
         for _ in range(self.MAX_ROUNDS + 1):
             answer = self._post({"model": self.settings.ollama_model, "messages": messages,
                                  "tools": schemas, "stream": False,
@@ -186,13 +219,35 @@ class OllamaEngine:
                                              # the timeout: cut the answer instead
                                              "num_predict": self.settings.ollama_max_tokens}})
             calls = answer.get("tool_calls") or []
+            if not isinstance(calls, list):
+                raise ChatBusy("Ollama returned invalid tool calls")
+            last_content = clean_model_text(answer.get("content"))
             if not calls or len(used) >= self.MAX_ROUNDS:
-                return (answer.get("content") or "").strip(), used
+                return last_content or "I couldn't finish that answer. Please try again.", used
             messages.append({"role": "assistant", "content": answer.get("content", ""),
                              "tool_calls": calls})
             for call in calls:
-                name = call["function"]["name"]
+                try:
+                    function = call["function"]
+                    name = function["name"]
+                except (KeyError, TypeError) as e:
+                    raise ChatBusy(f"Ollama returned an invalid tool call: {e}") from e
+                if not isinstance(name, str) or not name:
+                    raise ChatBusy("Ollama returned a tool call without a name")
                 used.append(name)
                 messages.append({"role": "tool", "tool_name": name,
-                                 "content": run_tool(tools, name, call["function"].get("arguments"))})
-        return "", used
+                                 "content": run_tool(tools, name, function.get("arguments"))})
+                if name in used[:-1]:
+                    messages.append({
+                        "role": "user",
+                        "content": "Use the tool result above and answer the original user directly. "
+                                   "Do not call any more tools.",
+                    })
+                    final = self._post({"model": self.settings.ollama_model, "messages": messages,
+                                        "tools": [], "stream": False,
+                                        "options": {"temperature": self.settings.ollama_temperature,
+                                                    "num_ctx": self.settings.ollama_num_ctx,
+                                                    "num_predict": self.settings.ollama_max_tokens}})
+                    content = clean_model_text(final.get("content"))
+                    return content or "I found outfit ideas from your wardrobe. See the pieces below.", used
+        return last_content or "I couldn't finish that answer. Please try again.", used

@@ -6,6 +6,7 @@ MongoDB access (pymongo). Collections:
                 automatically after 24 h (TTL index)
     chats       chat history per user
     events      usage log for the admin dashboard (see events.py)
+    outfit_feedback  per-user like/dislike feedback with vector snapshots
 
 FashionCLIP vectors are stored as raw float16 bytes (1 KB per item).
 """
@@ -24,6 +25,8 @@ def connect(settings):
     db.candidates.create_index("created_at", expireAfterSeconds=24 * 3600)
     db.chats.create_index([("user_id", ASCENDING), ("created_at", ASCENDING)])
     db.events.create_index([("at", ASCENDING), ("type", ASCENDING)])
+    db.outfit_feedback.create_index(
+        [("user_id", ASCENDING), ("outfit_key", ASCENDING)], unique=True)
     return db
 
 

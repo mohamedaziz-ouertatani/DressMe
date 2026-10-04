@@ -1,5 +1,7 @@
 """Request bodies, validated by pydantic (wrong values -> 422 with a clear message)."""
 
+from typing import Literal
+
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from .vocab import CATEGORIES, COLOURS, LANGUAGES, PATTERNS, SEASONS, SUB_PARENT, USAGES
@@ -69,6 +71,11 @@ class ItemUpdate(BaseModel):
 
 class ItemIds(BaseModel):
     item_ids: list[str] = Field(min_length=1, max_length=10)
+
+
+class OutfitFeedback(BaseModel):
+    item_ids: list[str] = Field(min_length=1, max_length=10)
+    rating: Literal[-1, 1]
 
 
 class Complete(BaseModel):

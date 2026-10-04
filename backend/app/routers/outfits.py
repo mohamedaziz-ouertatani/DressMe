@@ -5,6 +5,7 @@ to the user's wardrobe and profile.
 """
 
 import io
+from datetime import datetime, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -13,9 +14,9 @@ from fastapi.responses import StreamingResponse
 from .. import ml  # noqa: F401  (puts src/ on the import path)
 import compatibility
 
-from ..db import vector_from_bson
+from ..db import vector_from_bson, vector_to_bson
 from ..events import log_event
-from ..schemas import BuyAdvice, Complete, ItemIds
+from ..schemas import BuyAdvice, Complete, ItemIds, OutfitFeedback
 from ..security import current_user
 from ..vocab import SEASONS, USAGES
 from ..wardrobe import item_out, outfit_out, to_compat
@@ -29,10 +30,27 @@ def wardrobe(request, user):
     return docs, {str(d["_id"]): d for d in docs}
 
 
-def profile(user, season=None, occasion=None):
+def profile(user, season=None, occasion=None, style_vector=None):
     """The personal filters of compatibility.filter_items."""
     return {"min_coverage": user["profile"].get("min_coverage"), "season": season,
-            "occasion": occasion}
+            "occasion": occasion, "style_vector": style_vector}
+
+
+def user_profile(user, docs, request=None, season=None, occasion=None):
+    """Build the request-scoped profile, including implicit style preferences."""
+    items = [to_compat(d) for d in docs]
+    feedback_collection = getattr(request.app.state.db, "outfit_feedback", None) \
+        if request is not None else None
+    feedback = list(feedback_collection.find({"user_id": user["_id"]})) \
+        if feedback_collection is not None else []
+    disliked_outfits = set()
+    for entry in feedback:
+        entry["vector"] = vector_from_bson(entry.get("vector"))
+        if entry.get("rating") == -1:
+            disliked_outfits.add(entry["outfit_key"])
+    result = profile(user, season, occasion, compatibility.user_style_profile(items, feedback))
+    result["disliked_outfits"] = disliked_outfits
+    return result
 
 
 def no_clash(items):
@@ -55,8 +73,28 @@ def score(body: ItemIds, request: Request, user=Depends(current_user)):
     docs = [own_item(request, user, i) for i in body.item_ids]
     items = [to_compat(d) for d in docs]
     no_clash(items)
-    result = compatibility.score_outfit(items)
+    all_docs, _ = wardrobe(request, user)
+    result = compatibility.score_outfit(
+        items, style_profile=user_profile(user, all_docs, request)["style_vector"])
     return outfit_out({**result, "items": items}, {str(d["_id"]): d for d in docs})
+
+
+@router.post("/outfits/feedback")
+def feedback(body: OutfitFeedback, request: Request, user=Depends(current_user)):
+    docs = [own_item(request, user, item_id) for item_id in body.item_ids]
+    items = [to_compat(d) for d in docs]
+    no_clash(items)
+    vector = compatibility.outfit_vector(items)
+    if vector is None:
+        raise HTTPException(422, "At least one outfit item needs a style vector")
+    key = "|".join(sorted(body.item_ids))
+    request.app.state.db.outfit_feedback.update_one(
+        {"user_id": user["_id"], "outfit_key": key},
+        {"$set": {"item_ids": sorted(body.item_ids), "rating": body.rating,
+                  "vector": vector_to_bson(vector),
+                  "updated_at": datetime.now(timezone.utc)}},
+        upsert=True)
+    return {"item_ids": sorted(body.item_ids), "rating": body.rating}
 
 
 Season = Literal[tuple(SEASONS)]       # only these values are accepted (else 422)
@@ -67,8 +105,8 @@ Occasion = Literal[tuple(USAGES)]
 def suggest(request: Request, season: Season | None = None, occasion: Occasion | None = None,
             n: int = Query(5, ge=1, le=20), user=Depends(current_user)):
     docs, by_id = wardrobe(request, user)
-    outfits = compatibility.suggest_outfits([to_compat(d) for d in docs],
-                                            profile(user, season, occasion), n=n)
+    outfits = compatibility.suggest_outfits(
+        [to_compat(d) for d in docs], user_profile(user, docs, request, season, occasion), n=n)
     return [outfit_out(o, by_id) for o in outfits]
 
 
@@ -78,8 +116,8 @@ def complete(body: Complete, request: Request, user=Depends(current_user)):
     no_clash([to_compat(d) for d in chosen])
     docs, by_id = wardrobe(request, user)
     candidates = [to_compat(d) for d in docs if str(d["_id"]) not in body.item_ids]
-    ranked = compatibility.complete_outfit([to_compat(d) for d in chosen], candidates,
-                                           profile(user), k=body.k)
+    ranked = compatibility.complete_outfit(
+        [to_compat(d) for d in chosen], candidates, user_profile(user, docs, request), k=body.k)
     return [{**outfit_out(r, by_id), "item": item_out(by_id[r["item"]["id"]])} for r in ranked]
 
 
@@ -91,7 +129,8 @@ def buy_advice(body: BuyAdvice, request: Request, user=Depends(current_user)):
         cand = {**cand, **apply_update(cand, body.corrections)}
     docs, by_id = wardrobe(request, user)
     by_id[str(cand["_id"])] = cand
-    advice = compatibility.buy_advice(to_compat(cand), [to_compat(d) for d in docs], profile(user))
+    advice = compatibility.buy_advice(
+        to_compat(cand), [to_compat(d) for d in docs], user_profile(user, docs, request))
     log_event(request.app.state.db, "verdict", user["_id"], verdict=advice["verdict"])
     return {"verdict": advice["verdict"], "good_outfits": advice["good_outfits"],
             "reasons": advice["reasons"], "candidate": item_out(cand, kind="candidates"),

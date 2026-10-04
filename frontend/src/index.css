@@ -61,6 +61,11 @@
     text-underline-offset: 0.2em;
     text-decoration-thickness: 1px;
   }
+  button,
+  a,
+  input {
+    -webkit-tap-highlight-color: transparent;
+  }
   /* numbers in data line up */
   .tabular {
     font-variant-numeric: tabular-nums;
@@ -83,6 +88,10 @@
     position: relative;
     background: var(--color-paper);
     box-shadow: var(--shadow-ticket);
+  }
+
+  .page-enter {
+    animation: page-enter 420ms var(--ease-out-expo) both;
   }
 
   /* Perforation between a ticket and its stub. Notches are punched out of the
@@ -153,7 +162,28 @@
   }
 }
 
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (hover: hover) {
+  .ticket[href]:hover,
+  .ticket button:hover {
+    box-shadow: var(--shadow-lift);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: none;
+  }
   .stamp-land {
     animation: stamp-fade 200ms ease-out both;
     transform: rotate(var(--stamp-angle, -9deg));

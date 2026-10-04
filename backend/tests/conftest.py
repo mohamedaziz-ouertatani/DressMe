@@ -67,8 +67,9 @@ class FakeChatEngine:
             items = tools["list_wardrobe"]()
             return f"You have {len(items)} items.", ["list_wardrobe"]
         if "outfit" in message:
-            outfits = tools["suggest_outfits"](n=2)
-            return f"I found {len(outfits)} outfits.", ["suggest_outfits"]
+            outfits = tools["suggest_outfits"]()
+            noun = "outfit" if len(outfits) == 1 else "outfits"
+            return f"I found {len(outfits)} {noun}.", ["suggest_outfits"]
         if "buy" in message:
             advice = tools["buy_advice_last_scan"]()
             return f"Verdict: {advice.get('verdict', advice.get('error'))}", ["buy_advice_last_scan"]

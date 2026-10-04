@@ -32,6 +32,8 @@ def item_out(doc, kind="items"):
     }
     if kind == "items":
         out["image_url"] = f"/items/{out['id']}/image"
+    elif kind == "candidates":
+        out["image_url"] = f"/candidates/{out['id']}/image"
     return out
 
 

@@ -20,6 +20,28 @@ def test_score_outfit(client):
     assert "missing a top or a bottom" in alone["reasons"]
 
 
+def test_outfit_feedback_is_private_and_replaceable(client):
+    headers = sign_up(client)
+    w = wardrobe(client, headers)
+    item_ids = [w["top"]["id"], w["jeans"]["id"], w["shoes"]["id"]]
+    r = client.post("/outfits/feedback",
+                    json={"item_ids": item_ids, "rating": 1}, headers=headers)
+    assert r.status_code == 200
+    assert r.json() == {"item_ids": sorted(item_ids), "rating": 1}
+    r = client.post("/outfits/feedback",
+                    json={"item_ids": list(reversed(item_ids)), "rating": -1}, headers=headers)
+    assert r.status_code == 200
+    suggested = client.get("/outfits/suggest?n=5", headers=headers)
+    assert suggested.status_code == 200
+    assert all(sorted(i["id"] for i in outfit["items"]) != sorted(item_ids)
+               for outfit in suggested.json())
+
+    other = sign_up(client, "other@example.com", "Other")
+    r = client.post("/outfits/feedback",
+                    json={"item_ids": item_ids, "rating": 1}, headers=other)
+    assert r.status_code == 404
+
+
 def test_suggest_respects_modesty(client):
     headers = sign_up(client)
     w = wardrobe(client, headers)

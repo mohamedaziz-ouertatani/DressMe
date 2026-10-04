@@ -16,3 +16,5 @@ buy_min_outfits,5,"should I buy": at least this many good outfits where the new 
 think_min_outfits,1,"should I buy": at least this many = think about it; fewer = skip
 same_colour,0.9,colour score of two items in the same bold colour (monochrome); same neutral = 1
 similar_item,0.9,"should I buy": FashionCLIP similarity from which a wardrobe item counts as a near twin
+style_personal_weight,0.25,share of the style score based on the user's wardrobe taste
+style_profile_min_items,3,minimum number of vectorized wardrobe items needed for personalization

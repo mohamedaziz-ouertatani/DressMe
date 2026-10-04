@@ -1,13 +1,23 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Eraser, SendHorizontal } from 'lucide-react'
 import { ApiError, api } from '../api/client'
-import type { ChatTurn } from '../api/types'
+import type { ChatTurn, ChatAttachment } from '../api/types'
 import { useI18n } from '../i18n'
 import type { StringKey } from '../i18n/strings'
 import { Page } from '../shell'
 import { Button } from '../ui/controls'
 import { ErrorNote, Skeleton } from '../ui/states'
+import { ItemPhoto } from '../ui/ItemPhoto'
 import { useLoad } from '../useLoad'
+
+function groupAttachments(attachments: ChatAttachment[]) {
+  return attachments.reduce<Record<string, ChatAttachment[]>>((groups, attachment) => {
+    const group = attachment.group || 'items'
+    if (!groups[group]) groups[group] = []
+    groups[group].push(attachment)
+    return groups
+  }, {})
+}
 
 export function ChatPage() {
   const { t } = useI18n()
@@ -32,7 +42,9 @@ export function ChatPage() {
     setSending(true)
     try {
       const r = await api.chat(message)
-      setTurns((tt) => [...tt, { role: 'model', text: r.reply, tools_used: r.tools_used }])
+        setTurns((tt) => [...tt, {
+          role: 'model', text: r.reply, tools_used: r.tools_used, attachments: r.attachments,
+        }])
     } catch (err) {
       setError(err)
       setTurns((tt) => tt.slice(0, -1))
@@ -62,9 +74,30 @@ export function ChatPage() {
           <ol className="flex flex-col gap-3" aria-live="polite">
             {turns.map((m, i) => (
               <li key={i} className={m.role === 'user' ? 'ms-10 self-end' : 'me-10 self-start'}>
-                <div className={`whitespace-pre-wrap px-4 py-3 text-[15px] leading-relaxed ${m.role === 'user' ? 'bg-ink text-paper' : 'ticket text-carbon'}`}>
-                  {m.text}
-                </div>
+                {m.text && (
+                  <div className={`whitespace-pre-wrap px-4 py-3 text-[15px] leading-relaxed ${m.role === 'user' ? 'bg-ink text-paper' : 'ticket text-carbon'}`}>
+                    {m.text}
+                  </div>
+                )}
+                {m.attachments && m.attachments.length > 0 && (
+                  <div className="mt-2 flex flex-col gap-2" aria-label={t('chatPictures')}>
+                    {Object.entries(groupAttachments(m.attachments)).map(([group, attachments]) => (
+                      <div key={group} className="ticket p-2">
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                          {attachments.map((attachment: ChatAttachment) => (
+                            <div key={attachment.id} className="flex justify-center overflow-hidden bg-white p-1">
+                              <ItemPhoto
+                                src={attachment.image_url}
+                                alt={attachment.sub_category || attachment.category || 'Clothing item'}
+                                size={112}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {m.tools_used.length > 0 && (
                   <p className="mt-1 font-mono text-[11px] text-ink-soft">
                     {Array.from(new Set(m.tools_used)).map((tool) => t(`tool_${tool}` as StringKey)).join(' · ')}

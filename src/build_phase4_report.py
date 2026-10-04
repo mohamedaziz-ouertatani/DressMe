@@ -3,7 +3,7 @@ Build the Phase 4 PDF report: reports/phase4_report.pdf
 
 It sums up the full prototype: FashionCLIP embeddings, the EfficientNet
 classifier, the compatibility formula, the FastAPI + MongoDB backend and the
-React frontend. Numbers come from the evaluation reports and files in
+React frontend, plus the local chat model. Numbers come from the evaluation reports and files in
 reports/ and mappings/ (no data/ needed), so it runs on any checkout.
 
 Run:   python src/build_phase4_report.py
@@ -34,7 +34,7 @@ FIG4 = FIG / "phase4"
 MAPPINGS = ROOT / "mappings"
 
 SECTIONS = ["context", "architecture", "embeddings", "classifier", "compatibility",
-            "backend", "frontend", "testing", "local", "decisions", "limits", "next"]
+            "backend", "frontend", "testing", "local", "chat", "decisions", "limits", "next"]
 
 
 def sec(key):
@@ -137,6 +137,12 @@ def chart_compatibility():
 
 
 # ------------------------------------------------------------------ report
+def read_chat_eval():
+    """Results of src/evaluate_chat.py ({} if it has not been run)."""
+    path = REPORTS / "chat_evaluation.json"
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+
+
 def build():
     FIG4.mkdir(parents=True, exist_ok=True)
     choice = json.loads((REPORTS / "classifier_choice.json").read_text())
@@ -148,6 +154,7 @@ def build():
     probe = {f: choice[f]["fashionclip_probe"] * 100 for f in choice}
     train_min = log["minutes"].sum()
     n_fast, n_slow = count_tests()
+    chat_eval = read_chat_eval()
 
     story = []
 
@@ -176,7 +183,8 @@ def build():
         "Fashionpedia. Style carries almost all the measurable signal.",
         "The <b>backend</b> exposes wardrobe upload with automatic analysis, \"should I buy "
         "this?\", outfit suggest / score / complete, look-alikes in the wardrobe and the H&amp;M "
-        "shop catalogue, a Gemini chat assistant with function calling and an admin dashboard.",
+        "shop catalogue, a chat assistant with function calling (Gemini, or a local model "
+        "with Ollama) and an admin dashboard.",
         "The <b>frontend</b> (React 19 + Tailwind 4) covers scan, wardrobe, outfit building, "
         "look-alikes, chat and profile in English, French and Arabic (RTL).",
         "<b>Real photos:</b> uploads are turned upright (phone EXIF rotation) and their "
@@ -187,6 +195,10 @@ def build():
         "screen and the follow-up work found and fixed three bugs before the jury demo "
         "(<i>DEMO.md</i>). The pipeline "
         "for our own test photos is ready (<i>LOCAL_PHOTOS.md</i>); collection is next.",
+        "<b>Local chat model</b> (in progress): the assistant can run on our own machine with "
+        "Ollama (Qwen3-4B, no key, no 20-requests-a-day quota, works offline). A synthetic "
+        "dataset in English, French and Darija and a QLoRA fine-tuning pipeline on Kaggle are "
+        "ready; the base model's baseline is measured, training is next.",
     ])
     story.append(PageBreak())
 
@@ -209,7 +221,9 @@ def build():
                       "done"],
                      ["4.3 Compatibility", "weighted formula, 0-100 score with reasons", "done"],
                      ["4.4 Backend", "FastAPI + MongoDB + Gemini chat", "done"],
-                     ["4.5 Frontend", "React + Tailwind app and admin dashboard", "done"]],
+                     ["4.5 Frontend", "React + Tailwind app and admin dashboard", "done"],
+                     ["4.6 Local chat", "Ollama engine + QLoRA fine-tuning (Qwen3-4B)",
+                      "in progress"]],
                     widths=[3.5 * cm, WIDTH - 5.5 * cm, 2 * cm])]
 
     # --- 2. architecture
@@ -225,7 +239,7 @@ def build():
                                          |
                     src/compatibility.py  (rules + weights in mappings/*.csv)
                                          |
-                    Gemini API  (chat, function calling on the wardrobe)
+        Gemini API  or  Ollama (local Qwen3-4B)   (chat, function calling on the wardrobe)
 """),
               p("Models train on the local GPU (RTX 2050, 4 GB). The backend reuses the "
                 "<i>src/</i> code directly, so the evaluated models are exactly those the app "
@@ -379,7 +393,8 @@ def build():
                       "category limits for the Build page"],
                      ["/similar, /catalog/{id}/image", "look-alikes in the wardrobe, the public "
                       "catalogue and the H&amp;M shop (\"buy something like this\")"],
-                     ["/chat, /chat/history", "Gemini with function calling: list_wardrobe, "
+                     ["/chat, /chat/history", "Gemini or the local model (CHAT_ENGINE) with "
+                      "function calling: list_wardrobe, "
                       "suggest_outfits, score_outfit, buy_advice_last_scan"],
                      ["/admin/*", "usage stats, model quality (how often users correct each "
                       "field), user management, live editing of the formula"]],
@@ -449,7 +464,8 @@ def build():
               Spacer(1, 6),
               p("<i>DEMO.md</i> holds the jury demo script: what to prepare the day before and "
                 "30 minutes before, a 9-step run order with talking points, and fallbacks. "
-                "Everything except the Gemini chat runs offline. The real models and Gemini still "
+                "Everything except the Gemini chat runs offline (the local chat model, section "
+                f"{sec('chat')}, removes that exception). The real models and the chat still "
                 "need a dry run on the demo laptop.")]
 
     # --- 9. local photos
@@ -473,7 +489,58 @@ def build():
         "and the evaluation scripts.",
     ])
 
-    # --- 10. decisions
+    # --- 10. local chat model
+    story += h1("chat", "Local chat model")
+    story += [p("The free Gemini key allows only 20 requests a day, and one answer that uses "
+                "tools costs 2 to 7: not enough for a demo or a user test. With "
+                "<i>CHAT_ENGINE=ollama</i>, <i>/chat</i> uses a model on our own machine "
+                "(<i>app/chat_engine.py</i>, <i>OllamaEngine</i>) with the same system prompt "
+                "and the same four tools. Ollama answers with tool calls, the backend runs them "
+                "and sends the results back (at most 6 rounds). Details in <i>LLM.md</i>."),
+              Spacer(1, 4),
+              table([["Step", "What", "Status"],
+                     ["Base model", "qwen3:4b-instruct in Ollama: best tool use of its size, no "
+                      "'thinking' mode, knows French and Arabic", "running"],
+                     ["Dataset", "<i>build_chat_dataset.py</i>: 3,000 / 200 / 300 synthetic chats "
+                      "(fr 45%, Darija 35% incl. Arabizi, en 20%) on random wardrobes; the "
+                      "backend's <b>real</b> tools produce the scores and reasons", "built"],
+                     ["Darija check", "<i>reports/darija_review.md</i>: every Darija word and "
+                      "sentence with transliteration and meaning; initial team corrections are "
+                      "applied, full native review remains",
+                      "in progress"],
+                     ["Fine-tuning", "QLoRA (Unsloth, rank 16, assistant turns only) on a free "
+                      "Kaggle T4, exported to GGUF: <i>dressme-chat</i>", "next"],
+                     ["Evaluation", "<i>evaluate_chat.py</i>: base vs fine-tuned, per turn",
+                      "baseline done"]],
+                    widths=[2.8 * cm, WIDTH - 5.8 * cm, 3 * cm]),
+              Spacer(1, 6)]
+    if chat_eval:
+        n_dec = next(iter(chat_eval.values()))["summary"]["decisions"]
+        story += [p(f"Evaluation on the synthetic test chats ({n_dec} decisions per model; each "
+                    "assistant turn is one decision, the model sees the real conversation up to "
+                    "that point):"), Spacer(1, 4),
+                  table([["Model", "Tool decision", "Tool name", "Arguments", "Language",
+                          "s / decision"]] +
+                        [[m, f"{r['summary']['tool_decision']}%", f"{r['summary']['tool_name']}%",
+                          f"{r['summary']['arguments']}%", f"{r['summary']['language']}%",
+                          f"{r['summary']['seconds']}"] for m, r in chat_eval.items()],
+                        widths=[4 * cm] + [(WIDTH - 4 * cm) / 5] * 5),
+                  Spacer(1, 6)]
+    story += bullets([
+        "<b>Base model:</b> it knows <i>when</i> to use a tool but rarely picks the right one "
+        "with the right item ids (0% arguments on score and suggest). In real chats it scored "
+        "made-up ids without listing the wardrobe first, gave a verdict without scoring, and "
+        "invented reasons. Fine-tuning targets exactly these.",
+        "<b>Speed</b> on the RTX 2050 with the backend's models loaded: ~21 tokens/s, "
+        "11-18 s per answer that uses tools (Ollama puts 58% of the model on the GPU, 42% on "
+        "the CPU), ~35 s for the first answer (model loading).",
+        "<b>Fixes from the first real run:</b> answers are capped at 600 tokens (the base model "
+        "once repeated itself until a 5-minute timeout), and the assistant answers in the "
+        "language the user writes in, not the profile language. Unqualified suggestions "
+        "return one best outfit; an explicit count is preserved.",
+    ])
+
+    # --- 11. decisions
     story += h1("decisions", "Key decisions")
     story += [table([["Decision", "Why"],
                      ["EfficientNet for category, sub_category and pattern",
@@ -493,11 +560,14 @@ def build():
                       "a hard rule, not a lower score: two pairs of jeans is never an outfit"],
                      ["Local photos for test only", "the one honest measure of the real "
                       "setting; never trained on"],
+                     ["Local chat model, fine-tuned on synthetic chats", "no daily quota, "
+                      "works offline; the real tools write the answers, so the model learns our "
+                      "scores and never invented clothes"],
                      ["Predictions are never labels", "<i>predicted_attributes.csv</i> and the "
                       "<i>predicted</i> field stay separate from ground truth / user input"]],
                     widths=[6 * cm, WIDTH - 6 * cm])]
 
-    # --- 9. limits
+    # --- 12. limits
     story += h1("limits", "Limits and risks")
     story += bullets([
         "Traditional (jebba, kaftan) and swimwear are too rare in the public data to learn; "
@@ -511,10 +581,13 @@ def build():
         "bad cut-out cannot be redone from the original.",
         "The models have not been measured on real phone photos yet (local test set pending).",
         "The H&amp;M catalogue has no prices and is not Tunisian stock; the shop demo is frozen.",
+        "The local chat model is slow on the 4 GB GPU (11-18 s per answer), and synthetic "
+        "chats measure tool use and language, not how natural the answers sound. Initial Darija "
+        "corrections are applied, but a complete native-speaker review is still pending.",
         "Datasets are for non-commercial academic use only and are never redistributed.",
     ])
 
-    # --- 10. next
+    # --- 13. next
     story += h1("next", "Next steps")
     story += bullets([
         "Dry run on the demo laptop with the real models, background removal and Gemini "
@@ -522,6 +595,8 @@ def build():
         "Collect and label local photos (<i>LOCAL_PHOTOS.md</i>), then evaluate the classifier, "
         "colour model and background removal on them.",
         "Team session to tune the compatibility weights and close the REVIEW rows.",
+        "Local chat: native check of the Darija, fine-tune on Kaggle, then compare base vs "
+        "<i>dressme-chat</i> and keep whichever is better (team rule).",
         "User test with the personas; use the admin \"model quality\" page (correction rates) "
         "to see where the models fail in real use.",
     ])

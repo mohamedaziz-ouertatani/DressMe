@@ -55,6 +55,8 @@ export interface Outfit {
   items: OutfitItem[]
 }
 
+export type OutfitRating = 1 | -1
+
 export interface Completion extends Outfit {
   item: Item
 }
@@ -93,6 +95,16 @@ export interface ChatTurn {
   role: 'user' | 'model'
   text: string
   tools_used: string[]
+  attachments?: ChatAttachment[]
+}
+
+export interface ChatAttachment {
+  id: string
+  category: string
+  sub_category: string
+  colour: string
+  image_url: string
+  group?: string
 }
 
 // ---------------------------------------------------------------- admin

@@ -14,7 +14,7 @@ ESPRIT · Advanced Data Science project · team of 6: Mohamed Khalil, Asma Driss
 **Planned stack:**
 - Frontend: React + TailwindCSS.
 - Backend and database: FastAPI and MongoDB.
-- Models: EfficientNet (classification), FashionCLIP (embeddings and similarity), Gemini API (chat assistant).
+- Models: EfficientNet (classification), FashionCLIP (embeddings and similarity), Gemini API or a local Qwen3 model served by Ollama (chat assistant).
 - Outfit compatibility: a custom weighted formula.
 
 ## What this repository contains (Phase 3)
@@ -220,7 +220,7 @@ python -m pytest                                      # 25 fast tests (fake mode
 | `POST /analyze`, `POST /buy-advice` | friperie photo → "should I buy this?" (buy / think / skip) |
 | `POST /outfits/score`, `GET /outfits/suggest`, `POST /outfits/complete` | outfits from your wardrobe |
 | `GET /similar` | look-alikes in your wardrobe + dataset inspiration + H&M products to buy (`shop`) |
-| `POST /chat`, `GET/DELETE /chat/history` | Gemini assistant that uses your real wardrobe |
+| `POST /chat`, `GET/DELETE /chat/history` | Gemini or local Ollama assistant that uses your real wardrobe |
 
 ## Phase 4: the app (frontend + admin)
 

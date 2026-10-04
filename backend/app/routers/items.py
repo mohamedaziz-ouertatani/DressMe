@@ -129,6 +129,15 @@ def item_image(item_id: str, request: Request, user=Depends(current_user)):
     return FileResponse(path, media_type="image/jpeg")
 
 
+@router.get("/candidates/{candidate_id}/image")
+def candidate_image(candidate_id: str, request: Request, user=Depends(current_user)):
+    doc = own_item(request, user, candidate_id, collection="candidates")
+    path = request.app.state.settings.storage_dir / str(user["_id"]) / f"{doc['_id']}.jpg"
+    if not path.exists():
+        raise HTTPException(404, "Image missing")
+    return FileResponse(path, media_type="image/jpeg")
+
+
 @router.post("/analyze", status_code=201)
 async def analyze(request: Request, photo: UploadFile = File(...), user=Depends(current_user)):
     """Analyse a photo without adding it to the wardrobe (e.g. in a friperie)."""
@@ -137,4 +146,3 @@ async def analyze(request: Request, photo: UploadFile = File(...), user=Depends(
     doc["_id"] = request.app.state.db.candidates.insert_one(doc).inserted_id
     log_event(request.app.state.db, "scan", user["_id"], category=doc["category"])
     return item_out(doc, kind="candidates")
-

@@ -11,10 +11,10 @@ export function Skeleton({ className = '' }: { className?: string }) {
 /** An empty state that teaches what to do next. */
 export function Empty({ title, body, action }: { title: string; body: string; action?: ReactNode }) {
   return (
-    <div className="ticket px-5 py-6">
+    <div className="ticket border border-dashed border-perf px-5 py-7 sm:px-6">
       <h2 className="text-[18px] font-semibold text-carbon">{title}</h2>
       <p className="mt-2 max-w-[52ch] text-[15px] leading-relaxed text-carbon-soft">{body}</p>
-      {action && <div className="mt-4">{action}</div>}
+      {action && <div className="mt-5">{action}</div>}
     </div>
   )
 }

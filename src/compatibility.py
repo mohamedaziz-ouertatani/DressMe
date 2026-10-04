@@ -2,8 +2,8 @@
 The DressMe outfit compatibility formula: a weighted sum of four parts, each
 from 0 (bad) to 1 (good), turned into a score from 0 to 100 with reasons.
 
-    style      do the pieces look like they belong together?
-               (average FashionCLIP similarity between the items)
+    style      do the pieces look like they belong together and suit the user?
+               (pairwise FashionCLIP similarity, blended with the user's taste)
     colour     colour harmony between every pair of items, plus a penalty for
                too many bold (non-neutral) colours
     pattern    at most one bold pattern among the clothes
@@ -91,14 +91,58 @@ def reload_rules(map_dir=MAP_DIR):
 
 
 # ------------------------------------------------------------------ the four parts
-def style_part(items, rules):
+def user_style_profile(items, feedback=None, rules=None):
+    """Return a normalized taste vector from wardrobe and outfit feedback."""
+    rules = rules or RULES
+    vectors = [np.asarray(i["vector"], np.float32) for i in items if i.get("vector") is not None]
+    if len(vectors) < int(rules.settings["style_profile_min_items"]):
+        profile = np.zeros(512, dtype=np.float32)
+    else:
+        profile = np.mean(vectors, axis=0)
+    feedback_count = 0
+    for entry in feedback or []:
+        vector = entry.get("vector")
+        if vector is None:
+            continue
+        value = float(entry.get("rating", 0))
+        if value not in (-1.0, 1.0):
+            continue
+        profile += value * np.asarray(vector, np.float32)
+        feedback_count += 1
+    if len(vectors) < int(rules.settings["style_profile_min_items"]) and not feedback_count:
+        return None
+    norm = float(np.linalg.norm(profile))
+    return profile / norm if norm else None
+
+
+def outfit_vector(items):
+    """Return the normalized mean FashionCLIP vector for an outfit."""
+    vectors = [np.asarray(i["vector"], np.float32) for i in items if i.get("vector") is not None]
+    if not vectors:
+        return None
+    value = np.mean(vectors, axis=0)
+    norm = float(np.linalg.norm(value))
+    return value / norm if norm else None
+
+
+def style_part(items, rules, style_profile=None):
     vecs = [np.asarray(i["vector"], np.float32) for i in items if i.get("vector") is not None]
     if len(vecs) < 2:
         return None, []
     sims = [float(a @ b) for a, b in combinations(vecs, 2)]
     lo, hi = rules.settings["style_low"], rules.settings["style_high"]
-    part = float(np.clip((np.mean(sims) - lo) / (hi - lo), 0, 1))
-    reasons = ["the pieces have quite different styles"] if part < 0.3 else []
+    coherence = float(np.clip((np.mean(sims) - lo) / (hi - lo), 0, 1))
+    part = coherence
+    reasons = []
+    if style_profile is not None:
+        user_sims = [float(style_profile @ vector) for vector in vecs]
+        user_fit = float(np.clip((np.mean(user_sims) - lo) / (hi - lo), 0, 1))
+        personal_weight = rules.settings["style_personal_weight"]
+        part = ((1 - personal_weight) * coherence) + (personal_weight * user_fit)
+        if user_fit < 0.3:
+            reasons.append("the outfit is unlike your usual style")
+    if coherence < 0.3:
+        reasons.append("the pieces have quite different styles")
     return part, reasons
 
 
@@ -162,12 +206,15 @@ PART_FUNCTIONS = {"style": style_part, "colour": colour_part,
                   "pattern": pattern_part, "structure": structure_part}
 
 
-def score_outfit(items, rules=RULES, weights=None):
+def score_outfit(items, rules=RULES, weights=None, style_profile=None):
     """Score from 0 to 100, the value of each part (None = not computable), and reasons."""
     weights = weights or rules.weights
     parts, reasons = {}, []
     for name, fn in PART_FUNCTIONS.items():
-        parts[name], why = fn(items, rules)
+        if name == "style":
+            parts[name], why = fn(items, rules, style_profile)
+        else:
+            parts[name], why = fn(items, rules)
         reasons += why
     used = {p: weights[p] for p, v in parts.items() if v is not None and weights[p] > 0}
     total = sum(used.values())
@@ -241,7 +288,7 @@ def _cores(groups, rules, must=None):
     return cores
 
 
-def _complete(core, groups, rules, must=None):
+def _complete(core, groups, rules, must=None, style_profile=None):
     """Add shoes, then optional outerwear / bag / accessory when they raise the score.
     If `must` is an extra piece (e.g. shoes to buy), it is always used in its slot."""
     outfit = list(core)
@@ -251,23 +298,26 @@ def _complete(core, groups, rules, must=None):
             options = [must]
         if not options:
             continue
-        best = max(options, key=lambda o: score_outfit(outfit + [o], rules)["score"])
+        best = max(options, key=lambda o: score_outfit(
+            outfit + [o], rules, style_profile=style_profile)["score"])
         forced = cat == "shoes" or (must is not None and best is must)
-        if forced or score_outfit(outfit + [best], rules)["score"] > score_outfit(outfit, rules)["score"]:
+        if forced or score_outfit(
+                outfit + [best], rules, style_profile=style_profile)["score"] > score_outfit(
+                    outfit, rules, style_profile=style_profile)["score"]:
             outfit.append(best)
     return outfit
 
 
-def _outfits(items, rules, must=None):
+def _outfits(items, rules, must=None, style_profile=None):
     """All completed outfits (best cores first), as (score result, items)."""
     groups = _by_category(items)
     cores = _cores(groups, rules, must)
-    cores.sort(key=lambda c: score_outfit(c, rules)["score"], reverse=True)
+    cores.sort(key=lambda c: score_outfit(c, rules, style_profile=style_profile)["score"], reverse=True)
     done = []
     for core in cores[:TOP_CORES]:
-        outfit = _complete(core, groups, rules, must)
+        outfit = _complete(core, groups, rules, must, style_profile)
         if must is None or any(i is must for i in outfit):
-            done.append((score_outfit(outfit, rules), outfit))
+            done.append((score_outfit(outfit, rules, style_profile=style_profile), outfit))
     done.sort(key=lambda d: d[0]["score"], reverse=True)
     return done
 
@@ -275,8 +325,12 @@ def _outfits(items, rules, must=None):
 def suggest_outfits(wardrobe, profile=None, n=5, rules=RULES):
     """The n best outfits; each item is used in at most 2 of them (variety)."""
     items, _ = filter_items(wardrobe, profile)
+    style_profile = (profile or {}).get("style_vector")
+    disliked = (profile or {}).get("disliked_outfits", set())
     chosen, uses = [], {}
-    for result, outfit in _outfits(items, rules):
+    for result, outfit in _outfits(items, rules, style_profile=style_profile):
+        if "|".join(sorted(i["id"] for i in outfit)) in disliked:
+            continue
         if all(uses.get(id(i), 0) < 2 for i in outfit):
             chosen.append({**result, "items": outfit})
             for i in outfit:
@@ -293,7 +347,8 @@ def buy_advice(candidate, wardrobe, profile=None, rules=RULES):
         return {"verdict": "skip", "good_outfits": 0, "best": [],
                 "reasons": [removed[candidate.get("id")]]}
     items, _ = filter_items(wardrobe, profile)
-    outfits = _outfits(items + [candidate], rules, must=candidate)
+    style_profile = (profile or {}).get("style_vector")
+    outfits = _outfits(items + [candidate], rules, must=candidate, style_profile=style_profile)
     # an outfit only counts if the new item beats every piece you already own
     # in the same slot (otherwise buying it changes nothing)
     same_cat = [w for w in items if w["category"] == candidate["category"]]
@@ -302,7 +357,8 @@ def buy_advice(candidate, wardrobe, profile=None, rules=RULES):
         if result["score"] < rules.settings["good_outfit"]:
             continue
         others = [i for i in outfit if i is not candidate]
-        best_owned = max((score_outfit(others + [w], rules)["score"] for w in same_cat), default=0)
+        best_owned = max((score_outfit(
+            others + [w], rules, style_profile=style_profile)["score"] for w in same_cat), default=0)
         if result["score"] > best_owned:
             good.append((result, outfit))
     s = rules.settings
@@ -323,10 +379,11 @@ def buy_advice(candidate, wardrobe, profile=None, rules=RULES):
 def complete_outfit(items, candidates, profile=None, k=5, rules=RULES):
     """The k candidates that best complete `items` (never a clash: see clashes())."""
     candidates, _ = filter_items(candidates, profile)
+    style_profile = (profile or {}).get("style_vector")
     ranked = []
     for c in candidates:
         if clashes(items + [c], rules):
             continue
-        ranked.append({**score_outfit(items + [c], rules), "item": c})
+        ranked.append({**score_outfit(items + [c], rules, style_profile=style_profile), "item": c})
     ranked.sort(key=lambda r: r["score"], reverse=True)
     return ranked[:k]
