@@ -4,6 +4,7 @@ import { AdminFormula, AdminLayout, AdminOverview, AdminQuality, AdminUsers } fr
 import { AuthProvider, useAuth } from './auth'
 import { I18nProvider } from './i18n'
 import { AuthPage } from './pages/AuthPage'
+import { LandingPage } from './pages/LandingPage'
 import { BuildPage } from './pages/BuildPage'
 import { ChatPage } from './pages/ChatPage'
 import { ProfilePage } from './pages/ProfilePage'
@@ -25,7 +26,7 @@ function Gate({ children, admin = false }: { children: ReactNode; admin?: boolea
       </div>
     )
   }
-  if (!user) return <Navigate to="/login" replace />
+  if (!user) return <Navigate to="/welcome" replace />
   if (admin && user.role !== 'admin') return <Navigate to="/" replace />
   return <>{children}</>
 }
@@ -51,6 +52,7 @@ export default function App() {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
+            <Route path="/welcome" element={<GuestOnly><LandingPage /></GuestOnly>} />
             <Route path="/login" element={<GuestOnly><AuthPage mode="login" /></GuestOnly>} />
             <Route path="/signup" element={<GuestOnly><AuthPage mode="signup" /></GuestOnly>} />
             <Route element={<Gate><AppShell /></Gate>}>

@@ -2,7 +2,7 @@
 // localStorage; a 401 anywhere logs the user out (see AuthProvider).
 import type {
   AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Item, ItemPatch, ModelQuality,
-  Occasion, Outfit, Season, Similar, Stats, User,
+  Occasion, Outfit, Season, Similar, Stats, User, ChatAttachment,
 } from './types'
 
 const BASE = '/api'
@@ -121,6 +121,8 @@ export const api = {
   },
   outfitLimits: () => request<{ max_items: Record<Category, number> }>('/outfits/limits'),
   score: (itemIds: string[]) => request<Outfit>('/outfits/score', json('POST', { item_ids: itemIds })),
+  feedback: (itemIds: string[], rating: 1 | -1) =>
+    request<{ item_ids: string[]; rating: 1 | -1 }>('/outfits/feedback', json('POST', { item_ids: itemIds, rating })),
   complete: (itemIds: string[], k = 5) =>
     request<Completion[]>('/outfits/complete', json('POST', { item_ids: itemIds, k })),
   similar: (ref: { itemId?: string; candidateId?: string }, k = 6) => {
@@ -131,7 +133,7 @@ export const api = {
   },
 
   chat: (message: string) =>
-    request<{ reply: string; tools_used: string[] }>('/chat', json('POST', { message })),
+    request<{ reply: string; tools_used: string[]; attachments: ChatAttachment[] }>('/chat', json('POST', { message })),
   chatHistory: () => request<ChatTurn[]>('/chat/history'),
   clearChat: () => request<void>('/chat/history', { method: 'DELETE' }),
 

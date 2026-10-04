@@ -28,7 +28,7 @@ Examples of full questions the dataset builds (from the test split):
 | Key | Arabic | Transliteration | Meaning | Note | Correction |
 |---|---|---|---|---|---|
 | shirt | سورية (f) | sourya | shirt | | |
-| sweater | تريكو (m) | triko | sweater, knit | | |
+| sweater | تريكو (m) | triko | sweater, knit | | سويتر |
 | sweatshirt | سويت (m) | swit | sweatshirt | | |
 | t-shirt | تيشرت (m) | tishirt | t-shirt | | |
 | top | توب (m) | top | top | | |
@@ -37,7 +37,7 @@ Examples of full questions the dataset builds (from the test split):
 | jeans | دجين (m) | djin | jeans | | |
 | leggings | ليقينغ (m) | liging | leggings | spelling? | |
 | shorts | شورط (m) | short | shorts | | |
-| skirt | جيبة (f) | jiba | skirt | | |
+| skirt | جيبة (f) | jiba | skirt | | جيب |
 | track-pants | جوقينغ (m) | joging | joggers / track pants | | |
 | trousers | سروال (m) | serwel | trousers | | |
 | dress | روبة (f) | roba | dress | | |
@@ -53,7 +53,7 @@ Examples of full questions the dataset builds (from the test split):
 | flip-flops | شلاكة (f) | shlaka | flip-flops | | |
 | formal-shoes | صباط كلاسيك (m) | sabbat klasik | smart shoes | | |
 | heels | صباط بالكعب (m) | sabbat bel ka3b | heels | | |
-| sandals | صندالة (f) | sandala | sandals | | |
+| sandals | صندالة (f) | sandala | sandals | | صندال |
 | sneakers | سبادري (m) | sbadri | sneakers | | |
 | backpack | كرطابلة (f) | kartabla | backpack (school bag) | | |
 | clutch | بوشيت (f) | pochette | clutch bag | | |
@@ -62,25 +62,25 @@ Examples of full questions the dataset builds (from the test split):
 | laptop-bag | صاك بورتابل (m) | sak portabl | laptop bag | | |
 | messenger-bag | صاك كتف (m) | sak ktef | shoulder bag | | |
 | waist-bag | صاك بانان (m) | sak banan | bum bag | | |
-| belt | سنتورة (f) | sentoura | belt | | |
-| bracelet | سوار (m) | swar | bracelet | | |
+| belt | سنتورة (f) | sentoura | belt | | سنتور |
+| bracelet | سوار (m) | swar | bracelet | | براسلي |
 | brooch | بروش (f) | broch | brooch | | |
 | cap | كاسكيت (f) | kasket | cap | | |
 | cufflinks | بوتون مونشات (m) | bouton monshet | cufflinks | | |
-| earrings | حلق (m) | 7la9 | earrings | the word people use? | |
-| glasses | نظارات (f) | nadharat | glasses | MSA? (مرايات?) | |
+| earrings | حلق (m) | 7la9 | earrings | the word people use? | بلالط |
+| glasses | نظارات (f) | nadharat | glasses | MSA? (مرايات?) | مرايات |
 | gloves | قفازات (f) | 9affazat | gloves | MSA? | |
 | hair-accessory | أكسسوار شعر (m) | aksesouar sh3ar | hair accessory | | |
 | hat | شابو (m) | shapo | hat | | |
 | jewellery-set | طقم مصوغ (m) | ta9m masough | jewellery set | | |
-| necklace | عقد (m) | 3e9d | necklace | MSA? (سلسلة / كوليي?) | |
+| necklace | عقد (m) | 3e9d | necklace | MSA? (سلسلة / كوليي?) | سلسلة |
 | ring | خاتم (m) | 5atem | ring | | |
 | scarf | فولار (m) | foular | scarf | | |
-| sunglasses | نظارات شمس (f) | nadharat shams | sunglasses | same as glasses | |
+| sunglasses | نظارات شمس (f) | nadharat shams | sunglasses | same as glasses | مرايات شمس |
 | suspenders | بروتال (f) | bretal | braces | | |
 | tie | كرافات (f) | kravat | tie | | |
-| wallet | بزطام (m) | bezdam | wallet | | |
-| watch | مونتر (f) | montr | watch | | |
+| wallet | بزطام (m) | bezdam | wallet | | ستوش |
+| watch | مونتر (f) | montr | watch | | منقالة |
 | swim-shorts | شورط بحر (m) | short b7ar | swim shorts | | |
 | swimsuit | مايو (m) | mayo | swimsuit | | |
 | jebba | جبة (f) | jebba | jebba | | |
@@ -90,7 +90,7 @@ Examples of full questions the dataset builds (from the test split):
 
 | Key | Arabic m | Arabic f | Transliteration | Meaning | Note | Correction |
 |---|---|---|---|---|---|---|
-| black | كحل | كحلة | ka7el / ka7la | black | | |
+| black | كحل | كحلة | ka7el / ka7la | black | | أكحل |
 | white | أبيض | بيضاء | abyedh / bidha | white | G1 | |
 | cream | كريمي | كريمية | krimi / krimiya | cream | | |
 | grey | رمادي | رمادية | rmedi / rmediya | grey | | |

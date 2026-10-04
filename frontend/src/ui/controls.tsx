@@ -16,9 +16,10 @@ export function Button({ variant = 'primary', busy, disabled, children, classNam
   return (
     <button
       {...rest}
+      type={rest.type ?? 'button'}
       disabled={disabled || busy}
       aria-busy={busy || undefined}
-      className={`inline-flex min-h-11 items-center justify-center gap-2 px-4 text-[15px] font-medium transition-colors duration-150 disabled:cursor-not-allowed ${look} ${className}`}
+      className={`inline-flex min-h-11 items-center justify-center gap-2 px-4 text-[15px] font-medium shadow-[var(--shadow-ticket)] transition-[background-color,border-color,box-shadow,transform,color] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed disabled:shadow-none ${look} ${className}`}
     >
       {busy && <LoaderCircle className="size-4 animate-spin" aria-hidden />}
       {children}
@@ -40,7 +41,7 @@ export function Chip({ selected, children, onClick, className = '' }: {
       type="button"
       aria-pressed={selected}
       onClick={onClick}
-      className={`inline-flex min-h-9 shrink-0 items-center gap-2 border-[1.5px] px-3 text-[13px] transition-colors duration-150 ${
+      className={`inline-flex min-h-9 shrink-0 items-center gap-2 border-[1.5px] px-3 text-[13px] shadow-[var(--shadow-ticket)] transition-[background-color,border-color,box-shadow,transform,color] duration-150 hover:shadow-[var(--shadow-lift)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink active:translate-y-px ${
         selected ? 'border-ink bg-ink font-semibold text-paper' : 'border-perf bg-paper font-medium text-carbon hover:border-ink'
       } ${className}`}
     >
@@ -73,7 +74,7 @@ export function TextField({ label, hint, error, ...rest }: InputHTMLAttributes<H
       <input
         {...rest}
         aria-invalid={error ? true : undefined}
-        className="block min-h-11 w-full border-b-[1.5px] border-perf bg-transparent px-0 text-[16px] text-carbon outline-none transition-colors duration-150 placeholder:text-carbon-soft/70 focus:border-ink focus-visible:outline-none aria-invalid:border-stamp-deep"
+        className="block min-h-11 w-full border-b-[1.5px] border-perf bg-transparent px-0 text-[16px] text-carbon outline-none transition-[border-color] duration-150 placeholder:text-carbon-soft/70 focus:border-ink focus-visible:outline-none aria-invalid:border-stamp-deep"
       />
       {(error || hint) && (
         <span className={`mt-1 block text-[12px] ${error ? 'text-stamp-deep' : 'text-carbon-soft'}`}>{error || hint}</span>

@@ -135,7 +135,7 @@ def update_user(user_id: str, body: UserUpdate, request: Request, admin=Depends(
 def delete_user(user_id: str, request: Request, admin=Depends(current_admin)):
     user = other_user(request, admin, user_id)
     db = request.app.state.db
-    for coll in ("items", "candidates", "chats", "events"):
+    for coll in ("items", "candidates", "chats", "events", "outfit_feedback"):
         db[coll].delete_many({"user_id": user["_id"]})
     db.users.delete_one({"_id": user["_id"]})
     shutil.rmtree(request.app.state.settings.storage_dir / str(user["_id"]), ignore_errors=True)

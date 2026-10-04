@@ -35,8 +35,8 @@ class Analyzer:
         self._modules = (classifier, fashionclip, estimate_colours)
 
     def analyze(self, img):
-        classifier, fashionclip, estimate_colours = self._modules
-        p = classifier.predict([img], self._classifier, self.device)[0]
+        fashionclip, estimate_colours = self._modules[1:]
+        p = self.classify_for_mask(img)
         out = {f: {"value": p[f], "conf": round(p[f + "_conf"], 3)}
                for f in ("category", "sub_category", "pattern")}
         # colour: same features and metal rule as the dataset estimates
@@ -47,6 +47,10 @@ class Analyzer:
         out["colour"] = {"value": str(colour[0]), "conf": round(float(conf[0]), 3)}
         out["vector"] = fashionclip.embed_images([img], self._clip, self._processor, self.device)[0]
         return out
+
+    def classify_for_mask(self, img):
+        """Small category-only hook used before background removal."""
+        return self._modules[0].predict([img], self._classifier, self.device)[0]
 
 
 class Catalog:

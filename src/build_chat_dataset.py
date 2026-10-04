@@ -381,7 +381,7 @@ class Conversation:
         outfits = self.call("suggest_outfits", **args)
         if not outfits:
             return self.say(self.explain_empty(occasion_text))
-        shown = outfits[:args.get("n", 2)]
+        shown = outfits[:args.get("n", 1)]
         text = self.outfit_sentences(shown, first, **slots)
         text.append(self.pick(P.SAY_ASK_MORE[self.lang]))
         self.say(" ".join(text))

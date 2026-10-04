@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import pytest
 
 from app import chat_engine
-from app.chat_engine import ChatBusy, ChatQuota, GeminiEngine
+from app.chat_engine import ChatBusy, ChatQuota, GeminiEngine, clean_model_text
 from tests.conftest import BLACK, BLUE, RED, photo, sign_up, upload
 
 
@@ -13,9 +13,13 @@ def test_chat_uses_the_real_wardrobe(client):
         upload(client, headers, rgb)
     r = client.post("/chat", json={"message": "what is in my wardrobe?"}, headers=headers)
     assert r.status_code == 200
-    assert r.json() == {"reply": "You have 3 items.", "tools_used": ["list_wardrobe"]}
+    assert r.json()["reply"] == "You have 3 items."
+    assert r.json()["tools_used"] == ["list_wardrobe"]
+    assert len(r.json()["attachments"]) == 3
+    assert all(a["image_url"].startswith("/items/") for a in r.json()["attachments"])
     r = client.post("/chat", json={"message": "suggest an outfit"}, headers=headers)
     assert r.json()["tools_used"] == ["suggest_outfits"]
+    assert r.json()["reply"] == "I found 1 outfit."
 
 
 def test_chat_buy_advice_uses_last_scan(client):
@@ -26,6 +30,7 @@ def test_chat_buy_advice_uses_last_scan(client):
     client.post("/analyze", files={"photo": photo(RED)}, headers=headers)
     r = client.post("/chat", json={"message": "should I buy it?"}, headers=headers)
     assert r.json()["reply"].split()[-1] in ("buy", "think", "skip")
+    assert any(a["image_url"].startswith("/candidates/") for a in r.json()["attachments"])
 
 
 def test_history_is_kept_in_order_and_private(client):
@@ -207,3 +212,28 @@ def test_ollama_missing_model_or_server(settings, monkeypatch):
     monkeypatch.setattr(httpx, "post", refuse)
     with pytest.raises(ChatUnavailable):
         OllamaEngine(settings).reply("s", [], "hi", {})
+
+
+@pytest.mark.parametrize("payload", [
+    None,
+    {"role": "assistant", "tool_calls": [{}]},
+])
+def test_ollama_malformed_responses_are_controlled_errors(settings, monkeypatch, payload):
+    with pytest.raises(ChatBusy):
+        ollama_engine(settings, monkeypatch, FakeOllama(payload)).reply("s", [], "hi", {})
+
+
+def test_ollama_tool_loop_never_returns_empty_answer(settings, monkeypatch):
+    call = {"role": "assistant", "content": "", "tool_calls": [
+        {"function": {"name": "unknown", "arguments": {}}}]}
+    fake = FakeOllama(*([call] * (OllamaEngine.MAX_ROUNDS + 1)))
+    answer, used = ollama_engine(settings, monkeypatch, fake).reply("s", [], "hi", {})
+    assert answer
+    assert used == ["unknown", "unknown"]
+
+
+def test_model_text_hides_tool_protocol_artifacts():
+    text = '<tool_call>{"name":"suggest_outfits","arguments":{}}</tool_call>\n' \
+           'Try the grey sweatshirt and khaki trousers.\n' \
+           '{"name":"suggest_outfits","arguments":{}}'
+    assert clean_model_text(text) == "Try the grey sweatshirt and khaki trousers."

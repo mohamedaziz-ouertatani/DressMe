@@ -20,6 +20,8 @@ export function TodayPage() {
   const [season, setSeason] = useState<Season | undefined>()
   const [occasion, setOccasion] = useState<Occasion | undefined>()
   const [index, setIndex] = useState(0)
+  const [feedback, setFeedback] = useState<Record<string, 1 | -1>>({})
+  const [feedbackError, setFeedbackError] = useState<unknown>(null)
 
   const wardrobe = useLoad(() => api.items(), [])
   const outfits = useLoad(async () => {
@@ -71,7 +73,28 @@ export function TodayPage() {
             {index + 1} / {list.length}
           </p>
         )}
-        <OutfitStrip key={index} outfit={outfit} land />
+        <OutfitStrip
+          key={index}
+          outfit={outfit}
+          land
+          feedback={feedback[outfit.items.map((item) => item.id).sort().join('|')]}
+          onFeedback={(rating) => {
+            const key = outfit.items.map((item) => item.id).sort().join('|')
+            const previous = feedback[key]
+            setFeedback((current) => ({ ...current, [key]: rating }))
+            setFeedbackError(null)
+            api.feedback(outfit.items.map((item) => item.id), rating).catch((error) => {
+              setFeedback((current) => {
+                const next = { ...current }
+                if (previous === undefined) delete next[key]
+                else next[key] = previous
+                return next
+              })
+              setFeedbackError(error)
+            })
+          }}
+        />
+        {feedbackError ? <ErrorNote error={feedbackError} /> : null}
         {list.length > 1 && (
           <Button variant="secondary" className="mt-5 w-full sm:w-auto" onClick={() => setIndex((index + 1) % list.length)}>
             <RefreshCw className="size-4" aria-hidden /> {t('anotherOne')}

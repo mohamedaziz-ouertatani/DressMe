@@ -1,4 +1,5 @@
-import type { Outfit } from '../api/types'
+import { ThumbsDown, ThumbsUp } from 'lucide-react'
+import type { Outfit, OutfitRating } from '../api/types'
 import { useI18n } from '../i18n'
 import { CATEGORY_LABELS, COLOUR_HEX, COLOUR_LABELS, SUB_LABELS, secondLine, vocab } from '../i18n/vocab'
 import { Swatch } from './controls'
@@ -8,11 +9,13 @@ import { SecondLine, Serial, Ticket } from './ticket'
 
 /** An outfit as a strip of perforated tickets, one per piece, with the score
  *  stamped across the top corner. */
-export function OutfitStrip({ outfit, land = false, compact = false, photoOf }: {
+export function OutfitStrip({ outfit, land = false, compact = false, photoOf, onFeedback, feedback }: {
   outfit: Outfit
   land?: boolean
   compact?: boolean
   photoOf?: (id: string) => string | undefined   // e.g. the scanned photo, not stored on the server
+  onFeedback?: (rating: OutfitRating) => void
+  feedback?: OutfitRating
 }) {
   const { t, lang, reason } = useI18n()
   const size = compact ? 72 : 96
@@ -64,6 +67,25 @@ export function OutfitStrip({ outfit, land = false, compact = false, photoOf }: 
           </li>
         ))}
       </ul>
+      {onFeedback && (
+        <div className="mt-4 flex items-center gap-2" aria-label={t('outfitFeedback')}>
+          <span className="text-[13px] text-carbon-soft">{t('outfitFeedback')}</span>
+          {([1, -1] as const).map((rating) => (
+            <button
+              key={rating}
+              type="button"
+              aria-label={t(rating === 1 ? 'outfitLike' : 'outfitDislike')}
+              aria-pressed={feedback === rating}
+              onClick={() => onFeedback(rating)}
+              className={`grid size-9 place-items-center border transition-colors ${
+                feedback === rating ? 'border-ink bg-ink text-paper' : 'border-carbon/20 text-carbon-soft hover:border-ink hover:text-ink'
+              }`}
+            >
+              {rating === 1 ? <ThumbsUp className="size-4" aria-hidden /> : <ThumbsDown className="size-4" aria-hidden />}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

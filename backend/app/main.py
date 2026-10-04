@@ -34,7 +34,8 @@ def create_app(settings=None, analyzer=None, catalog=None, chat_engine=None, rem
             from .ml import Analyzer, Catalog      # the real models (slow to load)
         app.state.analyzer = analyzer or Analyzer()
         app.state.catalog = catalog or Catalog()
-        app.state.remover = remover or load_remover(settings)   # None = keep backgrounds
+        classifier = getattr(app.state.analyzer, "classify_for_mask", None)
+        app.state.remover = remover or load_remover(settings, classifier)   # None = keep backgrounds
         app.state.chat_engine = chat_engine or make_engine(settings)
         yield
 
@@ -49,4 +50,3 @@ def create_app(settings=None, analyzer=None, catalog=None, chat_engine=None, rem
         return {"status": "ok"}
 
     return app
-

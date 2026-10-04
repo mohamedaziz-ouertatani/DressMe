@@ -1,6 +1,6 @@
 # Chat model evaluation
 
-30 test conversations of `src/build_chat_dataset.py` (wardrobes never seen in training, ~1/3 of the questions phrased differently from the training split). Each assistant turn is one decision; the model sees the real conversation up to that point.
+30 test conversations of `src/build_chat_dataset.py` (wardrobes never seen in training, ~1/3 of the questions phrased differently from the training split). Each assistant turn is one decision; the model sees the real conversation up to that point. This baseline was generated before the default suggestion count changed to one and before the latest Darija vocabulary corrections; rerun `src/evaluate_chat.py` after the next Ollama evaluation to refresh the examples and metrics.
 
 | Model | Tool decision | Tool name | Arguments | Language | s / decision |
 |---|---|---|---|---|---|

@@ -505,8 +505,9 @@ def build():
                       "(fr 45%, Darija 35% incl. Arabizi, en 20%) on random wardrobes; the "
                       "backend's <b>real</b> tools produce the scores and reasons", "built"],
                      ["Darija check", "<i>reports/darija_review.md</i>: every Darija word and "
-                      "sentence with transliteration and meaning, for a native speaker",
-                      "waiting for the team"],
+                      "sentence with transliteration and meaning; initial team corrections are "
+                      "applied, full native review remains",
+                      "in progress"],
                      ["Fine-tuning", "QLoRA (Unsloth, rank 16, assistant turns only) on a free "
                       "Kaggle T4, exported to GGUF: <i>dressme-chat</i>", "next"],
                      ["Evaluation", "<i>evaluate_chat.py</i>: base vs fine-tuned, per turn",
@@ -535,7 +536,8 @@ def build():
         "the CPU), ~35 s for the first answer (model loading).",
         "<b>Fixes from the first real run:</b> answers are capped at 600 tokens (the base model "
         "once repeated itself until a 5-minute timeout), and the assistant answers in the "
-        "language the user writes in, not the profile language.",
+        "language the user writes in, not the profile language. Unqualified suggestions "
+        "return one best outfit; an explicit count is preserved.",
     ])
 
     # --- 11. decisions
@@ -580,8 +582,8 @@ def build():
         "The models have not been measured on real phone photos yet (local test set pending).",
         "The H&amp;M catalogue has no prices and is not Tunisian stock; the shop demo is frozen.",
         "The local chat model is slow on the 4 GB GPU (11-18 s per answer), and synthetic "
-        "chats measure tool use and language, not how natural the answers sound. The Darija "
-        "in the dataset has not been checked by a native speaker yet.",
+        "chats measure tool use and language, not how natural the answers sound. Initial Darija "
+        "corrections are applied, but a complete native-speaker review is still pending.",
         "Datasets are for non-commercial academic use only and are never redistributed.",
     ])
 

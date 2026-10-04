@@ -18,8 +18,10 @@ export function BuildPage() {
   const [outfit, setOutfit] = useState<Outfit | null>(null)
   const [completions, setCompletions] = useState<Completion[]>([])
   const [error, setError] = useState<unknown>(null)
+  const [feedback, setFeedback] = useState<1 | -1>()
 
   useEffect(() => {
+    setFeedback(undefined)
     if (!picked.length) return
     let stale = false
     Promise.all([api.score(picked), api.complete(picked, 4)])
@@ -59,7 +61,19 @@ export function BuildPage() {
       {error ? <ErrorNote error={error} /> : null}
       {shownOutfit ? (
         <div className="pt-6">
-          <OutfitStrip outfit={shownOutfit} compact />
+          <OutfitStrip
+            outfit={shownOutfit}
+            compact
+            feedback={feedback}
+            onFeedback={(rating) => {
+              const previous = feedback
+              setFeedback(rating)
+              api.feedback(shownOutfit.items.map((item) => item.id), rating).catch((error) => {
+                setFeedback(previous)
+                setError(error)
+              })
+            }}
+          />
           {shownCompletions.length > 0 && (
             <div className="mt-6">
               <h2 className="mb-2 text-[13px] font-medium uppercase tracking-[0.06em] text-carbon-soft">{t('completeWith')}</h2>

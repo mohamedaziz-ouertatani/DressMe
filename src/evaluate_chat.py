@@ -31,7 +31,7 @@ import httpx
 ROOT = Path(__file__).resolve().parents[1]
 TEST = ROOT / "data" / "processed" / "chat_sft" / "test.jsonl"
 REPORT = ROOT / "reports" / "chat_evaluation.md"
-DEFAULTS = {"suggest_outfits": {"season": "", "occasion": "", "n": 3}, "list_wardrobe": {"category": ""}}
+DEFAULTS = {"suggest_outfits": {"season": "", "occasion": "", "n": 1}, "list_wardrobe": {"category": ""}}
 
 FR_WORDS = {"le", "la", "les", "tu", "ton", "ta", "tes", "et", "avec", "pour", "une", "un", "des",
             "de", "est", "pas", "je", "ça", "dans", "ce", "mais", "ou", "sur", "va", "aux", "du"}

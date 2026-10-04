@@ -47,7 +47,11 @@ def main():
             sys.exit(f"expected one .gguf under {MODEL_DIR}, found {len(found)}: pass --gguf")
         gguf = found[0]
 
-    template = ollama("show", args.base, "--template")
+    base_modelfile = ollama("show", args.base, "--modelfile")
+    try:
+        template = base_modelfile.split('TEMPLATE """', 1)[1].split('"""', 1)[0]
+    except (IndexError, ValueError):
+        sys.exit("the base model's Modelfile does not contain a readable TEMPLATE block")
     if '"""' in template:
         sys.exit("the base template contains triple quotes: write the Modelfile by hand")
     parameters = [line.split(None, 1) for line in ollama("show", args.base, "--parameters").splitlines()

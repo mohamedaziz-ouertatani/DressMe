@@ -87,5 +87,6 @@ def test_users_cannot_see_each_other(client):
 def test_analyze_does_not_add_to_wardrobe(client):
     headers = sign_up(client)
     r = client.post("/analyze", files={"photo": photo(BLUE)}, headers=headers)
-    assert r.status_code == 201 and r.json()["category"] == "bottom" and "image_url" not in r.json()
+    assert r.status_code == 201 and r.json()["category"] == "bottom"
+    assert r.json()["image_url"].startswith("/candidates/")
     assert client.get("/items", headers=headers).json() == []
