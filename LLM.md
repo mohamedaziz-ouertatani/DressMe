@@ -23,6 +23,10 @@ Why Qwen3-4B-Instruct: it is the best tool-calling model of this size in our `ol
 
 GPU: the 4B model needs ~2.5 GB plus ~1 GB for its context (`OLLAMA_NUM_CTX=8192`), and the backend's own models take ~1.5 GB, so on the RTX 2050 (4 GB) Ollama puts some layers on the CPU by itself. Answers then take a few seconds; the first one also loads the model.
 
+Measured on the RTX 2050 (2026-10-04, backend running, `ollama ps` = 4.1 GB, 42% CPU / 58% GPU): ~21 tokens/s generated, prompt read at 1,000-9,000 tokens/s. One chat answer = 11-18 s when it calls tools (each tool round sends the whole conversation again, and `list_wardrobe` of 24 items is long), ~35 s for the first answer (model loading). On the CPU only it was 11-51 s per answer.
+
+> **Check `ollama ps`: the PROCESSOR column must show some GPU.** If Ollama starts while the PC is short of RAM, it sometimes finds no GPU (`server.log`: `total_vram="0 B"`) and runs 100% on the CPU until it restarts. Fix: quit Ollama from the tray icon and start it again.
+
 ## 2. Fine-tune it
 
 Goal: the base model already chats; fine-tuning teaches it **our** job: call the right tool with the right arguments, use `list_wardrobe` then `score_outfit` for "does A go with B?", never invent clothes, keep answers short, and answer in the user's language, including Tunisian Darija and Arabizi questions.
