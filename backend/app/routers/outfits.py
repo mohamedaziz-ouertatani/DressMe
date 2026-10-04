@@ -126,7 +126,10 @@ def buy_advice(body: BuyAdvice, request: Request, user=Depends(current_user)):
     """A candidate from /analyze (optionally corrected) vs the wardrobe."""
     cand = own_item(request, user, body.candidate_id, collection="candidates")
     if body.corrections:
-        cand = {**cand, **apply_update(cand, body.corrections)}
+        changes = apply_update(cand, body.corrections)
+        # saved, so /tryon and the chat's last scan see the corrected item too
+        request.app.state.db.candidates.update_one({"_id": cand["_id"]}, {"$set": changes})
+        cand = {**cand, **changes}
     docs, by_id = wardrobe(request, user)
     by_id[str(cand["_id"])] = cand
     advice = compatibility.buy_advice(

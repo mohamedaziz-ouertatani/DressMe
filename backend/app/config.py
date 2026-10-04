@@ -16,6 +16,11 @@ Settings, read from environment variables (or backend/.env, never committed).
     BACKGROUND_MODEL   rembg model for that (default u2net)
     CLOTH_MODEL        rembg model that keeps only the garment when it is worn
                        (default u2net_cloth_seg; empty = keep the whole person)
+    TRYON_ENGINE     space (default: a Hugging Face Space, see tryon.py) or off
+    TRYON_SPACE      default zhengchong/CatVTON
+    TRYON_API        the Space's endpoint, default /submit_function
+    TRYON_STEPS      diffusion steps per garment (default 30: fewer = faster, rougher)
+    HF_TOKEN         optional Hugging Face token: a bigger free GPU quota on the Space
     CORS_ORIGINS     comma-separated, default http://localhost:5173 (React dev server)
 """
 
@@ -46,6 +51,13 @@ class Settings:
     gemini_api_key: str = field(default_factory=lambda: os.getenv("GEMINI_API_KEY", ""))
     gemini_model: str = field(default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-3.8-flash"))
     storage_dir: Path = field(default_factory=lambda: Path(os.getenv("STORAGE_DIR", BACKEND_DIR / "storage")))
+    tryon_engine: str = field(default_factory=lambda: os.getenv("TRYON_ENGINE", "space").lower())
+    tryon_space: str = field(default_factory=lambda: os.getenv("TRYON_SPACE", "zhengchong/CatVTON"))
+    tryon_api: str = field(default_factory=lambda: os.getenv("TRYON_API", "/submit_function"))
+    tryon_steps: int = field(default_factory=lambda: int(os.getenv("TRYON_STEPS", "30")))
+    tryon_timeout: float = 180.0       # seconds per garment (a sleeping Space wakes up first)
+    tryon_max_garments: int = 3        # chained garments per try-on (each costs GPU quota)
+    hf_token: str = field(default_factory=lambda: os.getenv("HF_TOKEN", ""))
     cors_origins: list = field(default_factory=lambda: os.getenv(
         "CORS_ORIGINS", "http://localhost:5173").split(","))
     mappings_dir: Path = field(default_factory=lambda: ROOT / "mappings")   # formula CSVs

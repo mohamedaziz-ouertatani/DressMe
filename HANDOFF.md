@@ -356,6 +356,7 @@ Sections are numbered automatically from the `SECTIONS` list in the script.
   - `/analyze` for friperie photos (not saved; the candidate is deleted after 24 h);
   - `/buy-advice`, outfit score / suggest / complete, `/similar`;
   - `/chat`, with history per user.
+  - `/tryon`, virtual try-on through a hosted CatVTON Space, with a 2D overlay fallback in the app (see CLAUDE.md).
 - **Chat:** Gemini automatic function calling with four tools bound to the user (`list_wardrobe`, `suggest_outfits`, `score_outfit`, `buy_advice_last_scan`). The system prompt asks it to use the real wardrobe, answer in the user's language and respect their modesty level. **It needs `GEMINI_API_KEY` in `backend/.env`** (set since 2026-10-03); without it `/chat` answers 503. Gemini overload (500 / 503) is retried twice, then answers 502; a used-up quota answers 429 (the free key allows 20 requests a day); see section 5.
 - **Colour model:** `src/estimate_colours.py` now saves the trained model to `models/checkpoints/colour_model.joblib`, which the backend uses for uploads. Re-running it gave byte-identical estimates.
 - **Tests** (`backend/tests/`):

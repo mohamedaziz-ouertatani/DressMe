@@ -2,7 +2,7 @@
 // localStorage; a 401 anywhere logs the user out (see AuthProvider).
 import type {
   AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Insights, Item, ItemPatch, ModelQuality,
-  Occasion, Outfit, Season, Similar, Stats, User, ChatAttachment,
+  Occasion, Outfit, Season, Similar, Stats, User, ChatAttachment, TryOnResult,
 } from './types'
 
 const BASE = '/api'
@@ -132,6 +132,14 @@ export const api = {
     if (ref.itemId) q.set('item_id', ref.itemId)
     if (ref.candidateId) q.set('candidate_id', ref.candidateId)
     return request<Similar>(`/similar?${q}`)
+  },
+
+  /** Can take minutes (about one per garment): the AI runs on a shared GPU. */
+  tryOn: (person: Blob, itemIds: string[], candidateId?: string) => {
+    const form = photoForm(person)
+    itemIds.forEach((id) => form.append('item_ids', id))
+    if (candidateId) form.append('candidate_id', candidateId)
+    return request<TryOnResult>('/tryon', { method: 'POST', body: form })
   },
 
   chat: (message: string) =>
