@@ -7,23 +7,30 @@ requests, 5 s apart). It tells
     (/wp-json/wc/store/v1/products), so the collector knows which connector to use;
   - whether robots.txt allows those paths (if not, we do not list the shop);
   - one product with its price, so the team can confirm the prices are in TND;
-  - a ready-to-paste CSV line, still with enabled = no.
+  - with --save, the kind it found written into listing_sources.csv (still enabled = no).
 
 Enabling the shop stays a team step: someone reads the shop's terms of use,
 then sets enabled = yes and approved_on = the date in the CSV.
 
 Run on the team machine (the cloud sessions cannot reach these sites):
-    python src/check_shop_source.py https://www.example.tn exist_tn
+    python src/check_shop_source.py --all            # every shop in the CSV with a base_url
+    python src/check_shop_source.py exist_tn --save  # one shop; --save writes the kind found
+    python src/check_shop_source.py https://www.example.tn new_shop_tn   # a shop not in the CSV yet
+--save only fills `kind` (and `note`) in mappings/listing_sources.csv: the shop
+stays OFF (enabled = no) until a team member has read its terms.
 """
 
 import argparse
+import csv
 import sys
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 
-from app.listings import SourceBlocked  # noqa: E402
+from app.config import Settings  # noqa: E402
+from app.listings import SOURCES_FILE, SourceBlocked, load_sources  # noqa: E402
 from connectors.http import Client, Forbidden  # noqa: E402
 
 TRIES = [  # (kind, path of one product)
@@ -76,22 +83,68 @@ def check(base_url, client=None):
     return lines, kind_found
 
 
-def main():
-    ap = argparse.ArgumentParser(description="Check a shop site before listing it (read-only)")
-    ap.add_argument("url", help="the shop's home page, e.g. https://www.example.tn")
-    ap.add_argument("source_id", nargs="?", default="new_shop_tn", help="its id in listing_sources.csv")
-    args = ap.parse_args()
+SHOP_KINDS = ("", "shopify", "woocommerce")     # the rows this script may fill
 
-    print(f"checking {args.url} (robots.txt first, then one product per platform)")
-    lines, kind = check(args.url)
+
+def save_kind(path, source_id, kind):
+    """Write the kind found into listing_sources.csv; enabled stays as it is (no)."""
+    with open(path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        fields, rows = reader.fieldnames, list(reader)
+    for row in rows:
+        if row["source_id"] == source_id:
+            row["kind"] = kind
+            row["note"] = (f"Checked {date.today().isoformat()} with check_shop_source.py: {kind}. "
+                           "A team member must read the shop's terms before enabled=yes.")
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fields, quoting=csv.QUOTE_MINIMAL, lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def check_one(url, source_id, save, csv_path):
+    print(f"\n{source_id}: checking {url} (robots.txt first, then one product per platform)")
+    lines, kind = check(url)
     print("\n".join(lines))
     if not kind:
-        print("\nNo platform we support was found (or the shop does not allow it): do not add it.")
+        print("  -> no platform we support was found (or the shop does not allow it): do not list it.")
         return
-    brand = args.source_id.rsplit("_", 1)[0]
-    print("\nCSV line for mappings/listing_sources.csv (still OFF: read the shop's terms first,")
-    print("then set enabled=yes and approved_on=<date>):")
-    print(f'{args.source_id},{kind},{brand},tn,{args.url},no,,5,2,7,,"checked with check_shop_source.py"')
+    if save:
+        save_kind(csv_path, source_id, kind)
+        print(f"  -> saved kind={kind} in {csv_path.name}; still OFF until its terms are read.")
+    else:
+        print(f"  -> kind={kind}. Add --save to write it into {csv_path.name} (it stays OFF).")
+
+
+def main():
+    ap = argparse.ArgumentParser(description="Check a shop site before listing it (read-only)")
+    ap.add_argument("target", nargs="?", help="a source_id from listing_sources.csv, or a site URL")
+    ap.add_argument("source_id", nargs="?", default="new_shop_tn", help="with a URL: the id to use")
+    ap.add_argument("--all", action="store_true", help="every shop in the CSV that has a base_url")
+    ap.add_argument("--save", action="store_true", help="write the kind found into the CSV (stays OFF)")
+    args = ap.parse_args()
+
+    csv_path = Settings().mappings_dir / SOURCES_FILE
+    sources = {s["source_id"]: s for s in load_sources(csv_path.parent)}
+    if args.all:
+        todo = [(s["base_url"], sid) for sid, s in sources.items()
+                if s.get("base_url") and s.get("kind", "") in SHOP_KINDS]
+    elif args.target and args.target.startswith("http"):
+        todo = [(args.target, args.source_id)]
+        if args.source_id not in sources:
+            brand = args.source_id.rsplit("_", 1)[0]
+            print("Not in the CSV yet: add this line to mappings/listing_sources.csv first "
+                  "(then run again with its id and --save):")
+            print(f'{args.source_id},,{brand},tn,{args.target},no,,5,2,7,,"to check"')
+            args.save = False
+    elif args.target in sources:
+        if not sources[args.target].get("base_url"):
+            sys.exit(f"ERROR: {args.target} has no base_url in {csv_path.name}")
+        todo = [(sources[args.target]["base_url"], args.target)]
+    else:
+        ap.error("give --all, a source_id from listing_sources.csv, or a URL")
+    for url, sid in todo:
+        check_one(url, sid, args.save and sid in sources, csv_path)
 
 
 if __name__ == "__main__":

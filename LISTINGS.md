@@ -20,15 +20,11 @@ Status (2026-10-04, after the first real run):
 | App pages | `ShopPage.tsx` (Shops + one listing with the verdict), `SellPage.tsx` (sell + my listings), Admin > Sources and Admin > Moderation |
 | Tests | `backend/tests/test_listings.py`, `test_connectors.py` (recorded answers in `tests/fixtures/`), `test_sellers.py`; never a real site |
 
-**Frozen snapshot (once):**
-```
-python src/freeze_shop_demo.py                               # if data/processed/shop_demo.csv is missing
-python src/collect_listings.py --source inditex_snapshot     # analyses the saved pictures; add --force to reload it
-```
+**Frozen snapshot:** run `inditex_snapshot` (Admin > Listings, "Run now", or `python src/collect_listings.py --source inditex_snapshot`). If `data/processed/shop_demo.csv` is missing, the run builds it first from the rows scraped on 2026-10-03 (`data/raw/Shops/*/products.csv`, through `freeze_shop_demo.freeze`), saving each picture once with our own User-Agent; a picture that could not be saved is tried once more by the collector. If no rows were ever scraped on this computer, the run says so: there is then no snapshot to show. To rebuild it after a change, delete `shop_demo.csv` and run it with "ignore refresh_days" (`--force`).
 
-**Adding a Tunisian shop (Exist, Hamadi Abid, Zen, ...):**
-1. `python src/check_shop_source.py https://<the shop's site> exist_tn`: reads robots.txt and one product, says whether the shop runs Shopify or WooCommerce, shows a price to confirm it is in TND, and prints the CSV line. A shop whose robots.txt forbids those paths is not listed.
-2. A team member reads the shop's terms of use. If nothing forbids it, fill `kind` and `base_url`, set `enabled = yes` and `approved_on` = that date.
+**Adding a Tunisian shop:** Exist (https://www.exist.com.tn/), Hamadi Abid (https://ha.com.tn/) and Zen (https://zen.com.tn/fr/) are already in the table with their sites (given by the team on 2026-10-04), switched off.
+1. `python src/check_shop_source.py --all --save`: for each shop, reads robots.txt and one product, says whether it runs Shopify or WooCommerce, shows a price to confirm it is in TND, and writes the `kind` it found into the table (the shop stays OFF). A shop whose robots.txt forbids those paths, or that runs neither platform, gets no kind and is not listed. A new shop: add its line first (`python src/check_shop_source.py https://<site> new_tn` prints it).
+2. A team member reads the shop's terms of use. If nothing forbids it, set `enabled = yes` and `approved_on` = that date.
 3. Smoke test: `python src/collect_listings.py --source exist_tn --limit 30` (a `--limit` run never marks anything gone).
 4. The nightly job then refreshes it every `refresh_days` (2).
 
