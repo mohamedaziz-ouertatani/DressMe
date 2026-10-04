@@ -181,7 +181,10 @@ class OllamaEngine:
                                  "options": {"temperature": self.settings.ollama_temperature,
                                              # Ollama's default window is too short for
                                              # 20 messages of history + tool answers
-                                             "num_ctx": self.settings.ollama_num_ctx}})
+                                             "num_ctx": self.settings.ollama_num_ctx,
+                                             # a small model sometimes repeats itself until
+                                             # the timeout: cut the answer instead
+                                             "num_predict": self.settings.ollama_max_tokens}})
             calls = answer.get("tool_calls") or []
             if not calls or len(used) >= self.MAX_ROUNDS:
                 return (answer.get("content") or "").strip(), used
