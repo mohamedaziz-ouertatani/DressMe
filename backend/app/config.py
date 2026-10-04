@@ -42,6 +42,7 @@ class Settings:
     ollama_num_ctx: int = field(default_factory=lambda: int(os.getenv("OLLAMA_NUM_CTX", "8192")))
     ollama_timeout: float = 180.0      # seconds; the first answer also loads the model
     ollama_temperature: float = 0.3
+    ollama_max_tokens: int = 600       # longest answer; stops a model that repeats itself forever
     gemini_api_key: str = field(default_factory=lambda: os.getenv("GEMINI_API_KEY", ""))
     gemini_model: str = field(default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-3.8-flash"))
     storage_dir: Path = field(default_factory=lambda: Path(os.getenv("STORAGE_DIR", BACKEND_DIR / "storage")))

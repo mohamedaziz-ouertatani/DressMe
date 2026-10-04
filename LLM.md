@@ -23,6 +23,10 @@ Why Qwen3-4B-Instruct: it is the best tool-calling model of this size in our `ol
 
 GPU: the 4B model needs ~2.5 GB plus ~1 GB for its context (`OLLAMA_NUM_CTX=8192`), and the backend's own models take ~1.5 GB, so on the RTX 2050 (4 GB) Ollama puts some layers on the CPU by itself. Answers then take a few seconds; the first one also loads the model.
 
+Measured on the RTX 2050 (2026-10-04, backend running, `ollama ps` = 4.1 GB, 42% CPU / 58% GPU): ~21 tokens/s generated, prompt read at 1,000-9,000 tokens/s. One chat answer = 11-18 s when it calls tools (each tool round sends the whole conversation again, and `list_wardrobe` of 24 items is long), ~35 s for the first answer (model loading). On the CPU only it was 11-51 s per answer.
+
+> **Check `ollama ps`: the PROCESSOR column must show some GPU.** If Ollama starts while the PC is short of RAM, it sometimes finds no GPU (`server.log`: `total_vram="0 B"`) and runs 100% on the CPU until it restarts. Fix: quit Ollama from the tray icon and start it again.
+
 ## 2. Fine-tune it
 
 Goal: the base model already chats; fine-tuning teaches it **our** job: call the right tool with the right arguments, use `list_wardrobe` then `score_outfit` for "does A go with B?", never invent clothes, keep answers short, and answer in the user's language, including Tunisian Darija and Arabizi questions.
@@ -35,7 +39,9 @@ python src/build_chat_dataset.py --show 5
 
 → `data/processed/chat_sft/{train,val,test}.jsonl` (3000 / 200 / 300 conversations). Each one has a random wardrobe, and the backend's **real** tool functions run on it (through a tiny fake database), so scores, verdicts and reasons come from `src/compatibility.py` with the team's weights. The system prompt and tool descriptions are imported from `backend/app/routers/chat.py`, so training and the app always match. The sentences are in `src/chat_phrases.py`.
 
-> **Team: please have a native speaker read the Darija in `src/chat_phrases.py`** (nouns, colours and answers). It was written without a native check, and the model learns every word as written. Then rebuild the dataset.
+> **Team: please have a native speaker read the Darija in `src/chat_phrases.py`** (nouns, colours and answers). It was written without a native check, and the model learns every word as written. Then rebuild the dataset. The review sheet is [reports/darija_review.md](reports/darija_review.md): every Darija word and sentence with transliteration, meaning, open questions and a Correction column.
+
+The answer language follows the language the user **writes** in; the profile language is only used when that is unclear (system prompt in `routers/chat.py`; the dataset already works that way, 12% of chats are in another language than the profile). Before 2026-10-04 the prompt let the profile language win, and the base model answered French and Darija questions in English.
 
 ### 2.2 Train on Kaggle (our 4 GB GPU is too small for a 4B model)
 
@@ -67,6 +73,10 @@ This writes `models/llm/dressme-chat/Modelfile`, using the GGUF and the chat tem
 ```
 python src/evaluate_chat.py            # qwen3:4b-instruct vs dressme-chat, 150 test conversations
 ```
+
+Baseline before fine-tuning (`qwen3:4b-instruct`, `--limit 30`, 75 decisions, 2026-10-04, old language rule): tool decision 76.0%, tool name 33.3%, **arguments 13.9%** (0% on score and suggest), language 94.9%, 8.6 s per decision. It knows *when* to use a tool, but rarely picks the right one with the right ids, and it invents reasons (e.g. "two tops is too revealing" for the max-1-top rule). The language check only looks for Arabic script, so MSA counts as Darija.
+
+Answers are capped at 600 tokens (`num_predict`, backend and evaluation; our longest training answer is ~150): at temperature 0 the base model once repeated itself until Ollama's 5-minute timeout.
 
 → `reports/chat_evaluation.md`. Every assistant turn of a test conversation is one decision, and the model sees the real conversation up to that point. It reports: tool decision (call a tool or answer?), tool name, arguments, and language of the answer, per scenario, with example answers. The test wardrobes are new, and about a third of the questions use phrasings the training split never saw.
 

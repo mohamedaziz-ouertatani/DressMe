@@ -83,7 +83,9 @@ def to_ollama(messages):
 def ask(url, model, messages, tools):
     r = httpx.post(url + "/api/chat", timeout=300, json={
         "model": model, "messages": to_ollama(messages), "tools": tools, "stream": False,
-        "options": {"temperature": 0, "num_ctx": 8192}})
+        # num_predict: same answer limit as the backend (a model that repeats itself
+        # forever would otherwise hit the timeout and stop the whole evaluation)
+        "options": {"temperature": 0, "num_ctx": 8192, "num_predict": 600}})
     r.raise_for_status()
     return r.json()["message"]
 

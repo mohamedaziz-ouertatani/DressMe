@@ -31,3 +31,6 @@ backend/storage/
 # Local chat model (GGUF, LoRA adapters, Modelfile): see LLM.md
 *.gguf
 models/llm/
+
+# run logs of long scripts
+logs/
