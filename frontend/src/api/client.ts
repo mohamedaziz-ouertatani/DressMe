@@ -115,10 +115,11 @@ export const api = {
   buyAdvice: (candidateId: string, corrections?: ItemPatch) =>
     request<BuyAdvice>('/buy-advice', json('POST', { candidate_id: candidateId, corrections })),
 
-  suggest: (opts: { season?: Season; occasion?: Occasion; n?: number }) => {
+  suggest: (opts: { season?: Season; occasion?: Occasion; beach?: boolean; n?: number }) => {
     const q = new URLSearchParams()
     if (opts.season) q.set('season', opts.season)
     if (opts.occasion) q.set('occasion', opts.occasion)
+    if (opts.beach) q.set('beach', 'true')
     q.set('n', String(opts.n ?? 5))
     return request<Outfit[]>(`/outfits/suggest?${q}`)
   },

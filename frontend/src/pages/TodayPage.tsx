@@ -72,6 +72,10 @@ export function TodayPage() {
     )
   }
   const [occasion, setOccasion] = useState<Occasion | undefined>()
+  // Beach: outfits around a swimsuit (swimwear stays out of the other suggestions).
+  // It sits in the occasion row, so picking it clears the occasion and vice versa.
+  const [beach, setBeach] = useState(false)
+  const pickOccasion = (value: Occasion | undefined) => { setBeach(false); setOccasion(value) }
   const [index, setIndex] = useState(0)
   const [feedback, setFeedback] = useState<Record<string, 1 | -1>>({})
   const [feedbackError, setFeedbackError] = useState<unknown>(null)
@@ -79,22 +83,27 @@ export function TodayPage() {
   const wardrobe = useLoad(() => api.items(), [])
   const outfits = useLoad(async () => {
     setIndex(0)
-    return api.suggest({ season, occasion, n: 6 })
-  }, [season, occasion])
+    // a beach outfit is a summer outfit (sandals, no jacket), whatever the season row says
+    return beach ? api.suggest({ season: 'summer', beach, n: 6 }) : api.suggest({ season, occasion, n: 6 })
+  }, [season, occasion, beach])
 
   const filters = (
     <div className="flex flex-col gap-4">
-      {([['season', SEASONS, SEASON_LABELS, season, pickSeason], ['occasion', OCCASIONS, OCCASION_LABELS, occasion, setOccasion]] as const).map(
-        ([key, values, table, current, set]) => (
+      {/* beach outfits are always summer outfits, so the season row is hidden for them */}
+      {([['season', SEASONS, SEASON_LABELS, season, pickSeason], ['occasion', OCCASIONS, OCCASION_LABELS, beach ? null : occasion, pickOccasion]] as const).map(
+        ([key, values, table, current, set]) => (beach && key === 'season') ? null : (
           <fieldset key={key} className="min-w-0">
             <legend className="mb-2 text-[12px] font-medium uppercase tracking-[0.06em] text-carbon-soft">{t(key)}</legend>
             <div className="-mx-4 flex gap-2 no-scrollbar overflow-x-auto px-4 pb-1 lg:mx-0 lg:flex-wrap lg:px-0">
-              <Chip selected={!current} onClick={() => (set as (v: undefined) => void)(undefined)}>{t('any')}</Chip>
+              <Chip selected={current === undefined} onClick={() => (set as (v: undefined) => void)(undefined)}>{t('any')}</Chip>
               {values.map((v) => (
                 <Chip key={v} selected={current === v} onClick={() => (set as (v: string) => void)(v)}>
                   {vocab(table, v, lang)}
                 </Chip>
               ))}
+              {key === 'occasion' && (
+                <Chip selected={beach} onClick={() => { setOccasion(undefined); setBeach(true) }}>{t('beach')}</Chip>
+              )}
             </div>
           </fieldset>
         ),
@@ -117,7 +126,7 @@ export function TodayPage() {
         action={<Link to="/wardrobe" className="inline-flex min-h-11 items-center bg-ink px-4 text-[15px] font-medium text-paper">{t('addPieces')}</Link>}
       />
     )
-  else if (!outfit) body = <Empty title={t('todayTitle')} body={t('todayNoMatch')} />
+  else if (!outfit) body = <Empty title={t('todayTitle')} body={t(beach ? 'todayNoBeach' : 'todayNoMatch')} />
   else
     body = (
       <div aria-busy={outfits.loading || undefined} className={outfits.loading ? 'opacity-60' : ''}>
