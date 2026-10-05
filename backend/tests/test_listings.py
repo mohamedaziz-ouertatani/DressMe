@@ -167,8 +167,8 @@ def test_admin_sources(client, db):
     db.users.update_one({}, {"$set": {"role": "admin"}})
     record_run(db, "zara_tn", datetime.now(timezone.utc), "blocked", "Access Denied")
     rows = {s["source_id"]: s for s in client.get("/admin/sources", headers=headers).json()["sources"]}
-    # blocked on 2026-10-04, re-enabled by the team on 2026-10-05: may run, and the block stays in its history
-    assert rows["zara_tn"]["refused"] == "" and rows["zara_tn"]["last_run"]["result"] == "blocked"
+    # blocked on 2026-10-04 and again on 2026-10-05: switched off, the block stays in its history
+    assert rows["zara_tn"]["refused"] == "not enabled" and rows["zara_tn"]["last_run"]["result"] == "blocked"
     assert "kind not set" in rows["zen_tn"]["refused"]
     assert rows["zara_tn"]["last_ok"] is None
     assert rows["inditex_snapshot"]["refused"] == ""
