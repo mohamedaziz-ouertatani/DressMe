@@ -341,6 +341,18 @@ export interface OverviewSource {
   gone: number
   last_run: ListingRun | null
   last_ok: ListingRun | null
+  checkable: boolean         // a shop the read-only check can look at (POST /admin/sources/{id}/check)
+  last_check: SourceCheck | null
+}
+
+/** The read-only shop check (src/check_shop_source.py) run from Admin > Listings. */
+export interface SourceCheck {
+  lines: string[]            // what the check printed
+  kind: string               // shopify / woocommerce / sitemap, '' = nothing supported
+  saved: boolean             // the kind was written into listing_sources.csv (the shop stays off)
+  checked_at: string
+  by: string
+  note?: string
 }
 
 /** GET /admin/listings/overview: the Listings dashboard. */

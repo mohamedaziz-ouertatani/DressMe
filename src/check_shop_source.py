@@ -109,7 +109,7 @@ def check_sitemap(client, pattern="product"):
         finally:
             sitemap_connector.MAX_SITEMAPS = saved
         if not urls:
-            return f"{name} no (no product page found in the first sitemaps)", False
+            return look_for_products(client, name, pattern)
         html = client.get_text(urls[0], "html")
         data = sitemap_connector.parse_product(html or "")
         if not data:
@@ -122,6 +122,30 @@ def check_sitemap(client, pattern="product"):
         return f"{name} BLOCKED ({err}): stop here, do not retry today", False
     except Exception as err:
         return f"{name} no ({err})", False
+
+
+def look_for_products(client, name, pattern):
+    """No address matched the product pattern: show what the sitemaps hold, and test a few
+    of the deepest addresses (product pages usually are) for product data, so the team can
+    set product_pattern in listing_sources.csv. Never saves a kind on its own."""
+    sitemap_connector.MAX_SITEMAPS, saved = 3, sitemap_connector.MAX_SITEMAPS
+    try:
+        every, _ = sitemap_connector.product_urls(client, {"product_pattern": "."})
+    finally:
+        sitemap_connector.MAX_SITEMAPS = saved
+    if not every:
+        return f"{name} no (the sitemaps list no page under this site)", False
+    deepest = sorted(every, key=lambda u: (u.rstrip("/").count("/"), len(u)), reverse=True)[:3]
+    lines = [f"{name} no address contains '{pattern}' ({len(every)} pages in the first sitemaps); "
+             "testing a few of them:"]
+    for url in deepest:
+        data = sitemap_connector.parse_product(client.get_text(url, "html") or "")
+        if data:
+            lines.append(f"      {url} HAS product data ('{data['name']}' at {data['price']} {data['currency']}): "
+                         "set product_pattern in listing_sources.csv to a part of such addresses, then check again")
+        else:
+            lines.append(f"      {url}: no product data")
+    return "\n".join(lines), False
 
 
 SHOP_KINDS = ("", "shopify", "woocommerce", "sitemap")     # the rows this script may fill

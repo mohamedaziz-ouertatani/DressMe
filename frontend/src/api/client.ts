@@ -1,7 +1,7 @@
 // One small fetch wrapper for every API call. The log-in token lives in
 // localStorage; a 401 anywhere logs the user out (see AuthProvider).
 import type {
-  AdminSource, Job, JobStart, ListingsOverview, AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Insights, Item, ItemPatch,
+  SourceCheck, AdminSource, Job, JobStart, ListingsOverview, AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Insights, Item, ItemPatch,
   Listing, ListingFilters, ListingPage, ListingPatch, ModelQuality, ReviewListing, SellForm, Occasion, Outfit, Season, Similar, Stats, User,
   ChatAttachment, TryOnResult, Weather,
 } from './types'
@@ -181,6 +181,7 @@ export const api = {
     saveFormula: (values: Record<string, number>) => request<Formula>('/admin/formula', json('PUT', { values })),
     sources: () => request<{ sources: AdminSource[]; file: string }>('/admin/sources'),
     listingsOverview: () => request<ListingsOverview>('/admin/listings/overview'),
+    checkSource: (id: string) => request<SourceCheck & { source_id: string }>(`/admin/sources/${id}/check`, { method: 'POST' }),
     jobs: () => request<Job[]>('/admin/jobs'),
     job: (id: string) => request<Job>(`/admin/jobs/${id}`),
     startJob: (body: JobStart) => request<Job>('/admin/jobs', json('POST', body)),
