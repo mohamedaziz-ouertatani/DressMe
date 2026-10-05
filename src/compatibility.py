@@ -51,6 +51,7 @@ from item_images import ROOT
 MAP_DIR = ROOT / "mappings"
 PARTS = ["style", "colour", "pattern", "structure"]
 CLOTHES_SLOTS = {"upper", "lower", "full", "layer"}   # where a pattern matters
+SWIMWEAR = "swimwear"   # the category of beach / pool outfits: worn without shoes
 
 
 # ------------------------------------------------------------------ rules
@@ -198,8 +199,9 @@ def structure_part(items, rules):
     slots = pd.Series([rules.slot[i["category"]] for i in items]).value_counts().to_dict()
     full, upper, lower = slots.get("full", 0), slots.get("upper", 0), slots.get("lower", 0)
     core = full >= 1 or (upper >= 1 and lower >= 1)
+    swim = full >= 1 and all(i["category"] == SWIMWEAR for i in items if rules.slot[i["category"]] == "full")
     reasons = []
-    if core and slots.get("feet", 0):
+    if core and (slots.get("feet", 0) or swim):   # a swimsuit needs no shoes
         part = 1.0
     elif core:
         part = rules.settings["structure_no_shoes"]
@@ -308,7 +310,6 @@ def filter_items(items, profile=None, rules=None):
 
 # ------------------------------------------------------------------ building outfits
 EXTRA_ORDER = ["shoes", "outerwear", "bag", "accessory"]   # pieces added around a core
-SWIMWEAR = "swimwear"   # the category of beach / pool outfits
 TOP_CORES = 60          # only the best cores are completed (keeps it fast)
 
 
@@ -335,10 +336,13 @@ def _cores(groups, rules, must=None, beach=None):
 
 
 def _complete(core, groups, rules, must=None, style_profile=None):
-    """Add shoes, then optional outerwear / bag / accessory when they raise the score.
+    """Add shoes (not to a swimsuit), then optional outerwear / bag / accessory when they raise the score.
     If `must` is an extra piece (e.g. shoes to buy), it is always used in its slot."""
     outfit = list(core)
+    swim = any(i["category"] == SWIMWEAR for i in core)
     for cat in EXTRA_ORDER:
+        if swim and cat == "shoes":
+            continue        # no shoes with a swimsuit
         options = groups.get(cat, [])
         if must is not None and must["category"] == cat:
             options = [must]
