@@ -181,7 +181,8 @@ def test_beach_outfits_use_swimwear_only():
     assert everyday and all("w" not in {i["id"] for i in o["items"]} for o in everyday)
     beach = compatibility.suggest_outfits(wardrobe, {"beach": True, "season": "summer"}, n=5)
     assert beach and all(o["items"][0]["id"] == "w" for o in beach)
-    assert {i["id"] for i in beach[0]["items"]} == {"w", "f"}    # flip-flops, not formal shoes
+    assert all(i["category"] != "shoes" for o in beach for i in o["items"])   # no shoes
+    assert beach[0]["parts"]["structure"] == 1.0 and "no shoes" not in beach[0]["reasons"]
     # in winter the swimsuit is filtered out, so there is no beach outfit
     assert compatibility.suggest_outfits(wardrobe, {"beach": True, "season": "winter"}, n=5) == []
 
