@@ -167,3 +167,26 @@ def test_sub_category_pairing_lowers_structure():
     pants = {"id": "p", "category": "bottom", "sub_category": "track-pants"}
     best = compatibility.suggest_outfits([shirt, tee, trousers, pants, shoes, blazer], n=1)[0]
     assert "track-pants" not in {i["sub_category"] for i in best["items"]} or "blazer" not in {i["sub_category"] for i in best["items"]}
+
+
+def test_beach_outfits_use_swimwear_only():
+    """Swimwear is left out of everyday suggestions; beach=True builds outfits around it."""
+    import compatibility
+    wardrobe = [{"id": "w", "category": "swimwear", "sub_category": "swimsuit"},
+                {"id": "t", "category": "top", "sub_category": "t-shirt"},
+                {"id": "b", "category": "bottom", "sub_category": "shorts"},
+                {"id": "f", "category": "shoes", "sub_category": "flip-flops"},
+                {"id": "h", "category": "shoes", "sub_category": "formal-shoes"}]
+    everyday = compatibility.suggest_outfits(wardrobe, {}, n=5)
+    assert everyday and all("w" not in {i["id"] for i in o["items"]} for o in everyday)
+    beach = compatibility.suggest_outfits(wardrobe, {"beach": True, "season": "summer"}, n=5)
+    assert beach and all(o["items"][0]["id"] == "w" for o in beach)
+    assert {i["id"] for i in beach[0]["items"]} == {"w", "f"}    # flip-flops, not formal shoes
+    # in winter the swimsuit is filtered out, so there is no beach outfit
+    assert compatibility.suggest_outfits(wardrobe, {"beach": True, "season": "winter"}, n=5) == []
+
+
+def test_suggest_beach_endpoint(client):
+    headers = sign_up(client)
+    wardrobe(client, headers)                       # no swimwear: no beach outfit
+    assert client.get("/outfits/suggest?beach=true", headers=headers).json() == []

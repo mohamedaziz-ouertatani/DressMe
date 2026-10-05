@@ -308,6 +308,7 @@ def filter_items(items, profile=None, rules=None):
 
 # ------------------------------------------------------------------ building outfits
 EXTRA_ORDER = ["shoes", "outerwear", "bag", "accessory"]   # pieces added around a core
+SWIMWEAR = "swimwear"   # the category of beach / pool outfits
 TOP_CORES = 60          # only the best cores are completed (keeps it fast)
 
 
@@ -318,12 +319,16 @@ def _by_category(items):
     return groups
 
 
-def _cores(groups, rules, must=None):
-    """Main pieces: every top + bottom pair, and every full piece (dress...)."""
+def _cores(groups, rules, must=None, beach=None):
+    """Main pieces: every top + bottom pair, and every full piece (dress...).
+    beach=True keeps only the swimwear pieces (a beach / pool outfit), beach=False
+    leaves them out (an everyday outfit); None keeps everything."""
     uppers = [i for c, l in groups.items() if rules.slot[c] == "upper" for i in l]
     lowers = [i for c, l in groups.items() if rules.slot[c] == "lower" for i in l]
     fulls = [i for c, l in groups.items() if rules.slot[c] == "full" for i in l]
     cores = [[u, l] for u in uppers for l in lowers] + [[f] for f in fulls]
+    if beach is not None:
+        cores = [c for c in cores if (c[0]["category"] == SWIMWEAR) == beach]
     if must is not None and rules.slot[must["category"]] in ("upper", "lower", "full"):
         cores = [c for c in cores if any(i is must for i in c)]
     return cores
@@ -349,10 +354,10 @@ def _complete(core, groups, rules, must=None, style_profile=None):
     return outfit
 
 
-def _outfits(items, rules, must=None, style_profile=None):
+def _outfits(items, rules, must=None, style_profile=None, beach=None):
     """All completed outfits (best cores first), as (score result, items)."""
     groups = _by_category(items)
-    cores = _cores(groups, rules, must)
+    cores = _cores(groups, rules, must, beach)
     cores.sort(key=lambda c: score_outfit(c, rules, style_profile=style_profile)["score"], reverse=True)
     done = []
     for core in cores[:TOP_CORES]:
@@ -364,12 +369,15 @@ def _outfits(items, rules, must=None, style_profile=None):
 
 
 def suggest_outfits(wardrobe, profile=None, n=5, rules=RULES):
-    """The n best outfits; each item is used in at most 2 of them (variety)."""
+    """The n best outfits; each item is used in at most 2 of them (variety).
+    profile["beach"] = True: beach / pool outfits built around a swimsuit;
+    otherwise swimwear is left out of the everyday outfits."""
     items, _ = filter_items(wardrobe, profile, rules)
     style_profile = (profile or {}).get("style_vector")
     disliked = (profile or {}).get("disliked_outfits", set())
     chosen, uses = [], {}
-    for result, outfit in _outfits(items, rules, style_profile=style_profile):
+    beach = bool((profile or {}).get("beach"))
+    for result, outfit in _outfits(items, rules, style_profile=style_profile, beach=beach):
         if "|".join(sorted(i["id"] for i in outfit)) in disliked:
             continue
         if all(uses.get(id(i), 0) < 2 for i in outfit):

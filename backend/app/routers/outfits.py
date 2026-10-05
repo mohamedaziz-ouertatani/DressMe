@@ -103,10 +103,12 @@ Occasion = Literal[tuple(USAGES)]
 
 @router.get("/outfits/suggest")
 def suggest(request: Request, season: Season | None = None, occasion: Occasion | None = None,
-            n: int = Query(5, ge=1, le=20), user=Depends(current_user)):
+            n: int = Query(5, ge=1, le=20), beach: bool = False, user=Depends(current_user)):
+    """beach=true: beach / pool outfits around a swimsuit (swimwear is left out otherwise)."""
     docs, by_id = wardrobe(request, user)
-    outfits = compatibility.suggest_outfits(
-        [to_compat(d) for d in docs], user_profile(user, docs, request, season, occasion), n=n)
+    prof = user_profile(user, docs, request, season, occasion)
+    prof["beach"] = beach
+    outfits = compatibility.suggest_outfits([to_compat(d) for d in docs], prof, n=n)
     return [outfit_out(o, by_id) for o in outfits]
 
 

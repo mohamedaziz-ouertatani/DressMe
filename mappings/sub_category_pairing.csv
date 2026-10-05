@@ -27,3 +27,15 @@ t-shirt,tie,0.1,REVIEW
 t-shirt,cufflinks,0.1,REVIEW
 sneakers,tie,0.3,REVIEW
 heels,backpack,0.5,REVIEW
+swimsuit,formal-shoes,0.1,REVIEW: beach outfits
+swimsuit,heels,0.3,REVIEW
+swimsuit,sneakers,0.5,REVIEW
+swimsuit,casual-shoes,0.5,REVIEW
+swimsuit,laptop-bag,0.2,REVIEW
+swimsuit,tie,0.0,REVIEW
+swim-shorts,formal-shoes,0.1,REVIEW
+swim-shorts,heels,0.3,REVIEW
+swim-shorts,sneakers,0.5,REVIEW
+swim-shorts,casual-shoes,0.5,REVIEW
+swim-shorts,laptop-bag,0.2,REVIEW
+swim-shorts,tie,0.0,REVIEW
