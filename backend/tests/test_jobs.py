@@ -162,8 +162,8 @@ def test_overview(admin_client):
     body = c.get("/admin/listings/overview").json()
     t = body["totals"]
     assert (t["active"], t["in_stock"], t["gone"], t["pending"], t["sellers_active"]) == (2, 2, 1, 1, 1)
-    # on: the snapshot + Zara, Bershka, Pull&Bear (re-enabled 2026-10-05); the shops wait for a kind
-    assert t["sources_on"] == 4 and t["sources_total"] == 8
+    # on: only the snapshot (Inditex blocked again on 2026-10-05; the shops wait for a kind)
+    assert t["sources_on"] == 1 and t["sources_total"] == 8
     snap = next(s for s in body["sources"] if s["source_id"] == "inditex_snapshot")
     assert (snap["active"], snap["in_stock"], snap["gone"], snap["refused"]) == (1, 1, 1, "")
     assert {x["category"]: x["count"] for x in body["categories"]} == {"top": 1, "dress": 1}
@@ -195,3 +195,30 @@ def test_real_collector_stops_between_items_and_marks_nothing_gone(client, tmp_p
     assert collect_listings.collect(db, settings, source, args, lambda s: FakeLabeller(), progress) == "stopped"
     assert db.listings.count_documents({"status": "active"}) == 2       # a and b not marked gone
     assert db.listing_runs.find_one(sort=[("finished_at", -1)])["result"] == "stopped"
+
+
+def test_status_file_busy_on_windows_never_stops_the_run(tmp_path, monkeypatch):
+    """2026-10-05, Windows: os.replace raised PermissionError (WinError 5) because the
+    backend was reading the status file at that moment, and the whole run crashed."""
+    import json
+    import os
+    import job_progress
+    from job_progress import Progress
+
+    progress = Progress(tmp_path / "job.json", tmp_path / "job.stop")
+    real_replace, calls = os.replace, {"n": 0}
+
+    def busy_twice(src, dst):
+        calls["n"] += 1
+        if calls["n"] <= 2:
+            raise PermissionError(13, "Access is denied")
+        return real_replace(src, dst)
+
+    monkeypatch.setattr(job_progress.os, "replace", busy_twice)
+    progress.update(phase="saving", done=3)            # retried, then written
+    assert json.loads((tmp_path / "job.json").read_text())["done"] == 3
+
+    monkeypatch.setattr(job_progress.os, "replace", lambda s, d: (_ for _ in ()).throw(PermissionError(13, "busy")))
+    progress.update(done=4)                             # still busy: skipped, no crash
+    progress.result("zara_tn", "blocked")
+    assert progress.state["results"]["zara_tn"] == "blocked"

@@ -19,6 +19,8 @@ import time
 from datetime import datetime, timezone
 
 HEARTBEAT_S = 10
+REPLACE_TRIES = 5          # Windows: the backend may be reading the file at that moment
+REPLACE_WAIT_S = 0.05
 
 
 class JobStopped(Exception):
@@ -59,11 +61,25 @@ class Progress:
             raise JobStopped("stopped by an admin")
 
     def _write(self):
+        """Write the status file. A status update must never stop the run: on Windows the
+        file cannot be replaced while the backend is reading it (WinError 5, 'Access is
+        denied', seen on 2026-10-05), so we try again a few times, then skip this update
+        (the next one, at most a second or a heartbeat later, writes everything again)."""
         self.state["heartbeat"] = now_iso()
         tmp = f"{self.status_path}.tmp"
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(self.state, f, ensure_ascii=False)
-        os.replace(tmp, self.status_path)        # never a half-written file
+        try:
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(self.state, f, ensure_ascii=False)
+        except OSError:
+            return
+        for attempt in range(REPLACE_TRIES):
+            try:
+                os.replace(tmp, self.status_path)    # never a half-written file
+                return
+            except PermissionError:                  # the backend is reading it right now
+                time.sleep(REPLACE_WAIT_S * (attempt + 1))
+            except OSError:
+                return
 
     def _beat(self):
         while True:
