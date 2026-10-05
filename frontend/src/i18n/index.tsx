@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { Language } from '../api/types'
 import { plural } from './plurals'
 import { STRINGS, type StringKey } from './strings'
-import { CATEGORY_LABELS, COLOUR_LABELS, PATTERN_LABELS, SEASON_LABELS, OCCASION_LABELS, vocab } from './vocab'
+import { CATEGORY_LABELS, COLOUR_LABELS, PATTERN_LABELS, SEASON_LABELS, OCCASION_LABELS, SUB_LABELS, vocab } from './vocab'
 
 const LANG_KEY = 'dressme.lang'
 
@@ -43,6 +43,15 @@ const REASONS: Rule[] = [
   [/^two bold patterns \((\w+) \+ (\w+)\)$/, (m, l) => {
     const a = vocab(PATTERN_LABELS, m[1], l), b = vocab(PATTERN_LABELS, m[2], l)
     return ({ en: `Two bold patterns (${a} + ${b})`, fr: `Deux motifs forts (${a} + ${b})`, ar: `نقشتان قويتان (${a} + ${b})` })[l]
+  }],
+  [/^([\w-]+) and ([\w-]+) don't go together$/, (m, l) => {
+    const a = vocab(SUB_LABELS, m[1], l), b = vocab(SUB_LABELS, m[2], l)
+    return ({ en: `${a} and ${b} don't go together`, fr: `${a} et ${b} ne vont pas ensemble`, ar: `${a} و${b} لا يتماشيان` })[l]
+  }],
+  [/^([\w-]+) not for (\S+)$/, (m, l) => {
+    const what = vocab(SUB_LABELS, m[1], l) || vocab(CATEGORY_LABELS, m[1], l)
+    const v = vocab(SEASON_LABELS, m[2], l)
+    return ({ en: `${what}: not for ${v.toLowerCase()}`, fr: `${what} : pas pour ${v.toLowerCase()}`, ar: `${what}: ليست لـ${v}` })[l]
   }],
   [/^no shoes$/, (_, l) => ({ en: 'No shoes', fr: 'Pas de chaussures', ar: 'بدون حذاء' })[l]],
   [/^missing a top or a bottom$/, (_, l) =>

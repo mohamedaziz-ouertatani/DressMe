@@ -8,7 +8,8 @@ from 0 (bad) to 1 (good), turned into a score from 0 to 100 with reasons.
                too many bold (non-neutral) colours
     pattern    at most one bold pattern among the clothes
     structure  is it wearable? (top + bottom, or a dress / full piece) + shoes,
-               and no category over its limit
+               no category over its limit, and pieces whose types go together
+               (no blazer with track pants, no flip-flops with a coat...)
 
 The weights and every rule are set by the TEAM in CSV files (never in code):
     mappings/compatibility_weights.csv   weights and settings
@@ -16,6 +17,7 @@ The weights and every rule are set by the TEAM in CSV files (never in code):
     mappings/colour_harmony.csv          score of a group pair or a colour pair
     mappings/pattern_mixing.csv          score of a pattern pair
     mappings/outfit_structure.csv        slot and item limit per category
+    mappings/sub_category_pairing.csv    score of a sub_category pair (blazer + track-pants)
     mappings/item_seasons.csv            default seasons of a category / sub_category
                                          (used when the item has no season of its own)
 The data only measures the formula (src/evaluate_compatibility.py).
@@ -67,6 +69,8 @@ class Rules:
         self.slot = dict(zip(s["category"], s["slot"]))
         self.max_items = dict(zip(s["category"], s["max_items"].astype(int)))
         # default seasons, e.g. shorts -> summer; a sub_category rule beats a category rule
+        # sub_category pairs that do not go together (pairs not listed count as 1)
+        self.sub_pairs = self._pairs(read("sub_category_pairing.csv"))
         seasons = read("item_seasons.csv")
         self.seasons = {(r.kind, r.value): set(r.season.split("|")) for r in seasons.itertuples()}
 
@@ -210,6 +214,14 @@ def structure_part(items, rules):
         if n > rules.max_items[cat]:
             part *= rules.settings["structure_over_limit"] ** (n - rules.max_items[cat])
             reasons.append(f"{n} items of {cat}")
+    # do the types of piece go together? the worst pair counts, like for patterns
+    subs = [i["sub_category"] for i in items if i.get("sub_category")]
+    pairs = [(a, b, rules.sub_pairs[(a, b)]) for a, b in combinations(subs, 2) if (a, b) in rules.sub_pairs]
+    if pairs:
+        worst = min(pairs, key=lambda p: p[2])
+        part *= worst[2]
+        if worst[2] < 0.5:
+            reasons.append(f"{worst[0]} and {worst[1]} don't go together")
     return part, reasons
 
 
