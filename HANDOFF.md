@@ -106,7 +106,7 @@ Shop items (H&M and Zara) have no `source` value yet: a team decision.
 
 **Rule files in `mappings/`** (rules live in CSVs, never in code; the apply scripts fail when a source value has no rule; multi-value fields use `|`; unknown stays empty):
 - label mappings: `fashion_product_*.csv`, `fashionpedia_*.csv`, `polyvore_folder.csv`, `hm_*.csv`, shared `sub_category_vocabulary.csv` and `colour_palette.csv`. No open `REVIEW` rows.
-- compatibility rules (set by the TEAM, all `REVIEW` until tuned): `compatibility_weights.csv`, `colour_groups.csv`, `colour_harmony.csv`, `pattern_mixing.csv`, `outfit_structure.csv`, `item_seasons.csv`. Never change the weights from the data without the team; the frontend's admin formula editor rewrites `compatibility_weights.csv`.
+- compatibility rules (set by the TEAM, all `REVIEW` until tuned): `compatibility_weights.csv`, `colour_groups.csv`, `colour_harmony.csv`, `pattern_mixing.csv`, `outfit_structure.csv`, `sub_category_pairing.csv`, `item_seasons.csv`. Never change the weights from the data without the team; the frontend's admin formula editor rewrites `compatibility_weights.csv`.
 
 ## 5. Immediate next steps
 
@@ -308,7 +308,7 @@ Sections are numbered automatically from the `SECTIONS` list in the script.
   - **Unknown parts** (e.g. no colours known) are left out and the other weights are rescaled.
 - **Set by the team** (team decision 2026-10-02: hand-tuned, the data only measures):
   - the starting weights style 0.35 / colour 0.30 / pattern 0.15 / structure 0.20;
-  - every rule, in `mappings/compatibility_weights.csv`, `colour_groups.csv`, `colour_harmony.csv`, `pattern_mixing.csv`, `outfit_structure.csv` and `item_seasons.csv`.
+  - every rule, in `mappings/compatibility_weights.csv`, `colour_groups.csv`, `colour_harmony.csv`, `pattern_mixing.csv`, `outfit_structure.csv`, `sub_category_pairing.csv` and `item_seasons.csv`.
 
   All are marked REVIEW.
 - **Personal filters on top** (team decision): `filter_items(items, profile)` drops items below the user's modesty (coverage) level, or not for the season / occasion. Unknown fields always pass.

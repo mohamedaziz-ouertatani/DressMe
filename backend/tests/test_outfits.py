@@ -147,3 +147,23 @@ def test_season_defaults_from_the_team_rules():
     # a swimsuit is never suggested outside summer, even as the only full piece
     swimsuit = {"id": "w", "category": "swimwear", "sub_category": "swimsuit"}
     assert compatibility.filter_items([swimsuit], {"season": "winter"})[0] == []
+
+
+def test_sub_category_pairing_lowers_structure():
+    """mappings/sub_category_pairing.csv: a blazer with track pants scores lower than
+    with trousers, and the reason names the pair."""
+    import compatibility
+    shoes = {"id": "f", "category": "shoes", "sub_category": "sneakers"}
+    blazer = {"id": "b", "category": "outerwear", "sub_category": "blazer"}
+    shirt = {"id": "s", "category": "top", "sub_category": "shirt"}
+    good = compatibility.score_outfit([shirt, blazer, shoes, {"id": "t", "category": "bottom", "sub_category": "trousers"}])
+    bad = compatibility.score_outfit([shirt, blazer, shoes, {"id": "p", "category": "bottom", "sub_category": "track-pants"}])
+    assert good["parts"]["structure"] == 1.0 and good["reasons"] == []
+    assert bad["parts"]["structure"] < 0.5 and bad["score"] < good["score"]
+    assert "blazer and track-pants don't go together" in bad["reasons"]
+    # suggestions prefer the pair that goes together
+    tee = {"id": "e", "category": "top", "sub_category": "t-shirt"}
+    trousers = {"id": "t", "category": "bottom", "sub_category": "trousers"}
+    pants = {"id": "p", "category": "bottom", "sub_category": "track-pants"}
+    best = compatibility.suggest_outfits([shirt, tee, trousers, pants, shoes, blazer], n=1)[0]
+    assert "track-pants" not in {i["sub_category"] for i in best["items"]} or "blazer" not in {i["sub_category"] for i in best["items"]}

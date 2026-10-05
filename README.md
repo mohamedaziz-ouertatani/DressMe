@@ -181,7 +181,7 @@ predict([Image.open("photo.jpg")], model, device)
 
 ## Phase 4: outfit compatibility
 
-A readable formula: **score = Σ weight × part**, from 0 to 100, with reasons. The four parts are style (FashionCLIP similarity), colour harmony, pattern mixing and outfit structure. The team sets the weights and every rule in `mappings/` (`compatibility_weights.csv`, `colour_groups.csv`, `colour_harmony.csv`, `pattern_mixing.csv`, `outfit_structure.csv`, `item_seasons.csv`). The data only measures them.
+A readable formula: **score = Σ weight × part**, from 0 to 100, with reasons. The four parts are style (FashionCLIP similarity), colour harmony, pattern mixing and outfit structure. The team sets the weights and every rule in `mappings/` (`compatibility_weights.csv`, `colour_groups.csv`, `colour_harmony.csv`, `pattern_mixing.csv`, `outfit_structure.csv`, `sub_category_pairing.csv`, `item_seasons.csv`). The data only measures them.
 
 ```bash
 python src/predict_item_attributes.py     # classifier predictions for every item (~10-30 min)
