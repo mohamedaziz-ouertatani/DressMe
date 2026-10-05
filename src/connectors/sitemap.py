@@ -90,7 +90,8 @@ def product_urls(client, source, should_stop=lambda: False):
         if is_index:
             todo += [u for u in locs if relevant_sitemap(u, client.base) and u not in seen]
         else:
-            found += [u.split("?")[0] for u in locs if under(u, client.base) and pattern.search(u)]
+            # keep the whole address: some shops (H&M) put the product number after the "?"
+            found += [u.split("#")[0] for u in locs if under(u, client.base) and pattern.search(u)]
     return list(dict.fromkeys(found)), complete
 
 
@@ -209,8 +210,10 @@ def to_tnd(price, currency, rates):
 
 
 def page_id(url):
-    """A product's id in this source: its page address without the host or query."""
-    return urlsplit(url).path
+    """A product's id in this source: its page address without the host (query kept:
+    some shops name the product there, e.g. productpage.html?article=...)."""
+    parts = urlsplit(url)
+    return parts.path + (f"?{parts.query}" if parts.query else "")
 
 
 def to_raw(url, data, source, rates):

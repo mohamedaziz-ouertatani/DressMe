@@ -12,6 +12,8 @@ Admin dashboard API (admins only: python -m app.make_admin <email>).
     GET    /admin/listings        friperie sellers' listings to review (?status=pending)
     PATCH  /admin/listings/{id}   approve (active) or reject one, with an optional note
     GET    /admin/listings/overview  the Listings dashboard: counts, sources, runs, jobs
+    POST   /admin/sources/{id}/check  the read-only shop check (src/check_shop_source.py) from the
+                                      page; saves the kind found, never switches the shop on
     GET    /admin/jobs            collector runs started from the app (newest first)
     POST   /admin/jobs            start one (one at a time; same source gate as the command line)
     GET    /admin/jobs/{id}       one run, with its live progress
@@ -30,11 +32,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
 from .. import ml  # noqa: F401  (puts src/ on the import path)
+import check_shop_source
 import compatibility
 
 from ..db import object_id
 from ..events import EVENT_TYPES
-from ..listings import SELLERS, last_run, listing_out, load_sources, usable
+from ..listings import SELLERS, SOURCES_FILE, last_run, listing_out, load_sources, usable
 from .listings import delete_seller_listings
 from ..jobs import JobBusy
 from ..ml import colour_min_confidence
@@ -370,7 +373,8 @@ def listings_overview(request: Request, days: int = Query(30, ge=1, le=365)):
                         "refused": usable(s), "note": s.get("note", ""),
                         "active": counts.get("active", 0), "in_stock": counts.get("in_stock", 0),
                         "gone": counts.get("gone", 0),
-                        "last_run": run_out(last_run(db, sid)), "last_ok": run_out(last_run(db, sid, "ok"))})
+                        "last_run": run_out(last_run(db, sid)), "last_ok": run_out(last_run(db, sid, "ok")),
+                        "checkable": checkable(s), "last_check": check_out(last_check(db, sid))})
     sellers = per_source.get(SELLERS, {})
     running = request.app.state.jobs.running()
     last = db.listing_jobs.find_one(sort=[("started_at", -1)])
@@ -386,3 +390,49 @@ def listings_overview(request: Request, days: int = Query(30, ge=1, le=365)):
         "runs_by_day": [{"day": d, **runs[d]} for d in sorted(runs)],
         "running": job_out(request, running), "last_job": job_out(request, last),
     }
+
+
+# ------------------------------------------------------------------ shop check (from the page)
+def checkable(source):
+    """A shop the read-only check may look at: it has a site, and its kind is empty or a shop kind
+    (never Inditex or the snapshot: those are not checked this way)."""
+    return bool(source.get("base_url")) and source.get("kind", "") in check_shop_source.SHOP_KINDS
+
+
+def last_check(db, source_id):
+    return db.source_checks.find_one({"source_id": source_id}, sort=[("checked_at", -1)])
+
+
+def check_out(doc):
+    if not doc:
+        return None
+    return {"lines": doc["lines"], "kind": doc["kind"], "saved": doc["saved"],
+            "checked_at": doc["checked_at"].isoformat(), "by": doc.get("by", "")}
+
+
+@router.post("/sources/{source_id}/check")
+def check_source(source_id: str, request: Request, admin=Depends(current_admin)):
+    """Run src/check_shop_source.py's check on one shop, as `--save` does: robots.txt, then
+    Shopify, WooCommerce and the sitemap route, ~4-6 polite requests (up to ~30 s). The kind
+    found is written into listing_sources.csv; enabled / approved_on are never touched, so the
+    shop stays off until a team member has read its terms."""
+    settings, db = request.app.state.settings, request.app.state.db
+    sources = {s["source_id"]: s for s in load_sources(settings.mappings_dir)}
+    source = sources.get(source_id)
+    if not source:
+        raise HTTPException(404, "Unknown source")
+    if not checkable(source):
+        raise HTTPException(400, "Only shops with a site (base_url) and a shop kind can be checked here")
+    if request.app.state.jobs.running():
+        raise HTTPException(409, "A collector run is going on: check the shop when it has ended")
+    lines, kind = check_shop_source.check(source["base_url"], pattern=source.get("product_pattern", ""))
+    saved = bool(kind)
+    if saved:
+        check_shop_source.save_kind(settings.mappings_dir / SOURCES_FILE, source_id, kind)
+    doc = {"source_id": source_id, "lines": lines, "kind": kind, "saved": saved,
+           "checked_at": datetime.now(timezone.utc), "by": admin["email"]}
+    db.source_checks.insert_one(doc)
+    return {"source_id": source_id, **check_out(doc),
+            "note": ("Saved. Commit mappings/listing_sources.csv so the team keeps this change. The shop "
+                     "stays off until a team member has read its terms and set enabled + approved_on.")
+            if saved else "No supported way to read this shop was found: it cannot be listed."}

@@ -336,7 +336,7 @@ def test_sitemap_reads_products_prices_and_sizes():
     assert shirt.price_tnd == round(29.99 * 3.40, 3) and shirt.price_original == "29.99 EUR"
     assert shirt.in_stock is True and shirt.availability_level == "product" and shirt.brand == "hm"
     jeans = by_id["/fr_fr/productpage.222.html"]
-    assert jeans.url == "https://shop.example.tn/fr_fr/productpage.222.html"       # ?colour= dropped
+    assert jeans.url == "https://shop.example.tn/fr_fr/productpage.222.html"
     assert (jeans.sizes, jeans.sizes_in_stock, jeans.availability_level) == (["36", "38"], ["36"], "colour")
     # only the French sitemap, never the category page, and every product is "present"
     assert not any("de_de" in u and "productpage" in u for u in site.urls)
@@ -404,3 +404,34 @@ def test_gone_only_when_missing_from_the_sitemap(client):
                            keep_ids={"a", "b"})
     status = {d["external_id"]: d["status"] for d in db.listings.find()}
     assert counts["gone"] == 1 and status == {"a": "active", "b": "active", "c": "gone"}
+
+
+def test_sitemap_keeps_the_query_that_names_the_product():
+    """www2.hm.com, 2026-10-05: the check read 'productpage.html' alone, because the article
+    number sits after the '?' and was cut off. Each article must stay its own page."""
+    urlset = (b"<?xml version='1.0'?><urlset xmlns='http://www.sitemaps.org/schemas/sitemap/0.9'>"
+              b"<url><loc>https://shop.example.tn/fr_fr/productpage.html?article=444</loc></url>"
+              b"<url><loc>https://shop.example.tn/fr_fr/productpage.html?article=555</loc></url></urlset>")
+    site = sm_site(overrides={"/sitemaps/fr_fr/products-1.xml": (200, "text/xml", urlset),
+                              "/fr_fr/productpage.html": (200, "text/html", (SM / "product-111.html").read_bytes())})
+    result = sitemap.fetch(sm_source(), SimpleNamespace(limit=0, last_seen={}), opener=site)
+    assert sorted(r.external_id for r in result.listings) == [
+        "/fr_fr/productpage.html?article=444", "/fr_fr/productpage.html?article=555"]
+    assert any(u.endswith("?article=555") for u in site.urls)
+
+
+def test_check_shows_sample_pages_when_no_address_matches():
+    """exist.com.tn / ha.com.tn, 2026-10-05: sitemaps exist, but no address contains 'product'.
+    The check tests a few of the deepest addresses and says which carry product data."""
+    urlset = (b"<?xml version='1.0'?><urlset xmlns='http://www.sitemaps.org/schemas/sitemap/0.9'>"
+              b"<url><loc>https://shop.example.tn/fr_fr/</loc></url>"
+              b"<url><loc>https://shop.example.tn/fr_fr/homme/chemises/123-chemise-lin.html</loc></url></urlset>")
+    site = sm_site(overrides={"/sitemaps/fr_fr/products-1.xml": (200, "text/xml", urlset),
+                              "/fr_fr/homme/": (200, "text/html", (SM / "product-111.html").read_bytes())})
+    lines, kind = check_shop_source.check(
+        "https://shop.example.tn/fr_fr/",
+        Client("https://shop.example.tn/fr_fr/", delay=0, opener=site, save=False), pattern="productpage")
+    text = "\n".join(lines)
+    assert kind == ""                                           # never saved without a pattern
+    assert "no address contains 'productpage'" in text
+    assert "123-chemise-lin.html HAS product data" in text and "set product_pattern" in text

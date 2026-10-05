@@ -1,11 +1,11 @@
 // Admin > Listings: the shop listings at a glance, and the collector runs
 // (src/collect_listings.py) started, followed and stopped from here.
 // English only, like the rest of the admin pages.
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { Fragment, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Play, Square } from 'lucide-react'
 import { api } from '../api/client'
-import type { Job, JobStatus, ListingRun, ListingsOverview, OverviewSource } from '../api/types'
+import type { Job, JobStatus, ListingRun, ListingsOverview, OverviewSource, SourceCheck } from '../api/types'
 import { Button } from '../ui/controls'
 import { ErrorNote, Skeleton } from '../ui/states'
 import { useLoad } from '../useLoad'
@@ -74,7 +74,8 @@ export function AdminListings() {
 
           {shownId && <JobPanel key={shownId} jobId={shownId} onFinished={reloadAll} />}
 
-          <SourcesTable sources={ov.sources} disabled={!!running || starting} onRun={(id) => start({ sources: [id], catalogue: false, force: true, limit: 0 })} />
+          <SourcesTable sources={ov.sources} disabled={!!running || starting} onChecked={overview.reload}
+            onRun={(id) => start({ sources: [id], catalogue: false, force: true, limit: 0 })} />
 
           <div className="grid gap-6 lg:grid-cols-2">
             <section className="ticket px-4 py-3">
@@ -295,7 +296,29 @@ function JobPanel({ jobId, onFinished }: { jobId: string; onFinished: () => void
   )
 }
 
-function SourcesTable({ sources, disabled, onRun }: { sources: OverviewSource[]; disabled: boolean; onRun: (id: string) => void }) {
+function SourcesTable({ sources, disabled, onRun, onChecked }: {
+  sources: OverviewSource[]
+  disabled: boolean
+  onRun: (id: string) => void
+  onChecked: () => void
+}) {
+  const [checking, setChecking] = useState<string | null>(null)
+  const [result, setResult] = useState<{ id: string; check?: SourceCheck; error?: unknown } | null>(null)
+
+  /** The read-only check from the page: the same as python src/check_shop_source.py <id> --save. */
+  const check = async (id: string) => {
+    setChecking(id)
+    setResult(null)
+    try {
+      setResult({ id, check: await api.admin.checkSource(id) })
+      onChecked()
+    } catch (e) {
+      setResult({ id, error: e })
+    } finally {
+      setChecking(null)
+    }
+  }
+
   return (
     <section className="ticket overflow-x-auto px-4 py-3">
       <h2 className="mb-2 text-[15px] font-semibold text-carbon">Sources</h2>
@@ -309,29 +332,65 @@ function SourcesTable({ sources, disabled, onRun }: { sources: OverviewSource[];
         </thead>
         <tbody>
           {sources.map((s) => (
-            <tr key={s.source_id} className="align-top">
-              <td className="border-b border-perf/40 px-2 py-2 font-mono" title={s.note}>{s.source_id}</td>
-              <td className="border-b border-perf/40 px-2 py-2">{s.kind || '-'}</td>
-              <td className="border-b border-perf/40 px-2 py-2">{s.refused ? <span className="text-carbon-soft">{s.refused}</span> : 'yes'}</td>
-              <td className="border-b border-perf/40 px-2 py-2 font-mono tabular">{s.active}</td>
-              <td className="border-b border-perf/40 px-2 py-2 font-mono tabular">{s.in_stock}</td>
-              <td className="border-b border-perf/40 px-2 py-2 font-mono tabular">{s.gone}</td>
-              <td className="border-b border-perf/40 px-2 py-2">
-                {s.last_run ? <><Pill value={s.last_run.result} /> <span className="font-mono text-[12px] tabular">{when(s.last_run.finished_at)}</span></> : 'never'}
-                {s.last_run && s.last_run.result !== 'ok' && <span className="block text-[12px] text-carbon-soft">last good: {lastRunText(s.last_ok)}</span>}
-              </td>
-              <td className="border-b border-perf/40 px-2 py-2 text-end">
-                {!s.refused && (
-                  <Button variant="quiet" disabled={disabled} onClick={() => onRun(s.source_id)} className="min-h-9 whitespace-nowrap px-2 text-[13px]">
-                    Run now
-                  </Button>
-                )}
-              </td>
-            </tr>
+            <Fragment key={s.source_id}>
+              <tr className="align-top">
+                <td className="border-b border-perf/40 px-2 py-2 font-mono" title={s.note}>{s.source_id}</td>
+                <td className="border-b border-perf/40 px-2 py-2">{s.kind || '-'}</td>
+                <td className="border-b border-perf/40 px-2 py-2">
+                  {s.refused ? <span className="text-carbon-soft">{s.refused}</span> : 'yes'}
+                  {s.last_check && (
+                    <span className="block text-[12px] text-carbon-soft">
+                      checked {when(s.last_check.checked_at)}: {s.last_check.kind || 'nothing supported'}
+                    </span>
+                  )}
+                </td>
+                <td className="border-b border-perf/40 px-2 py-2 font-mono tabular">{s.active}</td>
+                <td className="border-b border-perf/40 px-2 py-2 font-mono tabular">{s.in_stock}</td>
+                <td className="border-b border-perf/40 px-2 py-2 font-mono tabular">{s.gone}</td>
+                <td className="border-b border-perf/40 px-2 py-2">
+                  {s.last_run ? <><Pill value={s.last_run.result} /> <span className="font-mono text-[12px] tabular">{when(s.last_run.finished_at)}</span></> : 'never'}
+                  {s.last_run && s.last_run.result !== 'ok' && <span className="block text-[12px] text-carbon-soft">last good: {lastRunText(s.last_ok)}</span>}
+                </td>
+                <td className="border-b border-perf/40 px-2 py-2 text-end">
+                  <div className="flex flex-col items-end gap-1">
+                    {!s.refused && (
+                      <Button variant="quiet" disabled={disabled || !!checking} onClick={() => onRun(s.source_id)} className="min-h-9 whitespace-nowrap px-2 text-[13px]">
+                        Run now
+                      </Button>
+                    )}
+                    {s.checkable && (
+                      <Button variant="quiet" busy={checking === s.source_id} disabled={disabled || !!checking}
+                        onClick={() => check(s.source_id)} className="min-h-9 whitespace-nowrap px-2 text-[13px]">
+                        {checking === s.source_id ? 'Checking… (up to a minute)' : 'Check'}
+                      </Button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+              {result?.id === s.source_id && (
+                <tr>
+                  <td colSpan={8} className="border-b border-perf/40 px-2 pb-3">
+                    {result.error ? <ErrorNote error={result.error} /> : result.check && (
+                      <div className="bg-stock-deep/60 p-3" aria-live="polite">
+                        <pre className="whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-carbon" dir="ltr">{result.check.lines.join('\n')}</pre>
+                        <p className={`mt-2 text-[13px] ${result.check.saved ? 'text-carbon' : 'text-stamp-deep'}`}>
+                          {result.check.saved
+                            ? `Kind saved: ${result.check.kind}. ${result.check.note ?? ''}`
+                            : result.check.note ?? 'No supported way to read this shop was found.'}
+                        </p>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              )}
+            </Fragment>
           ))}
         </tbody>
       </table>
-      <p className="mt-2 text-[12px] text-carbon-soft">Turn a source on or off in mappings/listing_sources.csv (team decision; a shop needs src/check_shop_source.py and its terms read first).</p>
+      <p className="mt-2 text-[12px] text-carbon-soft">
+        Check reads the shop's robots.txt and one product (read-only, polite) and saves how to read it; the shop stays off.
+        Turn a source on in mappings/listing_sources.csv (team decision: enabled + approved_on, after a team member has read the shop's terms).
+      </p>
     </section>
   )
 }
