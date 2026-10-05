@@ -1,0 +1,8 @@
+kind,value,season,note
+category,outerwear,winter|mid-season,REVIEW (team starting values): no jacket / coat in summer
+category,swimwear,summer,REVIEW: never suggested outside summer
+sub_category,shorts,summer,REVIEW: shorts in summer
+sub_category,capris,summer|mid-season,REVIEW
+sub_category,trousers,winter|mid-season,REVIEW: long pants in winter
+sub_category,jeans,winter|mid-season,REVIEW
+sub_category,track-pants,winter|mid-season,REVIEW

@@ -16,6 +16,8 @@ The weights and every rule are set by the TEAM in CSV files (never in code):
     mappings/colour_harmony.csv          score of a group pair or a colour pair
     mappings/pattern_mixing.csv          score of a pattern pair
     mappings/outfit_structure.csv        slot and item limit per category
+    mappings/item_seasons.csv            default seasons of a category / sub_category
+                                         (used when the item has no season of its own)
 The data only measures the formula (src/evaluate_compatibility.py).
 
 A part that cannot be computed (e.g. no colours known) is left out, and the
@@ -64,6 +66,14 @@ class Rules:
         s = read("outfit_structure.csv")
         self.slot = dict(zip(s["category"], s["slot"]))
         self.max_items = dict(zip(s["category"], s["max_items"].astype(int)))
+        # default seasons, e.g. shorts -> summer; a sub_category rule beats a category rule
+        seasons = read("item_seasons.csv")
+        self.seasons = {(r.kind, r.value): set(r.season.split("|")) for r in seasons.itertuples()}
+
+    def default_seasons(self, item):
+        """Seasons the team's rules give this kind of item, or None (no rule)."""
+        return self.seasons.get(("sub_category", item.get("sub_category"))) \
+            or self.seasons.get(("category", item.get("category")))
 
     @staticmethod
     def _pairs(table):
@@ -242,27 +252,45 @@ def clashes(items, rules=RULES):
 
 
 # ------------------------------------------------------------------ personal filters
-def filter_items(items, profile=None):
+def filter_items(items, profile=None, rules=None):
     """Keep the items that fit the user's profile; unknown fields always pass.
 
     profile: {"min_coverage": 3, "season": "summer", "occasion": "work"} (all optional)
+    Season: the item's own seasons (set by the user or the dataset) are a hard rule.
+    When the item has none, the team's defaults (mappings/item_seasons.csv: shorts in
+    summer, long pants and jackets not in summer...) are used, but softly for the pieces
+    every outfit needs: a top / bottom / shoes is kept if nothing else of its category
+    fits the season, so a summer outfit with jeans beats no outfit at all. Optional
+    pieces (outerwear, a swimsuit...) are always removed out of season.
     Returns (kept items, {item id: reason} for the removed ones).
     """
+    rules = rules or RULES
     profile = profile or {}
-    kept, removed = [], {}
+    season = profile.get("season")
+    kept, removed, off_season = [], {}, []
     for item in items:
         why = None
         if profile.get("min_coverage") and item.get("coverage") is not None \
                 and item["coverage"] < profile["min_coverage"]:
             why = f"coverage {item['coverage']} is below your level {profile['min_coverage']}"
-        elif profile.get("season") and item.get("season") and profile["season"] not in item["season"]:
-            why = f"not for {profile['season']}"
+        elif season and item.get("season") and season not in item["season"]:
+            why = f"not for {season}"
         elif profile.get("occasion") and item.get("usage") and profile["occasion"] not in item["usage"]:
             why = f"not for {profile['occasion']}"
+        elif season and not item.get("season") and season not in (rules.default_seasons(item) or {season}):
+            off_season.append(item)   # decided below, once we know what else fits
+            continue
         if why:
             removed[item.get("id")] = why
         else:
             kept.append(item)
+    fitting = {i["category"] for i in kept}
+    for item in off_season:
+        main = rules.slot.get(item["category"]) in ("upper", "lower", "feet")
+        if main and item["category"] not in fitting:
+            kept.append(item)   # the only choice for this category: better than nothing
+        else:
+            removed[item.get("id")] = f"{item.get('sub_category') or item['category']} not for {season}"
     return kept, removed
 
 
@@ -325,7 +353,7 @@ def _outfits(items, rules, must=None, style_profile=None):
 
 def suggest_outfits(wardrobe, profile=None, n=5, rules=RULES):
     """The n best outfits; each item is used in at most 2 of them (variety)."""
-    items, _ = filter_items(wardrobe, profile)
+    items, _ = filter_items(wardrobe, profile, rules)
     style_profile = (profile or {}).get("style_vector")
     disliked = (profile or {}).get("disliked_outfits", set())
     chosen, uses = [], {}
@@ -343,11 +371,11 @@ def suggest_outfits(wardrobe, profile=None, n=5, rules=RULES):
 
 def buy_advice(candidate, wardrobe, profile=None, rules=RULES):
     """'Should I buy this?': how many good outfits the new item makes with the wardrobe."""
-    kept, removed = filter_items([candidate], profile)
+    kept, removed = filter_items([candidate], profile, rules)
     if not kept:
         return {"verdict": "skip", "good_outfits": 0, "best": [],
                 "reasons": [removed[candidate.get("id")]]}
-    items, _ = filter_items(wardrobe, profile)
+    items, _ = filter_items(wardrobe, profile, rules)
     style_profile = (profile or {}).get("style_vector")
     outfits = _outfits(items + [candidate], rules, must=candidate, style_profile=style_profile)
     # an outfit only counts if the new item beats every piece you already own
@@ -379,7 +407,7 @@ def buy_advice(candidate, wardrobe, profile=None, rules=RULES):
 
 def complete_outfit(items, candidates, profile=None, k=5, rules=RULES):
     """The k candidates that best complete `items` (never a clash: see clashes())."""
-    candidates, _ = filter_items(candidates, profile)
+    candidates, _ = filter_items(candidates, profile, rules)
     style_profile = (profile or {}).get("style_vector")
     ranked = []
     for c in candidates:
@@ -426,7 +454,7 @@ def wardrobe_insights(wardrobe, profile=None, rules=RULES):
                       (no top, bottom or full piece at all)
         twins         [(item, item, similarity)] near-identical pieces
     """
-    items, removed = filter_items(wardrobe, profile)
+    items, removed = filter_items(wardrobe, profile, rules)
     style_profile = (profile or {}).get("style_vector")
     slot = lambda i: rules.slot[i["category"]]
     uppers = sum(slot(i) == "upper" for i in items)
