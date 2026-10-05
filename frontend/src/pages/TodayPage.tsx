@@ -15,9 +15,18 @@ import { useLoad } from '../useLoad'
 const SEASONS: Season[] = ['summer', 'mid-season', 'winter']
 const OCCASIONS: Occasion[] = ['casual', 'work', 'formal', 'sport', 'wedding', 'eid']
 
+// Today's season in Tunisia, so the first suggestion already fits the weather
+// (shorts in summer, trousers and a jacket in winter); the user can change it.
+function currentSeason(): Season {
+  const month = new Date().getMonth() + 1
+  if (month >= 6 && month <= 9) return 'summer'
+  if (month === 12 || month <= 2) return 'winter'
+  return 'mid-season'
+}
+
 export function TodayPage() {
   const { t, lang } = useI18n()
-  const [season, setSeason] = useState<Season | undefined>()
+  const [season, setSeason] = useState<Season | undefined>(currentSeason)
   const [occasion, setOccasion] = useState<Occasion | undefined>()
   const [index, setIndex] = useState(0)
   const [feedback, setFeedback] = useState<Record<string, 1 | -1>>({})

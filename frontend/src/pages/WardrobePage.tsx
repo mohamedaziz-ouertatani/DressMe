@@ -162,7 +162,7 @@ export function ItemPage() {
           <>
             <Ticket stub={<Serial id={it.id} className="[writing-mode:vertical-rl]" />}>
               <div className="flex items-end gap-4 p-3">
-                <ItemPhoto src={it.image_url} alt={vocab(SUB_LABELS, it.sub_category, lang)} size={160} />
+                <ItemPhoto src={it.image_url} alt={vocab(SUB_LABELS, it.sub_category, lang)} size={160} zoomable />
                 <div className="pb-1">
                   <SecondLine>{secondLine(SUB_LABELS, it.sub_category, lang) || secondLine(CATEGORY_LABELS, it.category, lang)}</SecondLine>
                 </div>

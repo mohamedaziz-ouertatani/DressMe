@@ -33,7 +33,7 @@ export function OutfitStrip({ outfit, land = false, compact = false, photoOf, on
             }
           >
             <div className="flex items-end gap-3 p-2">
-              <ItemPhoto src={photoOf?.(it.id) ?? it.image_url} alt={vocab(SUB_LABELS, it.sub_category, lang) || vocab(CATEGORY_LABELS, it.category, lang)} size={size} />
+              <ItemPhoto src={photoOf?.(it.id) ?? it.image_url} alt={vocab(SUB_LABELS, it.sub_category, lang) || vocab(CATEGORY_LABELS, it.category, lang)} size={size} zoomable />
               <div className="min-w-0 pb-1">
                 <p className="text-[16px] font-semibold leading-tight text-carbon">
                   {vocab(SUB_LABELS, it.sub_category, lang) || vocab(CATEGORY_LABELS, it.category, lang)}

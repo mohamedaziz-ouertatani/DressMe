@@ -120,3 +120,30 @@ def test_same_piece_twice_is_refused(client):
     assert jeans2["id"] not in {x["item"]["id"] for x in ranked}
     limits = client.get("/outfits/limits", headers=headers).json()
     assert limits["max_items"]["top"] == 1 and limits["max_items"]["accessory"] == 4
+
+
+def test_season_defaults_from_the_team_rules():
+    """mappings/item_seasons.csv: shorts in summer, long pants and jackets not in summer.
+    An item's own season always wins; a main piece is kept when it is the only choice."""
+    import compatibility
+    shorts = {"id": "s", "category": "bottom", "sub_category": "shorts"}
+    jeans = {"id": "j", "category": "bottom", "sub_category": "jeans"}
+    jacket = {"id": "k", "category": "outerwear", "sub_category": "jacket"}
+    tee = {"id": "t", "category": "top", "sub_category": "t-shirt"}
+    ids = lambda kept: {i["id"] for i in kept}
+
+    kept, removed = compatibility.filter_items([shorts, jeans, jacket, tee], {"season": "summer"})
+    assert ids(kept) == {"s", "t"} and set(removed) == {"j", "k"}
+    kept, _ = compatibility.filter_items([shorts, jeans, jacket, tee], {"season": "winter"})
+    assert ids(kept) == {"j", "k", "t"}
+    # only jeans in summer: kept (better than no outfit); a lone jacket is not
+    kept, _ = compatibility.filter_items([jeans, jacket, tee], {"season": "summer"})
+    assert ids(kept) == {"j", "t"}
+    # the user's own season beats the default
+    kept, _ = compatibility.filter_items([dict(jeans, season={"summer"}), shorts], {"season": "summer"})
+    assert ids(kept) == {"j", "s"}
+    # no season chosen: nothing removed
+    assert len(compatibility.filter_items([shorts, jeans, jacket], {})[0]) == 3
+    # a swimsuit is never suggested outside summer, even as the only full piece
+    swimsuit = {"id": "w", "category": "swimwear", "sub_category": "swimsuit"}
+    assert compatibility.filter_items([swimsuit], {"season": "winter"})[0] == []

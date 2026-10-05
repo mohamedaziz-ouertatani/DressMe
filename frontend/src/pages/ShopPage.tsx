@@ -17,7 +17,7 @@ import { Empty, ErrorNote, Skeleton } from '../ui/states'
 import { Ticket } from '../ui/ticket'
 import { useLoad } from '../useLoad'
 
-const CATEGORIES: Category[] = ['top', 'bottom', 'dress', 'outerwear', 'shoes', 'bag', 'accessory']
+const CATEGORIES: Category[] = ['top', 'bottom', 'dress', 'outerwear', 'shoes', 'bag', 'accessory', 'traditional', 'swimwear']
 export function ShopPage() {
   const { t, lang } = useI18n()
   const [filters, setFilters] = useState<ListingFilters>({ sort: 'new' })
