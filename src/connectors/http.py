@@ -10,6 +10,7 @@ src/check_shop_source.py:
     so a broken parser can be fixed and re-run without downloading again.
 """
 
+import gzip
 import hashlib
 import json
 import random
@@ -38,8 +39,9 @@ class NotJSON(Exception):
 
 def urlopen(url, timeout=30):
     """(status, content type, body bytes). Tests replace this function."""
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT,
-                                               "Accept": "application/json"})
+    req = urllib.request.Request(url, headers={
+        "User-Agent": USER_AGENT,
+        "Accept": "application/json, application/xml;q=0.9, text/html;q=0.8, */*;q=0.5"})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return resp.status, resp.headers.get("Content-Type", ""), resp.read()
@@ -75,6 +77,11 @@ class Client:
                 self.robots.parse([])
         return self.robots.can_fetch(USER_AGENT, urljoin(self.base, path))
 
+    def sitemaps(self):
+        """The sitemap addresses robots.txt lists (reads robots.txt if not done yet)."""
+        self.allowed("")
+        return list(self.robots.site_maps() or [])
+
     def get_json(self, path, html_is_block=True):
         """The JSON answer of `path` (relative to the shop's base URL), or None for a 404.
 
@@ -100,9 +107,37 @@ class Client:
             # a bot check or a login page instead of the data
             raise SourceBlocked(f"{url} answered {ctype or 'no content type'}, not JSON (a bot check?)")
         data = json.loads(body)
+        self._save(url, data)
+        return data
+
+    def _save(self, url, data):
+        """Keep the untouched answer, so a broken parser can be fixed without downloading again."""
         if self.folder:
             self.folder.mkdir(parents=True, exist_ok=True)
             name = hashlib.sha1(url.encode()).hexdigest()[:20] + ".json"
             (self.folder / name).write_text(json.dumps({"url": url, "data": data}, ensure_ascii=False),
                                             encoding="utf-8")
-        return data
+
+    def get_text(self, path, kind="xml"):
+        """The text of `path` (a sitemap or a product page), or None for a 404.
+
+        kind="xml": a sitemap. A web page instead (a bot check) stops the source.
+        kind="html": a product page. Gzipped sitemaps (.xml.gz) are unpacked."""
+        if not self.allowed(path):
+            raise Forbidden(f"robots.txt forbids {path}")
+        url = urljoin(self.base, path)
+        self._wait()
+        status, ctype, body = self.opener(url)
+        if status in (403, 429):
+            raise SourceBlocked(f"HTTP {status} on {url}")
+        if status == 404:
+            return None
+        if status != 200:
+            raise RuntimeError(f"HTTP {status} on {url}")
+        if body[:2] == b"\x1f\x8b":
+            body = gzip.decompress(body)
+        text = body.decode("utf-8", "replace")
+        if kind == "xml" and not text.lstrip().startswith(("<?xml", "<urlset", "<sitemapindex")):
+            raise SourceBlocked(f"{url} answered {ctype or 'something'} instead of a sitemap (a bot check?)")
+        self._save(url, text if kind == "xml" else text[:200_000])
+        return text

@@ -23,7 +23,7 @@ from bson import ObjectId
 from .db import vector_from_bson, vector_to_bson
 
 SOURCES_FILE = "listing_sources.csv"
-KINDS = {"inditex", "snapshot", "shopify", "woocommerce"}   # kinds with a connector in src/connectors/
+KINDS = {"inditex", "snapshot", "shopify", "woocommerce", "sitemap"}   # kinds with a connector in src/connectors/
 SELLERS = "sellers"            # source_id of the listings friperie sellers post in the app
 THUMB_SIDE = 320               # we keep a small picture only, and link to the shop
 
@@ -46,6 +46,7 @@ class RawListing:
     image_path: str = ""       # a local picture (the frozen snapshot): read it, never download
     checked_at: str = ""       # when the shop was really checked, if older than this run (ISO date)
     snapshot: bool = False     # a frozen copy: price and stock are only true on checked_at
+    price_original: str = ""   # the shop's own price when it is not in TND, e.g. "29.99 EUR"
 
 
 class SourceBlocked(Exception):
@@ -64,7 +65,7 @@ def usable(source):
         return "kind not set yet: run python src/check_shop_source.py --all --save"
     if source.get("kind") not in KINDS:
         return f"no connector for kind '{source.get('kind')}'"
-    if source.get("kind") in ("shopify", "woocommerce") and not source.get("base_url"):
+    if source.get("kind") in ("shopify", "woocommerce", "sitemap") and not source.get("base_url"):
         return "no base_url"
     if source.get("enabled", "").strip().lower() != "yes":
         return "not enabled"
@@ -80,7 +81,8 @@ def thumbnail_path(storage_dir, listing_id):
     return storage_dir / "listings" / f"{listing_id}.jpg"
 
 
-def sync_listings(db, source_id, raws, label, storage_dir, now=None, mark_gone=True, on_item=None):
+def sync_listings(db, source_id, raws, label, storage_dir, now=None, mark_gone=True, on_item=None,
+                  keep_ids=None):
     """Save the listings of one run of a source and return what changed.
 
     `label(raw)` downloads and analyses the picture: it returns
@@ -96,6 +98,10 @@ def sync_listings(db, source_id, raws, label, storage_dir, now=None, mark_gone=T
     `on_item(done, total)` is called before each listing (the admin page's
     progress bar). It may raise to stop the run (an admin pressed Stop):
     then too, nothing is marked gone.
+
+    `keep_ids`: when a run fetched only part of a big shop (sitemap connector),
+    the ids of every product the shop still lists. Then only listings missing
+    from it become gone; the ones not fetched this time stay as they are.
     """
     now = now or datetime.now(timezone.utc)
     counts = {"added": 0, "updated": 0, "relabelled": 0, "no_picture": 0, "gone": 0}
@@ -111,6 +117,7 @@ def sync_listings(db, source_id, raws, label, storage_dir, now=None, mark_gone=T
                "sizes_in_stock": raw.sizes_in_stock, "in_stock": raw.in_stock,
                "availability_level": raw.availability_level, "image_url": raw.image_url,
                "checked_at": raw.checked_at or None, "snapshot": raw.snapshot,
+               "price_original": raw.price_original,
                "seen_at": now, "status": "active"}
         if old is None or old.get("image_url") != raw.image_url:
             labels = label(raw)
@@ -133,8 +140,10 @@ def sync_listings(db, source_id, raws, label, storage_dir, now=None, mark_gone=T
         db.listings.update_one({"_id": old["_id"]}, {"$set": doc})
         counts["updated"] += 1
     if mark_gone:
+        missing = ({"external_id": {"$nin": list(keep_ids)}} if keep_ids is not None
+                   else {"seen_at": {"$lt": now}})
         gone = db.listings.update_many(
-            {"source_id": source_id, "status": "active", "seen_at": {"$lt": now}},
+            {"source_id": source_id, "status": "active", **missing},
             {"$set": {"status": "gone"}})
         counts["gone"] = gone.modified_count
     return counts
@@ -170,6 +179,7 @@ def listing_out(doc):
         # when price and stock were really checked: the snapshot's own date, else this run
         "checked_at": doc.get("checked_at") or (doc["seen_at"].isoformat() if doc.get("seen_at") else None),
         "snapshot": bool(doc.get("snapshot")),
+        "price_original": doc.get("price_original", ""),
         "image_url": f"/listings/{lid}/image",
         # a friperie seller's own listing: where to find them (shown to logged-in users only)
         "seller": ({"city": doc.get("city", ""), "contact": doc.get("contact", ""),

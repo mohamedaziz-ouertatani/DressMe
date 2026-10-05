@@ -9,3 +9,6 @@ class FetchResult:
     message: str = ""
     listings: list = field(default_factory=list)    # RawListing (backend/app/listings.py)
     mode: str = ""             # e.g. catalogue / stock
+    # every product the shop lists now (a sitemap), when a run only fetched some of
+    # them: then only products missing from it are marked gone (None = this run saw all)
+    present_ids: set | None = None

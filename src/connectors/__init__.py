@@ -9,7 +9,8 @@ or "error". Only an "ok" result is saved, so a blocked or broken run never
 marks listings as gone.
 """
 
-from . import inditex, shopify, snapshot, woocommerce
+from . import inditex, shopify, sitemap, snapshot, woocommerce
 from .base import FetchResult  # noqa: F401
 
-CONNECTORS = {"inditex": inditex, "snapshot": snapshot, "shopify": shopify, "woocommerce": woocommerce}
+CONNECTORS = {"inditex": inditex, "snapshot": snapshot, "shopify": shopify, "woocommerce": woocommerce,
+              "sitemap": sitemap}

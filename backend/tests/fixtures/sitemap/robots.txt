@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /fr_fr/checkout
+Disallow: /de_de/productpage.999.html
+Sitemap: https://shop.example.tn/sitemaps/index.xml

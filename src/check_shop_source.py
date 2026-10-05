@@ -5,6 +5,8 @@ requests, 5 s apart). It tells
 
   - which platform the shop runs on: Shopify (/products.json) or WooCommerce
     (/wp-json/wc/store/v1/products), so the collector knows which connector to use;
+    if neither, whether its sitemaps + product pages carry the standard product
+    data search engines read (kind "sitemap", e.g. H&M);
   - whether robots.txt allows those paths (if not, we do not list the shop);
   - one product with its price, so the team can confirm the prices are in TND;
   - with --save, the kind it found written into listing_sources.csv (still enabled = no).
@@ -31,6 +33,7 @@ sys.path.insert(0, str(ROOT / "backend"))
 
 from app.config import Settings  # noqa: E402
 from app.listings import SOURCES_FILE, SourceBlocked, load_sources  # noqa: E402
+from connectors import sitemap as sitemap_connector  # noqa: E402
 from connectors.http import Client, Forbidden, NotJSON  # noqa: E402
 
 TRIES = [  # (kind, path of one product)
@@ -58,7 +61,7 @@ def sample(kind, data):
     return None
 
 
-def check(base_url, client=None):
+def check(base_url, client=None, pattern=""):
     """What the site is, as printable lines + the kind found ('' if none)."""
     client = client or Client(base_url, "check", delay=5, save=False)
     lines, kind_found = [], ""
@@ -83,10 +86,45 @@ def check(base_url, client=None):
             kind_found = kind_found or kind
         else:
             lines.append(f"  {kind:<12} no")
+    if not kind_found and not any("BLOCKED" in line for line in lines):
+        line, ok = check_sitemap(client, pattern or "product")
+        lines.append(line)
+        if ok:
+            kind_found = "sitemap"
     return lines, kind_found
 
 
-SHOP_KINDS = ("", "shopify", "woocommerce")     # the rows this script may fill
+def check_sitemap(client, pattern="product"):
+    """Third try: robots.txt lists sitemaps, they list product pages, and one of
+    them carries schema.org Product data. Reads one sitemap file and one page."""
+    name = f"  {'sitemap':<12}"
+    try:
+        listed = client.sitemaps()
+        if not listed:
+            return f"{name} no (robots.txt lists no sitemap)", False
+        source = {"product_pattern": pattern}
+        sitemap_connector.MAX_SITEMAPS, saved = 3, sitemap_connector.MAX_SITEMAPS   # stay light
+        try:
+            urls, _ = sitemap_connector.product_urls(client, source)
+        finally:
+            sitemap_connector.MAX_SITEMAPS = saved
+        if not urls:
+            return f"{name} no (no product page found in the first sitemaps)", False
+        html = client.get_text(urls[0], "html")
+        data = sitemap_connector.parse_product(html or "")
+        if not data:
+            return f"{name} no ({urls[0]} carries no product data)", False
+        return (f"{name} YES, e.g. '{data['name']}' at {data['price']} {data['currency']} "
+                f"({len(urls)} product pages in the first sitemaps)"), True
+    except Forbidden as err:
+        return f"{name} robots.txt FORBIDS it ({err}): we must not read it", False
+    except SourceBlocked as err:
+        return f"{name} BLOCKED ({err}): stop here, do not retry today", False
+    except Exception as err:
+        return f"{name} no ({err})", False
+
+
+SHOP_KINDS = ("", "shopify", "woocommerce", "sitemap")     # the rows this script may fill
 
 
 def save_kind(path, source_id, kind):
@@ -105,9 +143,9 @@ def save_kind(path, source_id, kind):
         writer.writerows(rows)
 
 
-def check_one(url, source_id, save, csv_path):
+def check_one(url, source_id, save, csv_path, pattern=""):
     print(f"\n{source_id}: checking {url} (robots.txt first, then one product per platform)")
-    lines, kind = check(url)
+    lines, kind = check(url, pattern=pattern)
     print("\n".join(lines))
     if not kind:
         print("  -> no platform we support was found (or the shop does not allow it): do not list it.")
@@ -147,7 +185,8 @@ def main():
     else:
         ap.error("give --all, a source_id from listing_sources.csv, or a URL")
     for url, sid in todo:
-        check_one(url, sid, args.save and sid in sources, csv_path)
+        pattern = sources.get(sid, {}).get("product_pattern", "")
+        check_one(url, sid, args.save and sid in sources, csv_path, pattern)
 
 
 if __name__ == "__main__":

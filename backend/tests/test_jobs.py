@@ -162,7 +162,7 @@ def test_overview(admin_client):
     body = c.get("/admin/listings/overview").json()
     t = body["totals"]
     assert (t["active"], t["in_stock"], t["gone"], t["pending"], t["sellers_active"]) == (2, 2, 1, 1, 1)
-    assert t["sources_on"] == 1 and t["sources_total"] == 7
+    assert t["sources_on"] == 1 and t["sources_total"] == 8
     snap = next(s for s in body["sources"] if s["source_id"] == "inditex_snapshot")
     assert (snap["active"], snap["in_stock"], snap["gone"], snap["refused"]) == (1, 1, 1, "")
     assert {x["category"]: x["count"] for x in body["categories"]} == {"top": 1, "dress": 1}

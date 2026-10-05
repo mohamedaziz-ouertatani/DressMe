@@ -1,0 +1,3 @@
+currency,tnd_per_unit,checked_on,note
+TND,1,2026-10-05,
+EUR,3.40,2026-10-05,"REVIEW: approximate rate, for showing foreign shop prices in TND only. The team confirms it with the Central Bank of Tunisia rate (bct.gov.tn) and updates checked_on."

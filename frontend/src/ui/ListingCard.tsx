@@ -27,7 +27,7 @@ export function ListingCard({ listing, note }: { listing: Listing; note?: string
       <div className="flex justify-center"><ItemPhoto src={listing.image_url} alt={name(listing)} size={112} /></div>
       <p className="perf-h mt-2 truncate pt-2 text-[14px] font-medium text-carbon" dir="auto" title={name(listing)}>{name(listing)}</p>
       <p className="truncate font-mono text-[11px] text-ink-soft tabular">
-        {who(listing)} · {note ?? price(listing.price_tnd)}
+        {who(listing)} · {note ?? price(listing.price_tnd, listing.price_original)}
       </p>
     </Link>
   )
