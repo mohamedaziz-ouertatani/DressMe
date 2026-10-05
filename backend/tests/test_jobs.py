@@ -137,8 +137,8 @@ def test_failed_and_lost_runs(admin_client, monkeypatch):
 
 def test_gate_and_admin_only(admin_client, client):
     c = admin_client
-    r = c.post("/admin/jobs", json={"sources": ["zara_tn"]})                # switched off
-    assert r.status_code == 422 and "not enabled" in r.json()["detail"]
+    r = c.post("/admin/jobs", json={"sources": ["zen_tn"]})                 # off: robots.txt forbids it
+    assert r.status_code == 422 and "zen_tn" in r.json()["detail"]
     assert c.post("/admin/jobs", json={"sources": ["exist_tn"]}).status_code == 422   # not checked yet
     assert c.post("/admin/jobs", json={"sources": ["nope"]}).status_code == 422
     assert c.post("/admin/jobs", json={"limit": -1}).status_code == 422
@@ -162,7 +162,8 @@ def test_overview(admin_client):
     body = c.get("/admin/listings/overview").json()
     t = body["totals"]
     assert (t["active"], t["in_stock"], t["gone"], t["pending"], t["sellers_active"]) == (2, 2, 1, 1, 1)
-    assert t["sources_on"] == 1 and t["sources_total"] == 8
+    # on: the snapshot + Zara, Bershka, Pull&Bear (re-enabled 2026-10-05); the shops wait for a kind
+    assert t["sources_on"] == 4 and t["sources_total"] == 8
     snap = next(s for s in body["sources"] if s["source_id"] == "inditex_snapshot")
     assert (snap["active"], snap["in_stock"], snap["gone"], snap["refused"]) == (1, 1, 1, "")
     assert {x["category"]: x["count"] for x in body["categories"]} == {"top": 1, "dress": 1}
