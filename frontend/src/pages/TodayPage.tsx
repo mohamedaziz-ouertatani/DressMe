@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { RefreshCw } from 'lucide-react'
+import { Cloud, CloudFog, CloudLightning, CloudRain, CloudSnow, LocateFixed, RefreshCw, Sun } from 'lucide-react'
 import { api } from '../api/client'
-import type { Occasion, Season } from '../api/types'
+import type { Occasion, Season, Weather, WeatherCondition } from '../api/types'
 import { useI18n } from '../i18n'
+import type { StringKey } from '../i18n/strings'
 import { OCCASION_LABELS, SEASON_LABELS, vocab } from '../i18n/vocab'
 import { Page } from '../shell'
 import { Button, Chip } from '../ui/controls'
@@ -15,8 +16,8 @@ import { useLoad } from '../useLoad'
 const SEASONS: Season[] = ['summer', 'mid-season', 'winter']
 const OCCASIONS: Occasion[] = ['casual', 'work', 'formal', 'sport', 'wedding', 'eid']
 
-// Today's season in Tunisia, so the first suggestion already fits the weather
-// (shorts in summer, trousers and a jacket in winter); the user can change it.
+// The season by the calendar in Tunisia: used until today's real weather arrives
+// (and when the weather service is off or unreachable).
 function currentSeason(): Season {
   const month = new Date().getMonth() + 1
   if (month >= 6 && month <= 9) return 'summer'
@@ -24,9 +25,52 @@ function currentSeason(): Season {
   return 'mid-season'
 }
 
+// The user's position, rounded to ~10 km, remembered once they share it.
+// Only this rounded position is sent to the backend (which asks Open-Meteo).
+const PLACE_KEY = 'dressme.weatherPlace'
+type Place = { lat: number; lon: number }
+
+function savedPlace(): Place | null {
+  try {
+    const place = JSON.parse(localStorage.getItem(PLACE_KEY) ?? 'null')
+    return typeof place?.lat === 'number' && typeof place?.lon === 'number' ? place : null
+  } catch {
+    return null
+  }
+}
+
+function savePlace(place: Place) {
+  try {
+    localStorage.setItem(PLACE_KEY, JSON.stringify(place))
+  } catch {
+    /* private mode: the position is asked again next time */
+  }
+}
+
 export function TodayPage() {
   const { t, lang } = useI18n()
-  const [season, setSeason] = useState<Season | undefined>(currentSeason)
+  // The first suggestion fits today's weather (shorts on a hot day, a jacket on a
+  // cold one): the calendar season first, then the weather's once it arrives,
+  // unless the user has already picked a season themselves.
+  const [place, setPlace] = useState<Place | null>(savedPlace)
+  const [locationDenied, setLocationDenied] = useState(false)
+  const weather = useLoad(() => api.weather(place ?? undefined), [place])
+  const [picked, setPicked] = useState<{ season: Season | undefined } | null>(null)
+  const season = picked ? picked.season : (weather.data?.season ?? currentSeason())
+  const pickSeason = (value: Season | undefined) => setPicked({ season: value })
+
+  const locateMe = () => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const rounded = { lat: Math.round(pos.coords.latitude * 10) / 10, lon: Math.round(pos.coords.longitude * 10) / 10 }
+        savePlace(rounded)
+        setLocationDenied(false)
+        setPlace(rounded)
+      },
+      () => setLocationDenied(true),
+      { maximumAge: 60 * 60 * 1000, timeout: 10_000 },
+    )
+  }
   const [occasion, setOccasion] = useState<Occasion | undefined>()
   const [index, setIndex] = useState(0)
   const [feedback, setFeedback] = useState<Record<string, 1 | -1>>({})
@@ -40,7 +84,7 @@ export function TodayPage() {
 
   const filters = (
     <div className="flex flex-col gap-4">
-      {([['season', SEASONS, SEASON_LABELS, season, setSeason], ['occasion', OCCASIONS, OCCASION_LABELS, occasion, setOccasion]] as const).map(
+      {([['season', SEASONS, SEASON_LABELS, season, pickSeason], ['occasion', OCCASIONS, OCCASION_LABELS, occasion, setOccasion]] as const).map(
         ([key, values, table, current, set]) => (
           <fieldset key={key} className="min-w-0">
             <legend className="mb-2 text-[12px] font-medium uppercase tracking-[0.06em] text-carbon-soft">{t(key)}</legend>
@@ -118,10 +162,63 @@ export function TodayPage() {
       serial={outfit ? groupSerial(outfit.items.map((i) => i.id)) : undefined}
       aside={<div className="hidden lg:sticky lg:top-10 lg:block">{filters}</div>}
     >
+      {/* the weather is a help, not a must: nothing is shown if it can't be loaded */}
+      {weather.data && (
+        <WeatherLine
+          weather={weather.data}
+          canLocate={!place && 'geolocation' in navigator}
+          locationDenied={locationDenied}
+          onLocate={locateMe}
+        />
+      )}
       {body}
       {/* on phones the strip comes first; filters follow it */}
       <div className="mt-8 lg:hidden">{filters}</div>
     </Page>
+  )
+}
+
+const CONDITION: Record<WeatherCondition, { icon: typeof Sun; label: StringKey }> = {
+  clear: { icon: Sun, label: 'weatherClear' },
+  cloudy: { icon: Cloud, label: 'weatherCloudy' },
+  fog: { icon: CloudFog, label: 'weatherFog' },
+  rain: { icon: CloudRain, label: 'weatherRainy' },
+  snow: { icon: CloudSnow, label: 'weatherSnow' },
+  storm: { icon: CloudLightning, label: 'weatherStorm' },
+}
+
+function WeatherLine({ weather, canLocate, locationDenied, onLocate }: {
+  weather: Weather
+  canLocate: boolean
+  locationDenied: boolean
+  onLocate: () => void
+}) {
+  const { t, lang } = useI18n()
+  const condition = weather.condition ? CONDITION[weather.condition] : null
+  const Icon = condition?.icon ?? Cloud
+  const place = weather.place === 'here' ? t('weatherHere') : weather.place
+  return (
+    <section className="mb-5 border-b border-perf pb-4">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[14px] text-carbon">
+        <Icon className="size-5 shrink-0 text-ink" aria-hidden />
+        <span className="font-medium text-ink">{place}</span>
+        {condition && <span>{t(condition.label)}</span>}
+        <span className="tabular">{t('weatherNow', { temp: weather.temperature, min: weather.min, max: weather.max })}</span>
+        <span className="text-ink-soft tabular">{t('weatherFeels', { temp: weather.feels_like })}</span>
+      </div>
+      <p className="mt-1 text-[13px] text-ink-soft">
+        {t('weatherSeason', { season: vocab(SEASON_LABELS, weather.season, lang) })}
+      </p>
+      {weather.rain_likely && (
+        <p className="mt-1 text-[13px] text-carbon">{t('weatherRain', { p: weather.rain_probability ?? '' })}</p>
+      )}
+      {locationDenied && <p className="mt-1 text-[13px] text-ink-soft">{t('weatherLocationDenied', { place: weather.place })}</p>}
+      {canLocate && !locationDenied && (
+        <button type="button" onClick={onLocate} className="mt-2 inline-flex min-h-9 items-center gap-1.5 text-[13px] font-medium text-ink underline underline-offset-4">
+          <LocateFixed className="size-4" aria-hidden /> {t('weatherUseLocation')}
+        </button>
+      )}
+    </section>
   )
 }
 

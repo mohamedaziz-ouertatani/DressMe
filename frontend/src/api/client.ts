@@ -3,7 +3,7 @@
 import type {
   AdminSource, Job, JobStart, ListingsOverview, AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Insights, Item, ItemPatch,
   Listing, ListingFilters, ListingPage, ListingPatch, ModelQuality, ReviewListing, SellForm, Occasion, Outfit, Season, Similar, Stats, User,
-  ChatAttachment, TryOnResult,
+  ChatAttachment, TryOnResult, Weather,
 } from './types'
 
 const BASE = '/api'
@@ -122,6 +122,9 @@ export const api = {
     q.set('n', String(opts.n ?? 5))
     return request<Outfit[]>(`/outfits/suggest?${q}`)
   },
+  /** Today's weather: at the given (rounded) position, else the backend's default place. */
+  weather: (at?: { lat: number; lon: number }) =>
+    request<Weather>(at ? `/weather?${new URLSearchParams({ lat: String(at.lat), lon: String(at.lon) })}` : '/weather'),
   outfitLimits: () => request<{ max_items: Record<Category, number> }>('/outfits/limits'),
   score: (itemIds: string[]) => request<Outfit>('/outfits/score', json('POST', { item_ids: itemIds })),
   feedback: (itemIds: string[], rating: 1 | -1) =>

@@ -20,6 +20,9 @@ Settings, read from environment variables (or backend/.env, never committed).
     TRYON_SPACES     Hugging Face Spaces tried in order (see tryon.py), comma-separated
     TRYON_STEPS      diffusion steps per garment (default 30: fewer = faster, rougher)
     HF_TOKEN         optional Hugging Face token: a bigger free GPU quota on the Space
+    WEATHER_ENGINE   open-meteo (default, free, no key; see weather.py) or off
+    WEATHER_LAT / WEATHER_LON / WEATHER_PLACE   place used when the app sends no position
+                     (default Tunis: 36.81, 10.18)
     CORS_ORIGINS     comma-separated, default http://localhost:5173 (React dev server)
 """
 
@@ -58,6 +61,10 @@ class Settings:
     tryon_timeout: float = 180.0       # seconds per garment (a sleeping Space wakes up first)
     tryon_max_garments: int = 3        # chained garments per try-on (each costs GPU quota)
     hf_token: str = field(default_factory=lambda: os.getenv("HF_TOKEN", ""))
+    weather_engine: str = field(default_factory=lambda: os.getenv("WEATHER_ENGINE", "open-meteo").lower())
+    weather_lat: float = field(default_factory=lambda: float(os.getenv("WEATHER_LAT", "36.81")))
+    weather_lon: float = field(default_factory=lambda: float(os.getenv("WEATHER_LON", "10.18")))
+    weather_place: str = field(default_factory=lambda: os.getenv("WEATHER_PLACE", "Tunis"))
     cors_origins: list = field(default_factory=lambda: os.getenv(
         "CORS_ORIGINS", "http://localhost:5173").split(","))
     mappings_dir: Path = field(default_factory=lambda: ROOT / "mappings")   # formula CSVs

@@ -286,6 +286,22 @@ export interface TryOnResult {
   skipped: { id: string; reason: 'unsupported' }[]   // shoes, bags, accessories
 }
 
+/** GET /weather (backend/app/weather.py, Open-Meteo). */
+export type WeatherCondition = 'clear' | 'cloudy' | 'fog' | 'rain' | 'snow' | 'storm'
+export interface Weather {
+  temperature: number
+  feels_like: number
+  min: number
+  max: number
+  condition: WeatherCondition | null
+  rain_probability: number | null
+  rain_likely: boolean
+  season: Season                 // the season to dress for today
+  place: string                  // 'here' (the user's rounded position) or the default place's name
+  lat: number
+  lon: number
+}
+
 /** A collector run started from Admin > Listings (backend/app/jobs.py). */
 export type JobStatus = 'running' | 'stopping' | 'finished' | 'failed' | 'stopped' | 'lost'
 export interface Job {
