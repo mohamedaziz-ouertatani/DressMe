@@ -140,7 +140,7 @@ def test_check_script_finds_the_platform():
     closed = FakeSite({}, robots="User-agent: *\nDisallow: /\n")
     lines, kind = check_shop_source.check("https://shop.example.tn",
                                           Client("https://shop.example.tn", delay=0, opener=closed, save=False))
-    assert kind == "" and all("FORBIDS" in line for line in lines)
+    assert kind == "" and all("FORBIDS" in line for line in lines[:2])
 
 
 # ------------------------------------------------------------------ frozen snapshot
@@ -258,10 +258,11 @@ def test_check_script_saves_the_kind_but_never_enables(tmp_path, monkeypatch, ca
     csv_path = tmp_path / "listing_sources.csv"
     shutil.copy(Path(__file__).parents[2] / "mappings" / "listing_sources.csv", csv_path)
     monkeypatch.setattr(check_shop_source, "Settings", lambda: SimpleNamespace(mappings_dir=tmp_path))
-    found = {"https://www.exist.com.tn/": "shopify", "https://ha.com.tn/": "woocommerce", "https://zen.com.tn/fr/": ""}
+    found = {"https://www.exist.com.tn/": "shopify", "https://ha.com.tn/": "woocommerce", "https://zen.com.tn/fr/": "",
+             "https://www2.hm.com/fr_fr/": ""}
     checked = []
 
-    def fake_check(url):
+    def fake_check(url, **kw):
         checked.append(url)
         return [f"  checked {url}"], found[url]
 
@@ -296,3 +297,110 @@ def test_check_moves_on_when_a_web_page_answers(monkeypatch):
     result = shopify.fetch(source("shopify"), ARGS,
                            opener=FakeSite({"/products.json": (200, "text/html", b"<html>captcha</html>")}))
     assert result.status == "blocked"
+
+
+# ------------------------------------------------------------------ sitemap + product pages (H&M France)
+from datetime import datetime, timedelta, timezone  # noqa: E402
+
+from connectors import sitemap  # noqa: E402
+
+SM = FIXTURES / "sitemap"
+
+
+def sm_site(products=None, robots=None, index=None, overrides=None):
+    """A shop answering like www2.hm.com/fr_fr: robots.txt -> sitemap index -> product sitemap -> pages."""
+    pages = {"111": "product-111.html", "222": "product-222.html", "333": "product-111.html", **(products or {})}
+    routes = {"/sitemaps/index.xml": (200, "application/xml", (index or (SM / "index.xml").read_bytes())),
+              "/sitemaps/fr_fr/products-1.xml": (200, "text/xml", (SM / "products-fr.xml").read_bytes()),
+              "/sitemaps/de_de/": (200, "text/xml", b"<?xml version='1.0'?><urlset/>")}
+    for pid, name in pages.items():
+        body = (SM / name).read_bytes() if name.endswith(".html") else name
+        routes[f"/fr_fr/productpage.{pid}.html"] = (200, "text/html", body) if isinstance(body, bytes) else body
+    routes.update(overrides or {})
+    return FakeSite(routes, robots=robots if robots is not None else (SM / "robots.txt").read_text())
+
+
+def sm_source(**kw):
+    return {"source_id": "hm_fr", "kind": "sitemap", "brand": "hm", "base_url": "https://shop.example.tn/fr_fr/",
+            "delay_s": "0", "product_pattern": "productpage", "max_pages": "500", **kw}
+
+
+def test_sitemap_reads_products_prices_and_sizes():
+    site = sm_site()
+    result = sitemap.fetch(sm_source(), SimpleNamespace(limit=0, last_seen={}), opener=site)
+    assert result.status == "ok", result.message
+    by_id = {r.external_id: r for r in result.listings}
+    assert set(by_id) == {"/fr_fr/productpage.111.html", "/fr_fr/productpage.222.html", "/fr_fr/productpage.333.html"}
+    shirt = by_id["/fr_fr/productpage.111.html"]
+    assert (shirt.title, shirt.image_url, shirt.shop_colour) == ("Chemise en lin", "https://img.example.tn/111.jpg", "Blanc")
+    assert shirt.price_tnd == round(29.99 * 3.40, 3) and shirt.price_original == "29.99 EUR"
+    assert shirt.in_stock is True and shirt.availability_level == "product" and shirt.brand == "hm"
+    jeans = by_id["/fr_fr/productpage.222.html"]
+    assert jeans.url == "https://shop.example.tn/fr_fr/productpage.222.html"       # ?colour= dropped
+    assert (jeans.sizes, jeans.sizes_in_stock, jeans.availability_level) == (["36", "38"], ["36"], "colour")
+    # only the French sitemap, never the category page, and every product is "present"
+    assert not any("de_de" in u and "productpage" in u for u in site.urls)
+    assert result.present_ids == set(by_id)
+
+
+def test_sitemap_cap_new_first_then_oldest():
+    now = datetime.now(timezone.utc)
+    last_seen = {"/fr_fr/productpage.111.html": now - timedelta(days=1),
+                 "/fr_fr/productpage.222.html": now - timedelta(days=9)}
+    site = sm_site()
+    result = sitemap.fetch(sm_source(max_pages="2"), SimpleNamespace(limit=0, last_seen=last_seen), opener=site)
+    # 333 is new, then 222 (checked 9 days ago) before 111 (checked yesterday)
+    assert [r.external_id for r in result.listings] == ["/fr_fr/productpage.333.html", "/fr_fr/productpage.222.html"]
+    assert len(result.present_ids) == 3                  # 111 not fetched, but still listed: not gone
+
+
+def test_sitemap_respects_robots_and_stops_on_blocks():
+    closed = sm_site(robots="User-agent: *\nDisallow: /fr_fr/productpage\nSitemap: https://shop.example.tn/sitemaps/index.xml\n")
+    result = sitemap.fetch(sm_source(), SimpleNamespace(limit=0), opener=closed)
+    assert result.status == "error" and "forbids the product pages" in result.message
+    assert not any("productpage" in u for u in closed.urls)          # never asked for a forbidden page
+
+    challenge = sm_site(overrides={"/sitemaps/index.xml": (200, "text/html", b"<html>Access Denied</html>")})
+    assert sitemap.fetch(sm_source(), SimpleNamespace(limit=0), opener=challenge).status == "blocked"
+    refused = sm_site(overrides={"/fr_fr/productpage.111.html": (403, "text/html", b"denied")})
+    assert sitemap.fetch(sm_source(), SimpleNamespace(limit=0), opener=refused).status == "blocked"
+    bot_check = sm_site(products={"111": "product-empty.html", "222": "product-empty.html", "333": "product-empty.html"})
+    import connectors.sitemap as smod
+    smod_empty, smod.EMPTY_IN_A_ROW = smod.EMPTY_IN_A_ROW, 3
+    try:
+        assert sitemap.fetch(sm_source(), SimpleNamespace(limit=0), opener=bot_check).status == "blocked"
+    finally:
+        smod.EMPTY_IN_A_ROW = smod_empty
+
+
+def test_sitemap_stop_limit_and_currency(tmp_path, monkeypatch):
+    stopped = sitemap.fetch(sm_source(), SimpleNamespace(limit=0, should_stop=lambda: True), opener=sm_site())
+    assert stopped.status == "stopped"
+    limited = sitemap.fetch(sm_source(), SimpleNamespace(limit=1), opener=sm_site())
+    assert len(limited.listings) == 1
+    rates = tmp_path / "rates.csv"
+    rates.write_text("currency,tnd_per_unit,checked_on,note\nTND,1,,\n")
+    monkeypatch.setattr(sitemap, "RATES_FILE", rates)
+    monkeypatch.setattr(sitemap, "load_rates", lambda path=rates: {"TND": 1.0})
+    no_rate = sitemap.fetch(sm_source(), SimpleNamespace(limit=0), opener=sm_site())
+    assert no_rate.status == "error" and "EUR" in no_rate.message     # never guessed
+
+
+def test_check_script_finds_the_sitemap_route():
+    lines, kind = check_shop_source.check(
+        "https://shop.example.tn/fr_fr/",
+        Client("https://shop.example.tn/fr_fr/", delay=0, opener=sm_site(), save=False), pattern="productpage")
+    assert kind == "sitemap" and "Chemise en lin" in lines[-1] and "EUR" in lines[-1]
+
+
+def test_gone_only_when_missing_from_the_sitemap(client):
+    from tests.test_listings import FakeLabeller, raw
+    db, storage = client.app.state.db, client.app.state.settings.storage_dir
+    t0 = datetime.now(timezone.utc)
+    from app.listings import sync_listings
+    sync_listings(db, "hm_fr", [raw("a"), raw("b"), raw("c")], FakeLabeller(), storage, now=t0)
+    # next run fetched only "a"; the sitemap still lists a and b, c disappeared
+    counts = sync_listings(db, "hm_fr", [raw("a")], FakeLabeller(), storage, now=t0 + timedelta(days=1),
+                           keep_ids={"a", "b"})
+    status = {d["external_id"]: d["status"] for d in db.listings.find()}
+    assert counts["gone"] == 1 and status == {"a": "active", "b": "active", "c": "gone"}

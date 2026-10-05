@@ -102,6 +102,7 @@ export interface Listing {
   shop_colour: string
   url: string            // the product page: always link to it
   price_tnd: number | null
+  price_original: string     // the shop's own price when it is not in TND, e.g. "29.99 EUR"
   sizes: string[]
   sizes_in_stock: string[]
   in_stock: boolean | null

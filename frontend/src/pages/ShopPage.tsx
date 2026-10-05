@@ -172,7 +172,8 @@ export function ListingPage() {
                   <p className="mt-1 text-[14px] text-carbon-soft">
                     {l.seller ? t('friperieSellers') : brandName(l.brand)}{l.shop_colour ? <> · <span dir="auto">{l.shop_colour}</span></> : null}{kind && l.title ? ` · ${kind}` : ''}
                   </p>
-                  {l.price_tnd !== null && <p className="mt-2 font-mono text-[18px] text-carbon tabular">{price(l.price_tnd)}</p>}
+                  {l.price_tnd !== null && <p className="mt-2 font-mono text-[18px] text-carbon tabular">{price(l.price_tnd, l.price_original)}</p>}
+                  {l.price_original && <p className="text-[12px] text-carbon-soft">{t('priceConverted', { o: l.price_original })}</p>}
                   <p className="mt-1 text-[13px] text-carbon-soft">
                     {l.status === 'gone' ? t('listingGone') : <StockLine listing={l} />}
                   </p>

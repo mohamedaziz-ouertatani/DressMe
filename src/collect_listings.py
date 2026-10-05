@@ -126,6 +126,9 @@ def collect(db, settings, source, args, labeller_for, progress=None):
     sid, started = source["source_id"], datetime.now(timezone.utc)
     print(f"[{sid}] reading the shop")
     progress.update(phase="reading the shop", source=sid, done=0, total=0)
+    # when each product was last checked: a big shop (sitemap) fetches new ones first, then the oldest
+    args.last_seen = {d["external_id"]: d.get("seen_at") for d in db.listings.find(
+        {"source_id": sid, "status": "active"}, {"external_id": 1, "seen_at": 1})}
     result = CONNECTORS[source["kind"]].fetch(source, args)
     if result.status != "ok":
         print(f"[{sid}] {result.status.upper()}: nothing saved. {result.message.splitlines()[-1:]}")
@@ -144,7 +147,8 @@ def collect(db, settings, source, args, labeller_for, progress=None):
 
     try:
         counts = sync_listings(db, sid, result.listings, labeller, settings.storage_dir,
-                               now=started, mark_gone=not args.limit, on_item=on_item)
+                               now=started, mark_gone=not args.limit, on_item=on_item,
+                               keep_ids=result.present_ids)
     except SourceBlocked as err:
         print(f"[{sid}] BLOCKED while downloading pictures: {err}. Nothing marked gone.")
         record_run(db, sid, started, "blocked", str(err), mode=result.mode)
