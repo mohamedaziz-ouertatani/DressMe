@@ -159,8 +159,13 @@ def save_kind(path, source_id, kind):
     for row in rows:
         if row["source_id"] == source_id:
             row["kind"] = kind
-            row["note"] = (f"Checked {date.today().isoformat()} with check_shop_source.py: {kind}. "
-                           "A team member must read the shop's terms before enabled=yes.")
+            if row.get("enabled", "").strip().lower() == "yes" and row.get("approved_on"):
+                # the team already approved the terms: keep saying so
+                row["note"] = (f"Checked {date.today().isoformat()} with check_shop_source.py: {kind}. "
+                               f"Terms approved by the team on {row['approved_on']}.")
+            else:
+                row["note"] = (f"Checked {date.today().isoformat()} with check_shop_source.py: {kind}. "
+                               "A team member must read the shop's terms before enabled=yes.")
     with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fields, quoting=csv.QUOTE_MINIMAL, lineterminator="\n")
         writer.writeheader()

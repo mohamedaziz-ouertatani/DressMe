@@ -273,8 +273,13 @@ def test_check_script_saves_the_kind_but_never_enables(tmp_path, monkeypatch, ca
     rows = {s["source_id"]: s for s in load_sources(tmp_path)}
     assert rows["exist_tn"]["kind"] == "shopify" and rows["hamadiabid_tn"]["kind"] == "woocommerce"
     assert rows["zen_tn"]["kind"] == ""                  # nothing supported found: left empty
-    assert all(rows[s]["enabled"] == "no" and rows[s]["approved_on"] == "" for s in ("exist_tn", "hamadiabid_tn"))
-    assert usable(rows["exist_tn"]) == "not enabled"     # the team still has to read the terms
+    # --save fills the kind only: enabled / approved_on stay exactly what the team set
+    before = {s["source_id"]: s for s in load_sources(Path(__file__).parents[2] / "mappings")}
+    for sid in ("exist_tn", "hamadiabid_tn", "zen_tn"):
+        assert (rows[sid]["enabled"], rows[sid]["approved_on"]) == (before[sid]["enabled"], before[sid]["approved_on"])
+    # approved by the team on 2026-10-05: with a kind, Exist can run; Zen (nothing found) cannot
+    assert usable(rows["exist_tn"]) == ("" if before["exist_tn"]["enabled"] == "yes" else "not enabled")
+    assert "kind not set yet" in usable(rows["zen_tn"])
     assert rows["zara_tn"] == {**rows["zara_tn"]} and rows["inditex_snapshot"]["kind"] == "snapshot"
     assert "no platform we support" in capsys.readouterr().out
 
