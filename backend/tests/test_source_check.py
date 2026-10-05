@@ -43,9 +43,15 @@ def test_check_saves_the_kind_but_never_enables(admin_client):
     body = r.json()
     assert body["kind"] == "sitemap" and body["saved"] and "stays off" in body["note"]
     assert c.asked == [("https://www2.hm.com/fr_fr/", "productpage")]     # the source's own pattern
+    before = rows(ROOT / "mappings")["hm_fr"]
     hm = rows(c.folder)["hm_fr"]
-    assert hm["kind"] == "sitemap" and hm["enabled"] == "no" and hm["approved_on"] == ""
-    assert usable(hm) == "not enabled"
+    # the check fills the kind only: enabled / approved_on stay what the team set
+    assert hm["kind"] == "sitemap"
+    assert (hm["enabled"], hm["approved_on"]) == (before["enabled"], before["approved_on"])
+    if before["enabled"] == "yes":       # approved by the team on 2026-10-05: it can run now
+        assert usable(hm) == "" and "Terms approved by the team on 2026-10-05" in hm["note"]
+    else:
+        assert usable(hm) == "not enabled"
 
     overview = {s["source_id"]: s for s in c.get("/admin/listings/overview").json()["sources"]}
     assert overview["hm_fr"]["last_check"]["kind"] == "sitemap"
