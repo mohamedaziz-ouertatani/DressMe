@@ -17,6 +17,7 @@ from pymongo import MongoClient
 
 from app.config import Settings
 from app.main import create_app
+from app.weather import OpenMeteo
 
 TEST_DB = "dressme_test"
 FAKE = {  # rgb -> what the fake "model" answers
@@ -96,6 +97,27 @@ class FakeTryOn:
         return out
 
 
+class FakeWeather(OpenMeteo):
+    """The real engine (cache, simplify) with a canned Open-Meteo answer: no network.
+    `raw` can be changed by a test; `calls` lists the places asked for."""
+
+    def __init__(self, raw=None):
+        super().__init__(settings=None)
+        self.raw = raw or open_meteo_answer()
+        self.calls = []
+
+    def fetch(self, lat, lon):
+        self.calls.append((lat, lon))
+        return self.raw
+
+
+def open_meteo_answer(feels=(20, 28), rain=10, code=2, now=26):
+    return {"current": {"temperature_2m": now, "apparent_temperature": now + 0.4, "weather_code": code},
+            "daily": {"temperature_2m_min": [feels[0] - 1], "temperature_2m_max": [feels[1] - 1],
+                      "apparent_temperature_min": [feels[0]], "apparent_temperature_max": [feels[1]],
+                      "precipitation_probability_max": [rain], "weather_code": [code]}}
+
+
 def photo(rgb, size=(64, 80)):
     buf = io.BytesIO()
     Image.new("RGB", size, rgb).save(buf, format="PNG")
@@ -117,10 +139,10 @@ def make_client(settings):
     MongoClient(settings.mongo_url).drop_database(TEST_DB)
     clients = []
 
-    def make(chat_engine=None, remover=None, tryon=None):
+    def make(chat_engine=None, remover=None, tryon=None, weather=None):
         app = create_app(settings, analyzer=FakeAnalyzer(), catalog=FakeCatalog(),
                          chat_engine=chat_engine or FakeChatEngine(), remover=remover,
-                         tryon_engine=tryon or FakeTryOn())
+                         tryon_engine=tryon or FakeTryOn(), weather_engine=weather or FakeWeather())
         c = TestClient(app)
         c.__enter__()            # runs the start-up (database connection)
         clients.append(c)

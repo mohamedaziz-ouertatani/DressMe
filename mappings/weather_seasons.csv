@@ -1,0 +1,4 @@
+name,value,note
+summer_from,24,"REVIEW (team starting value): a day whose mean feels-like temperature (°C, (max + min) / 2) is at least this counts as summer"
+winter_below,14,"REVIEW: a day whose mean feels-like temperature is below this counts as winter (in between = mid-season)"
+rain_likely_from,50,"REVIEW: chance of rain (%) from which the Today page says rain is likely"
