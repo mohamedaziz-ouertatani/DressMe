@@ -1,6 +1,6 @@
 """
 Outfits (score, suggest, complete), "should I buy this?" and similar items.
-All the fashion logic is in src/compatibility.py; this file only connects it
+All the fashion logic is in src/phase4/compatibility.py; this file only connects it
 to the user's wardrobe and profile.
 """
 

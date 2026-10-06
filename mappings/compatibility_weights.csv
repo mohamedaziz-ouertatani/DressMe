@@ -3,7 +3,7 @@ weight_style,0.35,REVIEW: how much each part counts (rescaled to sum 1 over the 
 weight_colour,0.30,REVIEW
 weight_pattern,0.15,REVIEW
 weight_structure,0.20,REVIEW
-style_low,0.20,FashionCLIP similarity that counts as 0. Measured: real PolyVore outfits average 0.35 (5th percentile) to 0.55 (95th); the scale is kept wider so scores do not pile up at 0 or 100 (ties); see reports/compatibility_evaluation.md
+style_low,0.20,FashionCLIP similarity that counts as 0. Measured: real PolyVore outfits average 0.35 (5th percentile) to 0.55 (95th); the scale is kept wider so scores do not pile up at 0 or 100 (ties); see reports/phase4/compatibility_evaluation.md
 style_high,0.80,FashionCLIP similarity that counts as 1
 max_bold_colours,3,more non-neutral colours than this costs colour points
 bold_colour_penalty,0.15,colour points lost per extra non-neutral colour

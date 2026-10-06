@@ -1,4 +1,4 @@
-# Shop scraper (src/scrape_shops.py), on top of requirements.txt
+# Shop scraper (src/phase3/scrape_shops.py), on top of requirements.txt
 #   pip install -r requirements-scraping.txt
 #   playwright install chromium
 playwright>=1.45

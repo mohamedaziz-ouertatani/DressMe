@@ -12,7 +12,7 @@ Admin dashboard API (admins only: python -m app.make_admin <email>).
     GET    /admin/listings        friperie sellers' listings to review (?status=pending)
     PATCH  /admin/listings/{id}   approve (active) or reject one, with an optional note
     GET    /admin/listings/overview  the Listings dashboard: counts, sources, runs, jobs
-    POST   /admin/sources/{id}/check  the read-only shop check (src/check_shop_source.py) from the
+    POST   /admin/sources/{id}/check  the read-only shop check (src/phase4/check_shop_source.py) from the
                                       page; saves the kind found, never switches the shop on
     GET    /admin/jobs            collector runs started from the app (newest first)
     POST   /admin/jobs            start one (one at a time; same source gate as the command line)
@@ -207,7 +207,7 @@ def put_formula(body: FormulaUpdate, request: Request):
     compatibility.reload_rules(request.app.state.settings.mappings_dir)
     return {**get_formula(request),
             "note": "Saved. Commit mappings/compatibility_weights.csv so the team keeps this change, "
-                    "and re-measure with: python src/evaluate_compatibility.py"}
+                    "and re-measure with: python src/phase4/evaluate_compatibility.py"}
 
 
 # ------------------------------------------------------------------ listing sources
@@ -412,7 +412,7 @@ def check_out(doc):
 
 @router.post("/sources/{source_id}/check")
 def check_source(source_id: str, request: Request, admin=Depends(current_admin)):
-    """Run src/check_shop_source.py's check on one shop, as `--save` does: robots.txt, then
+    """Run src/phase4/check_shop_source.py's check on one shop, as `--save` does: robots.txt, then
     Shopify, WooCommerce and the sitemap route, ~4-6 polite requests (up to ~30 s). The kind
     found is written into listing_sources.csv; enabled / approved_on are never touched, so the
     shop stays off until a team member has read its terms."""

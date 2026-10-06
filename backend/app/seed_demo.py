@@ -21,10 +21,10 @@ import httpx
 import pandas as pd
 from dotenv import dotenv_values
 
-from .config import BACKEND_DIR, ROOT, Settings
+from .config import BACKEND_DIR, SRC_DIRS, Settings
 from .db import connect
 
-sys.path.insert(0, str(ROOT / "src"))
+sys.path[:0] = [str(d) for d in SRC_DIRS]
 from item_images import DATA, load_item_image  # noqa: E402
 
 ENV = BACKEND_DIR / ".env"

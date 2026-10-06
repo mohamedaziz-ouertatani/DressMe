@@ -1,5 +1,5 @@
 """The shop check from Admin > Listings (POST /admin/sources/{id}/check): the same
-read-only check as src/check_shop_source.py, with a fake instead of the network."""
+read-only check as src/phase4/check_shop_source.py, with a fake instead of the network."""
 
 import shutil
 

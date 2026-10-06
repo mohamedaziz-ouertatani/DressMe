@@ -33,10 +33,10 @@ data/raw/Local/
 ## Labelling
 
 ```bash
-python src/map_local.py --init     # adds one row per new photo to labels.csv (file + contributor filled)
+python src/phase3/map_local.py --init     # adds one row per new photo to labels.csv (file + contributor filled)
 # open labels.csv in Excel / LibreOffice / Google Sheets, fill in the rows, save as CSV
-python src/map_local.py            # checks every label; fix what it lists, run again
-python src/merge_and_split.py      # adds the photos to dressme.csv (test split)
+python src/phase3/map_local.py            # checks every label; fix what it lists, run again
+python src/phase3/merge_and_split.py      # adds the photos to dressme.csv (test split)
 ```
 
 Run `--init` again whenever new photos arrive: existing rows are kept. A row with no `category` counts as "not labelled yet" and is skipped, so you can label in several sessions.

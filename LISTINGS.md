@@ -12,34 +12,34 @@ Status (2026-10-04, after the first real run):
 | Part | File |
 |---|---|
 | Sources the team approved | `mappings/listing_sources.csv` |
-| Collector job (nightly) | `src/collect_listings.py` |
-| Connectors | `src/connectors/`: `shopify.py`, `woocommerce.py` (through the polite client `http.py`), `snapshot.py`, `inditex.py` (runs `src/scrape_shops.py`; off) |
-| Check a shop before adding it | `src/check_shop_source.py` |
+| Collector job (nightly) | `src/phase4/collect_listings.py` |
+| Connectors | `src/phase4/connectors/`: `shopify.py`, `woocommerce.py` (through the polite client `http.py`), `snapshot.py`, `inditex.py` (runs `src/phase3/scrape_shops.py`; off) |
+| Check a shop before adding it | `src/phase4/check_shop_source.py` |
 | Saving runs, search, sources table | `backend/app/listings.py` |
 | API | `backend/app/routers/listings.py` (browse, sell, seller edits, "Should I buy this?"), `listings` row in `/similar`, `/admin/sources`, `/admin/listings` (moderation) |
 | App pages | `ShopPage.tsx` (Shops + one listing with the verdict), `SellPage.tsx` (sell + my listings), Admin > Sources and Admin > Moderation |
 | Tests | `backend/tests/test_listings.py`, `test_connectors.py` (recorded answers in `tests/fixtures/`), `test_sellers.py`; never a real site |
 
-**Frozen snapshot:** run `inditex_snapshot` (Admin > Listings, "Run now", or `python src/collect_listings.py --source inditex_snapshot`). If `data/processed/shop_demo.csv` is missing, the run builds it first from the rows scraped on 2026-10-03 (`data/raw/Shops/*/products.csv`, through `freeze_shop_demo.freeze`), saving each picture once with our own User-Agent; a picture that could not be saved is tried once more by the collector. If no rows were ever scraped on this computer, the run says so: there is then no snapshot to show. To rebuild it after a change, delete `shop_demo.csv` and run it with "ignore refresh_days" (`--force`).
+**Frozen snapshot:** run `inditex_snapshot` (Admin > Listings, "Run now", or `python src/phase4/collect_listings.py --source inditex_snapshot`). If `data/processed/shop_demo.csv` is missing, the run builds it first from the rows scraped on 2026-10-03 (`data/raw/Shops/*/products.csv`, through `freeze_shop_demo.freeze`), saving each picture once with our own User-Agent; a picture that could not be saved is tried once more by the collector. If no rows were ever scraped on this computer, the run says so: there is then no snapshot to show. To rebuild it after a change, delete `shop_demo.csv` and run it with "ignore refresh_days" (`--force`).
 
-**H&M France (`hm_fr`, kind `sitemap`):** H&M has no shop in Tunisia, so the team chose www2.hm.com/fr_fr (2026-10-05). It is neither Shopify nor WooCommerce, so `src/connectors/sitemap.py` reads it the way search engines do: robots.txt → the sitemaps it lists (only the `fr_fr` ones) → product pages matching `product_pattern` (`productpage`) → the schema.org Product data (JSON-LD) on each page: name, picture, price, currency, stock, sizes. Each run reads at most `max_pages` pages (500; new ones first, then the oldest), and only products missing from the sitemap become gone. Prices in EUR are converted with `mappings/currency_rates.csv` (team-owned; the EUR rate is marked REVIEW) and shown as "≈ … TND" with the original price. It is **off**: run `python src/check_shop_source.py hm_fr --save` on the team machine first (it may well be refused: H&M uses bot protection like Inditex), and a team member must read H&M's terms of use before `enabled = yes`. The same `sitemap` kind can serve any other shop whose robots.txt allows it.
+**H&M France (`hm_fr`, kind `sitemap`):** H&M has no shop in Tunisia, so the team chose www2.hm.com/fr_fr (2026-10-05). It is neither Shopify nor WooCommerce, so `src/phase4/connectors/sitemap.py` reads it the way search engines do: robots.txt → the sitemaps it lists (only the `fr_fr` ones) → product pages matching `product_pattern` (`productpage`) → the schema.org Product data (JSON-LD) on each page: name, picture, price, currency, stock, sizes. Each run reads at most `max_pages` pages (500; new ones first, then the oldest), and only products missing from the sitemap become gone. Prices in EUR are converted with `mappings/currency_rates.csv` (team-owned; the EUR rate is marked REVIEW) and shown as "≈ … TND" with the original price. It is **off**: run `python src/phase4/check_shop_source.py hm_fr --save` on the team machine first (it may well be refused: H&M uses bot protection like Inditex), and a team member must read H&M's terms of use before `enabled = yes`. The same `sitemap` kind can serve any other shop whose robots.txt allows it.
 
 **Inditex off again (2026-10-05):** the retry below got Access Denied on the first page for all three sites, so they are switched off again. Earlier that day: Zara answered the plain `scrape_shops.py` again, so the team re-enabled `zara_tn`, and `bershka_tn` / `pullandbear_tn` for a retry. Same rules: 5 s delay, a run every 2 days at most, the run stops at the first Access Denied, and a source blocked again is switched off; never work around a block.
 
 **Team approval (2026-10-05):** the team read the terms of use of Exist, Hamadi Abid, Zen and H&M France and agreed. Exist, Hamadi Abid and H&M are `enabled = yes`, `approved_on = 2026-10-05`: each one runs as soon as Check saves a kind for it. Zen stays off: its robots.txt forbids the product pages, and we never read a forbidden page.
 
 **Adding a Tunisian shop:** Exist (https://www.exist.com.tn/), Hamadi Abid (https://ha.com.tn/) and Zen (https://zen.com.tn/fr/) are already in the table with their sites (given by the team on 2026-10-04), switched off.
-1. On Admin > Listings, press **Check** on the shop (or run `python src/check_shop_source.py --all --save`). If a shop has sitemaps but no address contains its `product_pattern`, the check tests a few of the deepest addresses and says which carry product data: set `product_pattern` in the table to a part of those addresses, then check again. Same as: for each shop, reads robots.txt and one product, says whether it runs Shopify or WooCommerce, shows a price to confirm it is in TND, and writes the `kind` it found into the table (the shop stays OFF). A shop whose robots.txt forbids those paths, or that runs neither platform, gets no kind and is not listed. A new shop: add its line first (`python src/check_shop_source.py https://<site> new_tn` prints it).
+1. On Admin > Listings, press **Check** on the shop (or run `python src/phase4/check_shop_source.py --all --save`). If a shop has sitemaps but no address contains its `product_pattern`, the check tests a few of the deepest addresses and says which carry product data: set `product_pattern` in the table to a part of those addresses, then check again. Same as: for each shop, reads robots.txt and one product, says whether it runs Shopify or WooCommerce, shows a price to confirm it is in TND, and writes the `kind` it found into the table (the shop stays OFF). A shop whose robots.txt forbids those paths, or that runs neither platform, gets no kind and is not listed. A new shop: add its line first (`python src/phase4/check_shop_source.py https://<site> new_tn` prints it).
 2. A team member reads the shop's terms of use. If nothing forbids it, set `enabled = yes` and `approved_on` = that date.
-3. Smoke test: `python src/collect_listings.py --source exist_tn --limit 30` (a `--limit` run never marks anything gone).
+3. Smoke test: `python src/phase4/collect_listings.py --source exist_tn --limit 30` (a `--limit` run never marks anything gone).
 4. The nightly job then refreshes it every `refresh_days` (2).
 
-**From the app (Admin > Listings):** admins see the listing counts, every source (can it run, why not, its last run) and two charts (listed by category, source runs per day). They can **start a run** (chosen sources or every due one, with the same options as the command line: whole catalogue, ignore refresh_days, limit), **follow it live** (phase, progress bar, results per source, the log) and **stop it**. `backend/app/jobs.py` starts `src/collect_listings.py` as a separate process with `--status-file` / `--stop-file` (`src/job_progress.py`), logs under `STORAGE_DIR/jobs/`, one document per run in MongoDB `listing_jobs`.
+**From the app (Admin > Listings):** admins see the listing counts, every source (can it run, why not, its last run) and two charts (listed by category, source runs per day). They can **start a run** (chosen sources or every due one, with the same options as the command line: whole catalogue, ignore refresh_days, limit), **follow it live** (phase, progress bar, results per source, the log) and **stop it**. `backend/app/jobs.py` starts `src/phase4/collect_listings.py` as a separate process with `--status-file` / `--stop-file` (`src/phase4/job_progress.py`), logs under `STORAGE_DIR/jobs/`, one document per run in MongoDB `listing_jobs`.
 - One run at a time (the models need the GPU memory, and a shop must never get two of us at once); the same gate as the command line (enabled + approved only).
 - Stop is polite: the run finishes its current item, keeps what it saved and marks nothing gone (result `stopped`). If it has not ended after 30 s, the whole process tree (scraper and browser too) is ended.
 - A run whose heartbeat (every 10 s) is older than 2 minutes, e.g. after the backend restarted, is shown as `lost`.
 
-**The nightly job:** `python src/collect_listings.py > data/logs/listings.log 2>&1`, from Windows Task Scheduler every night at 02:00 (program = the venv's `python.exe`, arguments = `src\collect_listings.py`, start in = the project folder). `--list` shows which sources would run, and why not.
+**The nightly job:** `python src/phase4/collect_listings.py > data/logs/listings.log 2>&1`, from Windows Task Scheduler every night at 02:00 (program = the venv's `python.exe`, arguments = `src\phase4\collect_listings.py`, start in = the project folder). `--list` shows which sources would run, and why not.
 
 - **When a site blocks us:** a 403, a 429, or an HTML page (bot check) where JSON was expected stops the source; the collector also stops after 5 pictures in a row that cannot be downloaded. The run is saved as `blocked` (Admin > Sources shows the message) and nothing is marked gone. Never try to get around it; if it happens again, switch the source off (`enabled = no`). The connectors also ask robots.txt before every path and never read a forbidden one.
 - **Labels:** our models only (category, sub_category, pattern, colour), like a wardrobe upload. The shops' own category words are not mapped yet (that needs `mappings/listings_<source>_*.csv` rules, see section 4).
@@ -81,14 +81,14 @@ The kinds of source:
 
 - **Friperie sellers** (`source_id = sellers`): they post their own items in the app (section 6). Fully allowed, and it fits our users best (56% shop second-hand).
 - **`shopify`:** many small Tunisian e-shops run on Shopify, which publishes a public product list at `/products.json?page=N`. We still check the terms and `robots.txt` per shop.
-- **`snapshot`:** the Inditex rows scraped before the block, frozen (`src/connectors/snapshot.py`). Never contacts a site.
+- **`snapshot`:** the Inditex rows scraped before the block, frozen (`src/phase4/connectors/snapshot.py`). Never contacts a site.
 - **`woocommerce`:** WooCommerce shops publish their products through the Store API at `/wp-json/wc/store/v1/products`. Same checks.
 - **`feed`:** a product feed given to us officially (affiliate programme or a brand that agrees), in CSV or XML (Google Merchant format). This needs a sign-up per brand.
-- **`inditex`:** Zara / Bershka / Pull&Bear through the existing `src/scrape_shops.py` (full catalogue weekly, `--stock-only` in between). Approved by the team vote of 2026-10-04 (polite retry), but **switched off the same day**: the first run got "Access Denied" on the home page. Do not switch it on again without a team decision.
+- **`inditex`:** Zara / Bershka / Pull&Bear through the existing `src/phase3/scrape_shops.py` (full catalogue weekly, `--stock-only` in between). Approved by the team vote of 2026-10-04 (polite retry), but **switched off the same day**: the first run got "Access Denied" on the home page. Do not switch it on again without a team decision.
 
 ## 3. Connectors
 
-One small file per kind: `src/connectors/<kind>.py`. Each one has the same function:
+One small file per kind: `src/phase4/connectors/<kind>.py`. Each one has the same function:
 
 ```python
 def fetch(source, args) -> FetchResult(status, message, listings, mode)
@@ -103,7 +103,7 @@ Adding a shop that already uses a known kind is then only a new line in `listing
 
 ## 4. The collector job
 
-`src/collect_listings.py` runs every night: Windows Task Scheduler on the team machine, or cron. It runs as a separate process writing a log (rule for runs over 10 minutes).
+`src/phase4/collect_listings.py` runs every night: Windows Task Scheduler on the team machine, or cron. It runs as a separate process writing a log (rule for runs over 10 minutes).
 
 For each enabled source:
 
@@ -150,7 +150,7 @@ The thumbnail (≤ 320 px) is stored under `STORAGE_DIR/listings/`. The full pic
 - `POST /listings/{id}/candidate`: "Should I buy this?" (see below).
 - `GET /listings/sources`: the shops that have listings, for the filter chips.
 - `/similar`: a new `listings` row next to `shop` (H&M).
-- **Search:** brute-force numpy over the vectors of active listings, kept in memory and reloaded after each collector run. This is fine up to ~100k listings; `src/similarity.py` (`SimilarityIndex`) can take over if we grow past that.
+- **Search:** brute-force numpy over the vectors of active listings, kept in memory and reloaded after each collector run. This is fine up to ~100k listings; `src/phase4/similarity.py` (`SimilarityIndex`) can take over if we grow past that.
 - "Should I buy this?" on a listing turns it into a candidate (as `/analyze` does) and reuses `/buy-advice` unchanged.
 - `GET /admin/sources`: per source, the last run, its result (ok / blocked / error) and how many listings were added, updated or marked gone.
 

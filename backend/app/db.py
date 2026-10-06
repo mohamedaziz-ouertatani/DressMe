@@ -8,7 +8,7 @@ MongoDB access (pymongo). Collections:
     events      usage log for the admin dashboard (see events.py)
     outfit_feedback  per-user like/dislike feedback with vector snapshots
     listings    shop products to buy, shared by all users (app/listings.py,
-                filled by src/collect_listings.py)
+                filled by src/phase4/collect_listings.py)
     listing_runs  one line per collector run and source (admin page)
     listing_jobs  collector runs started from the admin page (app/jobs.py)
     source_checks the read-only shop checks run from Admin > Listings

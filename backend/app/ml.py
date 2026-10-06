@@ -16,9 +16,9 @@ estimate_colours) instead of copying it.
 import io
 import sys
 
-from .config import ROOT
+from .config import SRC_DIRS
 
-sys.path.insert(0, str(ROOT / "src"))
+sys.path[:0] = [str(d) for d in SRC_DIRS]
 
 
 class Analyzer:
@@ -30,7 +30,7 @@ class Analyzer:
 
         self._classifier, self.device = classifier.load_classifier()
         self._clip, self._processor, _ = fashionclip.load_model(self.device)
-        # our own file, written by src/estimate_colours.py (never load one from elsewhere)
+        # our own file, written by src/phase3/estimate_colours.py (never load one from elsewhere)
         self._colour = joblib.load(estimate_colours.MODEL_PATH)
         self._modules = (classifier, fashionclip, estimate_colours)
 
@@ -55,7 +55,7 @@ class Analyzer:
 
 class Catalog:
     """Dataset product shots (PolyVore, Fashion Product) as inspiration, and the
-    H&M shop catalogue as things to buy (only if src/embed_hm.py has been run)."""
+    H&M shop catalogue as things to buy (only if src/phase4/embed_hm.py has been run)."""
 
     DATASETS = ["polyvore", "fashion_product"]
 

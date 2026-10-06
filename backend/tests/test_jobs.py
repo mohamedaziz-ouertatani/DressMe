@@ -1,7 +1,7 @@
 """Collector runs started from the admin page (app/jobs.py): start, live
 progress and log, polite stop, hard stop, failure, one at a time, the source
 gate, and the Listings dashboard. A tiny fake collector stands in for
-src/collect_listings.py, so no model or shop is touched."""
+src/phase4/collect_listings.py, so no model or shop is touched."""
 
 import sys
 import time

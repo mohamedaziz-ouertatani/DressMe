@@ -26,7 +26,7 @@ function storedLang(): Language {
   return 'en'
 }
 
-// The compatibility formula (src/compatibility.py) explains scores in English.
+// The compatibility formula (src/phase4/compatibility.py) explains scores in English.
 // These patterns translate each kind of reason; unknown text stays as it is.
 type Rule = [RegExp, (m: RegExpMatchArray, lang: Language) => string]
 const REASONS: Rule[] = [

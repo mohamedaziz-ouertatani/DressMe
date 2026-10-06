@@ -183,7 +183,7 @@ def frozen_paths(tmp_path, monkeypatch):
 
 
 def scraped(data, rows):
-    """A products.csv like the one src/scrape_shops.py wrote on 2026-10-03."""
+    """A products.csv like the one src/phase3/scrape_shops.py wrote on 2026-10-03."""
     path = data / "raw" / "Shops" / "zara_tn" / "products.csv"
     path.parent.mkdir(parents=True)
     cols = ["id", "brand", "country", "gender", "name", "colour_name", "category_paths", "price", "url",
