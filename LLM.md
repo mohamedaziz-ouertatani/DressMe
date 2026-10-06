@@ -34,12 +34,12 @@ Goal: the base model already chats; fine-tuning teaches it **our** job: call the
 ### 2.1 Build the dataset (any machine, ~1 min)
 
 ```
-python src/build_chat_dataset.py --show 5
+python src/phase4/build_chat_dataset.py --show 5
 ```
 
-→ `data/processed/chat_sft/{train,val,test}.jsonl` (3000 / 200 / 300 conversations). Each one has a random wardrobe, and the backend's **real** tool functions run on it (through a tiny fake database), so scores, verdicts and reasons come from `src/compatibility.py` with the team's weights. The system prompt and tool descriptions are imported from `backend/app/routers/chat.py`, so training and the app always match. The sentences are in `src/chat_phrases.py`. A suggestion without an explicit count now returns one best outfit; requests such as “give me four” still exercise the requested count.
+→ `data/processed/chat_sft/{train,val,test}.jsonl` (3000 / 200 / 300 conversations). Each one has a random wardrobe, and the backend's **real** tool functions run on it (through a tiny fake database), so scores, verdicts and reasons come from `src/phase4/compatibility.py` with the team's weights. The system prompt and tool descriptions are imported from `backend/app/routers/chat.py`, so training and the app always match. The sentences are in `src/phase4/chat_phrases.py`. A suggestion without an explicit count now returns one best outfit; requests such as “give me four” still exercise the requested count.
 
-> **Team: please complete the native-speaker review of the Darija in `src/chat_phrases.py`** (nouns, colours and answers). The first team corrections are already applied to the phrase table and dataset review sheet; the model still learns every word exactly as written. Then rebuild the dataset after any further corrections. The review sheet is [reports/darija_review.md](reports/darija_review.md): every Darija word and sentence with transliteration, meaning, open questions and a Correction column.
+> **Team: please complete the native-speaker review of the Darija in `src/phase4/chat_phrases.py`** (nouns, colours and answers). The first team corrections are already applied to the phrase table and dataset review sheet; the model still learns every word exactly as written. Then rebuild the dataset after any further corrections. The review sheet is [reports/phase4/darija_review.md](reports/phase4/darija_review.md): every Darija word and sentence with transliteration, meaning, open questions and a Correction column.
 
 The answer language follows the language the user **writes** in; the profile language is only used when that is unclear (system prompt in `routers/chat.py`; the dataset already works that way, 12% of chats are in another language than the profile). Before 2026-10-04 the prompt let the profile language win, and the base model answered French and Darija questions in English.
 
@@ -55,15 +55,15 @@ kaggle kernels status mohameddazizz/dressme-chat-finetune
 kaggle kernels output mohameddazizz/dressme-chat-finetune -p models/llm
 ```
 
-The dataset folder also holds a copy of `src/finetune_chat.py` (written by the build script), and the notebook runs that copy, so **rebuild and re-upload after changing the training script**. The output is `models/llm/dressme-chat/` (git-ignored): `gguf/*.gguf` (~2.5 GB), `lora/` and `training_log.json` (loss per step, val loss).
+The dataset folder also holds a copy of `src/phase4/finetune_chat.py` (written by the build script), and the notebook runs that copy, so **rebuild and re-upload after changing the training script**. The output is `models/llm/dressme-chat/` (git-ignored): `gguf/*.gguf` (~2.5 GB), `lora/` and `training_log.json` (loss per step, val loss).
 
 Training on our own machine works only on Linux / WSL with a CUDA GPU and `pip install -r requirements-llm.txt`; on 4 GB, only a smoke test with a smaller model:
-`python src/finetune_chat.py --base unsloth/Qwen3-1.7B --limit 50 --max-seq 2048 --gguf none`.
+`python src/phase4/finetune_chat.py --base unsloth/Qwen3-1.7B --limit 50 --max-seq 2048 --gguf none`.
 
 ### 2.3 Register it in Ollama
 
 ```
-python src/make_ollama_model.py
+python src/phase4/make_ollama_model.py
 ```
 
 This writes `models/llm/dressme-chat/Modelfile`, using the GGUF and the chat template of `qwen3:4b-instruct`, the format the model was trained on. Then it runs `ollama create dressme-chat`. Then set `OLLAMA_MODEL=dressme-chat` in `backend/.env`.
@@ -71,13 +71,13 @@ This writes `models/llm/dressme-chat/Modelfile`, using the GGUF and the chat tem
 ### 2.4 Evaluate (team rule: the app uses whichever is better)
 
 ```
-python src/evaluate_chat.py            # qwen3:4b-instruct vs dressme-chat, 150 test conversations
+python src/phase4/evaluate_chat.py            # qwen3:4b-instruct vs dressme-chat, 150 test conversations
 ```
 
 Baseline before fine-tuning (`qwen3:4b-instruct`, `--limit 30`, 75 decisions, 2026-10-04, old language rule): tool decision 76.0%, tool name 33.3%, **arguments 13.9%** (0% on score and suggest), language 94.9%, 8.6 s per decision. It knows *when* to use a tool, but rarely picks the right one with the right ids, and it invents reasons (e.g. "two tops is too revealing" for the max-1-top rule). The language check only looks for Arabic script, so MSA counts as Darija. Until 2026-10-04 the language check compared every answer with the language of the conversation's *last* question, but the language can change between questions, so even the expected answers scored only 93.9% (now 100%; `answer_languages` in the dataset gives one language per answer). The baseline language figure above used the old check; rebuild the dataset before re-running.
 
 Answers are capped at 600 tokens (`num_predict`, backend and evaluation; our longest training answer is ~150): at temperature 0 the base model once repeated itself until Ollama's 5-minute timeout.
 
-→ `reports/chat_evaluation.md`. Every assistant turn of a test conversation is one decision, and the model sees the real conversation up to that point. It reports: tool decision (call a tool or answer?), tool name, arguments, and language of the answer, per scenario, with example answers. The test wardrobes are new, and about a third of the questions use phrasings the training split never saw.
+→ `reports/phase4/chat_evaluation.md`. Every assistant turn of a test conversation is one decision, and the model sees the real conversation up to that point. It reports: tool decision (call a tool or answer?), tool name, arguments, and language of the answer, per scenario, with example answers. The test wardrobes are new, and about a third of the questions use phrasings the training split never saw.
 
 Limits: synthetic data measures tool use and language, not how natural the answers sound. Also try a few real questions in the app. If the fine-tuned model sounds stiff or repeats our templates word for word, try fewer steps (`--epochs 0.5`) or add more phrasings to `chat_phrases.py`.

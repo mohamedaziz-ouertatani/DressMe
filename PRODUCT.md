@@ -55,7 +55,7 @@ Name: DressMe. No logo, colours or voice decided yet (decided 2026-10-03: start 
 
 - Survey figures above (57 responses); personas named in Phase 1 (details in the team's Phase 1 documents, not in this repo).
 - No real user testimonials, ratings, users or partner friperies exist: never fabricate them.
-- Model accuracy figures are in `reports/*_evaluation.md` (e.g. classifier 95.7% category on test).
+- Model accuracy figures are in `reports/phase4/*_evaluation.md` (e.g. classifier 95.7% category on test).
 
 ## Product Principles
 

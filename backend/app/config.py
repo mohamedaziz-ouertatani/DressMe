@@ -34,6 +34,8 @@ from dotenv import load_dotenv
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 ROOT = BACKEND_DIR.parent
+# the project code the API reuses (classifier, compatibility, connectors, ...)
+SRC_DIRS = [ROOT / "src" / folder for folder in ("common", "phase3", "phase4")]
 load_dotenv(BACKEND_DIR / ".env")
 
 

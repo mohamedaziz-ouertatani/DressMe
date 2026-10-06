@@ -1,5 +1,5 @@
 // Admin > Listings: the shop listings at a glance, and the collector runs
-// (src/collect_listings.py) started, followed and stopped from here.
+// (src/phase4/collect_listings.py) started, followed and stopped from here.
 // English only, like the rest of the admin pages.
 import { Fragment, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
@@ -62,7 +62,7 @@ export function AdminListings() {
 
   return (
     <>
-      <Title note="Shop and friperie listings, and the collector runs. A run here is the same as python src/collect_listings.py: only sources enabled and approved in mappings/listing_sources.csv can run, one run at a time. A blocked source stops by itself; never work around it.">
+      <Title note="Shop and friperie listings, and the collector runs. A run here is the same as python src/phase4/collect_listings.py: only sources enabled and approved in mappings/listing_sources.csv can run, one run at a time. A blocked source stops by itself; never work around it.">
         Listings
       </Title>
       {overview.error ? <ErrorNote error={overview.error} onRetry={overview.reload} /> : !ov ? <Skeleton className="h-72" /> : (
@@ -305,7 +305,7 @@ function SourcesTable({ sources, disabled, onRun, onChecked }: {
   const [checking, setChecking] = useState<string | null>(null)
   const [result, setResult] = useState<{ id: string; check?: SourceCheck; error?: unknown } | null>(null)
 
-  /** The read-only check from the page: the same as python src/check_shop_source.py <id> --save. */
+  /** The read-only check from the page: the same as python src/phase4/check_shop_source.py <id> --save. */
   const check = async (id: string) => {
     setChecking(id)
     setResult(null)

@@ -3,8 +3,8 @@ Runs ON KAGGLE (a private notebook with a free T4 GPU, 16 GB), not on our machin
 
 Our RTX 2050 (4 GB) is too small to fine-tune a 4B model, so the training runs
 here. The notebook installs Unsloth, finds our private dataset (the folder
-written by src/build_chat_dataset.py, which also holds a copy of
-src/finetune_chat.py) and runs that script. Everything it writes lands in the
+written by src/phase4/build_chat_dataset.py, which also holds a copy of
+src/phase4/finetune_chat.py) and runs that script. Everything it writes lands in the
 notebook output: the LoRA adapters, the GGUF file for Ollama and the training log.
 
 Pushed with (from the project root, after uploading the dataset; see LLM.md):

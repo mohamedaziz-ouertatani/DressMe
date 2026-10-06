@@ -1,7 +1,7 @@
 """
 Helpers shared by the routers: turn model output into item fields, item
 documents into API answers, and items into the dicts the compatibility formula
-(src/compatibility.py) expects.
+(src/phase4/compatibility.py) expects.
 """
 
 from .db import vector_from_bson

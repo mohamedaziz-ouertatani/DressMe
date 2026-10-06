@@ -112,7 +112,7 @@ def _json_type(hint):
 
 def tool_schema(fn):
     """The function's name, docstring and type hints as an OpenAI-style tool, the
-    format Ollama (and the fine-tuning data, src/build_chat_dataset.py) use.
+    format Ollama (and the fine-tuning data, src/phase4/build_chat_dataset.py) use.
     Gemini reads the same three things from the function itself."""
     params, required = {}, []
     for name, p in inspect.signature(fn).parameters.items():

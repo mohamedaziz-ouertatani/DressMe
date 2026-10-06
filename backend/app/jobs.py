@@ -1,10 +1,10 @@
 """
 Listing collector runs ("jobs") started from the admin page (Admin > Listings).
 
-A job is src/collect_listings.py started as a SEPARATE process, exactly as the
+A job is src/phase4/collect_listings.py started as a SEPARATE process, exactly as the
 nightly task runs it (it loads the models and can take hours), with:
     <storage>/jobs/<id>.log    everything it prints (shown live on the page)
-    <storage>/jobs/<id>.json   its progress (src/job_progress.py)
+    <storage>/jobs/<id>.json   its progress (src/phase4/job_progress.py)
     <storage>/jobs/<id>.stop   created when an admin presses Stop
 MongoDB `listing_jobs` keeps one document per job (who, when, options, result).
 
@@ -43,7 +43,7 @@ class JobBusy(Exception):
 
 def collector_command(job, paths):
     """The command line of one job (tests replace it with a small fake)."""
-    cmd = [sys.executable, "-u", str(ROOT / "src" / "collect_listings.py"),
+    cmd = [sys.executable, "-u", str(ROOT / "src" / "phase4" / "collect_listings.py"),
            "--status-file", str(paths["status"]), "--stop-file", str(paths["stop"])]
     if job["sources"]:
         cmd += ["--source", *job["sources"]]

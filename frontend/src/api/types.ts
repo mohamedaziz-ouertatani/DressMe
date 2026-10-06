@@ -92,7 +92,7 @@ export interface Similar {
   listings?: ListingHit[]   // shop listings in stock now (empty until the collector has run)
 }
 
-/** A shop product collected by src/collect_listings.py (backend/app/listings.py, listing_out).
+/** A shop product collected by src/phase4/collect_listings.py (backend/app/listings.py, listing_out).
  *  category / colour / ... are our models' predictions on its picture. */
 export interface Listing {
   id: string
@@ -345,7 +345,7 @@ export interface OverviewSource {
   last_check: SourceCheck | null
 }
 
-/** The read-only shop check (src/check_shop_source.py) run from Admin > Listings. */
+/** The read-only shop check (src/phase4/check_shop_source.py) run from Admin > Listings. */
 export interface SourceCheck {
   lines: string[]            // what the check printed
   kind: string               // shopify / woocommerce / sitemap, '' = nothing supported

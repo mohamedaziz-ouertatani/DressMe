@@ -5,17 +5,17 @@ Paste this file into a new Claude Code session on your machine to pick up the pr
 ## 1. Current context (2026-10-03)
 
 - **Phase 3 (data) is done on the public data.** Three datasets are mapped to the unified schema by rules in `mappings/*.csv` and merged into `data/processed/dressme.csv` (321,422 rows, stable 80/10/10 splits):
-  - **Fashion Product** (`src/map_fashion_product.py` → `fashion_product.csv`, 35,432 rows): the only source with real colour / season / usage labels. Indian ethnic wear removed; mixed articleTypes (e.g. Swimwear holding caps and goggles) fixed by name keywords in `mappings/fashion_product_name_rules.csv`.
-  - **Fashionpedia** (`src/map_fashionpedia.py` → `fashionpedia.csv`, 160,080 rows): one row per worn item with a bbox; `outfit_id` = the photo; coverage = minimum over length / nickname / sleeve / neckline (`coverage_from` lists the sources).
-  - **PolyVore** (`src/map_polyvore.py` → `polyvore.csv`, 125,910 rows): labelled by folder only; `image_group` = file MD5; pictures found in two folders dropped.
-  - Colours for PolyVore / Fashionpedia come from `src/estimate_colours.py` (gradient boosting on Lab histograms, kept only at confidence ≥ 0.7).
-  - The local photo collection (wardrobe / friperie): the pipeline is ready (`src/map_local.py`, `LOCAL_PHOTOS.md`, #13), but `data/raw/Local/photos/` is still **empty**.
+  - **Fashion Product** (`src/phase3/map_fashion_product.py` → `fashion_product.csv`, 35,432 rows): the only source with real colour / season / usage labels. Indian ethnic wear removed; mixed articleTypes (e.g. Swimwear holding caps and goggles) fixed by name keywords in `mappings/fashion_product_name_rules.csv`.
+  - **Fashionpedia** (`src/phase3/map_fashionpedia.py` → `fashionpedia.csv`, 160,080 rows): one row per worn item with a bbox; `outfit_id` = the photo; coverage = minimum over length / nickname / sleeve / neckline (`coverage_from` lists the sources).
+  - **PolyVore** (`src/phase3/map_polyvore.py` → `polyvore.csv`, 125,910 rows): labelled by folder only; `image_group` = file MD5; pictures found in two folders dropped.
+  - Colours for PolyVore / Fashionpedia come from `src/phase3/estimate_colours.py` (gradient boosting on Lab histograms, kept only at confidence ≥ 0.7).
+  - The local photo collection (wardrobe / friperie): the pipeline is ready (`src/phase3/map_local.py`, `LOCAL_PHOTOS.md`, #13), but `data/raw/Local/photos/` is still **empty**.
 - **Phase 4: all five sub-projects are done and on `main`:** embeddings, classifier, compatibility formula, backend, and the React frontend + admin dashboard (#8).
 - **Shop catalogue = H&M (#9).** Scraping Zara / Bershka / Pull&Bear is stopped (all three block it; team decision: never get around it). Instead, "buy something like this" uses the **H&M catalogue from Kaggle**: 63,005 adult products mapped to the schema, 62,741 searchable with FashionCLIP. `/similar` returns them as `shop`, and the app's **Similar pieces** screen shows them in a "Buy something like this" row. See "H&M shop catalogue" in the Reference part.
-- The Zara rows scraped before the block stay a **static demo** (`src/freeze_shop_demo.py` → `data/processed/shop_demo.csv`), not used by the app.
+- The Zara rows scraped before the block stay a **static demo** (`src/phase3/freeze_shop_demo.py` → `data/processed/shop_demo.csv`), not used by the app.
 - **`/chat` fix (#9):** `gemini-2.5-flash` no longer works with new API keys (404, shown as 503); the default model is now `gemini-3.8-flash`.
 - **Since then (#11–#18):**
-  - Phase 4 PDF report (`src/build_phase4_report.py` → `reports/phase4_report.pdf`, updated in #18);
+  - Phase 4 PDF report (`src/phase4/build_phase4_report.py` → `reports/phase4/phase4_report.pdf`, updated in #18);
   - jury demo script `DEMO.md` (#12);
   - phone photo rotation fix + local photo pipeline (#13);
   - **background removal** on every upload (rembg U2-Net, then U2-Net cloth-seg keeps only the biggest garment when the item is worn; #14, #17);
@@ -81,7 +81,7 @@ Demo login: `demo@example.com` (admin: `admin@example.com`); the passwords are o
 
 In the Claude desktop app, `.claude/launch.json` starts both servers (`api`, `web`) from the preview pane.
 
-Do NOT run `src/scrape_shops.py` again: all three shops block it, and retrying makes the block last longer.
+Do NOT run `src/phase3/scrape_shops.py` again: all three shops block it, and retrying makes the block last longer.
 
 ## 4. Data state and conventions
 
@@ -89,14 +89,14 @@ Nothing under `data/` or `models/` is in git; it exists only on your machine. Da
 
 | File (in `data/processed/`) | Made by | Notes |
 |---|---|---|
-| `fashion_product.csv`, `fashionpedia.csv`, `polyvore.csv` | `src/map_*.py` | one per dataset, ids `fp_`, `fpd_`, `pv_` |
-| `colour_estimates.csv` | `src/estimate_colours.py` | colour + confidence for PolyVore / Fashionpedia; empty below 0.7 |
-| `dressme.csv` | `src/merge_and_split.py` | the merged dataset: `split` (per picture, for classification), `outfit_split` (per outfit), `outfit_clean`, `duplicate` |
-| `embeddings/fashionclip.npy` + `fashionclip_ids.csv` | `src/embed_fashionclip.py` | 306,636 × 512 float16 |
-| `predicted_attributes.csv` | `src/predict_item_attributes.py` | classifier predictions, never labels |
-| `hm.csv` | `src/map_hm.py` | **H&M shop catalogue**, 63,005 rows, ids `hm_`; not part of `dressme.csv` |
-| `embeddings/hm_fashionclip.npy` + `hm_fashionclip_ids.csv` | `src/embed_hm.py` | 62,741 × 512 float16 (the shop search) |
-| `shop_demo.csv` + `shop_demo_images/` | `src/freeze_shop_demo.py` | **static** Zara demo snapshot (2026-10-03), not used by the app |
+| `fashion_product.csv`, `fashionpedia.csv`, `polyvore.csv` | `src/phase3/map_*.py` | one per dataset, ids `fp_`, `fpd_`, `pv_` |
+| `colour_estimates.csv` | `src/phase3/estimate_colours.py` | colour + confidence for PolyVore / Fashionpedia; empty below 0.7 |
+| `dressme.csv` | `src/phase3/merge_and_split.py` | the merged dataset: `split` (per picture, for classification), `outfit_split` (per outfit), `outfit_clean`, `duplicate` |
+| `embeddings/fashionclip.npy` + `fashionclip_ids.csv` | `src/phase4/embed_fashionclip.py` | 306,636 × 512 float16 |
+| `predicted_attributes.csv` | `src/phase4/predict_item_attributes.py` | classifier predictions, never labels |
+| `hm.csv` | `src/phase3/map_hm.py` | **H&M shop catalogue**, 63,005 rows, ids `hm_`; not part of `dressme.csv` |
+| `embeddings/hm_fashionclip.npy` + `hm_fashionclip_ids.csv` | `src/phase4/embed_hm.py` | 62,741 × 512 float16 (the shop search) |
+| `shop_demo.csv` + `shop_demo_images/` | `src/phase3/freeze_shop_demo.py` | **static** Zara demo snapshot (2026-10-03), not used by the app |
 
 Raw H&M data: `data/raw/HM/articles.csv` + `images/<article_id>.jpg` (70,521 pictures, 320 px). Raw shop data: `data/raw/Shops/<brand>_tn/` (see "Shop data" in the Reference part).
 
@@ -120,7 +120,7 @@ Shop items (H&M and Zara) have no `source` value yet: a team decision.
    7. **Similar pieces repeated itself (FIXED).** The H&M row showed one product in several colours; `SimilarityIndex.load_shop` now groups by `product_code`, so each product appears once. The "Inspiration" row showed the demo item itself at 100% (the demo pieces come from PolyVore); `Catalog.search` now leaves out matches ≥ 0.99.
    8. **French (FIXED):** `casual-shoes` was "Chaussures de ville" (dress shoes); now "Chaussures décontractées".
    9. **Stamp wording:** the stamp around a SKIP verdict says "VALIDÉ · مصادق" ("approved"), which reads oddly next to SKIP.
-2. **Local photo collection (team):** the biggest gap. Every result so far is on public datasets; even 100–200 friperie / wardrobe photos (consent, blurred faces; `source` = wardrobe / friperie, always in test) would show whether the classifier and colour model hold up on real use. The pipeline is ready (`src/map_local.py --init`, then `src/map_local.py`, then `merge_and_split.py`); the image cache, embeddings and evaluation scripts still have to learn to read `local`.
+2. **Local photo collection (team):** the biggest gap. Every result so far is on public datasets; even 100–200 friperie / wardrobe photos (consent, blurred faces; `source` = wardrobe / friperie, always in test) would show whether the classifier and colour model hold up on real use. The pipeline is ready (`src/phase3/map_local.py --init`, then `src/phase3/map_local.py`, then `merge_and_split.py`); the image cache, embeddings and evaluation scripts still have to learn to read `local`.
 3. **Team decisions still open:** tune the compatibility weights (style alone scores better: 72.9% vs 66.6% AUC on PolyVore), pick a `source` value for shop items, and fill the *[to fill]* parts of the Phase 3 report (who labels the local photos, collection dates).
 4. **Dropped:** tagging the Zara demo pictures with the classifier (old prompt B). H&M gives 62k products with real labels, so it's no longer worth it.
 5. Optional tidy-up: close or merge ImgBot PR #1; delete the merged branches listed in section 2.
@@ -178,15 +178,15 @@ Run in this order (all from the project root). Everything it writes under `data/
 
 | Step | Script | Output |
 |---|---|---|
-| 1. EDA (once per dataset) | `src/eda_fashion_product.py`, `src/eda_fashionpedia.py`, `src/eda_polyvore.py` | `reports/eda_*.md`, `reports/figures/<dataset>/` |
-| 2. Mapping | `src/map_fashion_product.py`, `src/map_fashionpedia.py`, `src/map_polyvore.py` | `data/processed/<dataset>.csv` |
-| 3. Colour estimation | `src/estimate_colours.py` | `data/processed/colour_estimates.csv`, `reports/colour_estimation.md` |
-| 4. Merge + splits | `src/merge_and_split.py` | `data/processed/dressme.csv` |
-| 5. Report | `src/build_phase3_report.py` | `reports/phase3_report.pdf` (18 pages) |
+| 1. EDA (once per dataset) | `src/phase3/eda_fashion_product.py`, `src/phase3/eda_fashionpedia.py`, `src/phase3/eda_polyvore.py` | `reports/phase3/eda_*.md`, `reports/phase3/figures/<dataset>/` |
+| 2. Mapping | `src/phase3/map_fashion_product.py`, `src/phase3/map_fashionpedia.py`, `src/phase3/map_polyvore.py` | `data/processed/<dataset>.csv` |
+| 3. Colour estimation | `src/phase3/estimate_colours.py` | `data/processed/colour_estimates.csv`, `reports/phase3/colour_estimation.md` |
+| 4. Merge + splits | `src/phase3/merge_and_split.py` | `data/processed/dressme.csv` |
+| 5. Report | `src/phase3/build_phase3_report.py` | `reports/phase3/phase3_report.pdf` (18 pages) |
 
-Helpers: `src/colour_utils.py` handles the Lab colour space and palette matching, and `src/plot_style.py` holds the DressMe chart colours (rust #8E4420, gold #C9A063, cream #F2E8DA, dark #23201C).
+Helpers: `src/phase3/colour_utils.py` handles the Lab colour space and palette matching, and `src/common/plot_style.py` holds the DressMe chart colours (rust #8E4420, gold #C9A063, cream #F2E8DA, dark #23201C).
 
-Colour validation (already done): `src/make_colour_labelling_sheet.py` → `data/interim/colour_labelling/` (400 items and an offline labelling page), then `src/evaluate_colour_labels.py` → `reports/colour_validation.csv/.md`.
+Colour validation (already done): `src/phase3/make_colour_labelling_sheet.py` → `data/interim/colour_labelling/` (400 items and an offline labelling page), then `src/phase3/evaluate_colour_labels.py` → `reports/phase3/colour_validation.csv/.md`.
 
 ## Where the data stands
 
@@ -232,7 +232,7 @@ None in the label mappings: every `REVIEW` row there was settled on 2026-10-01 (
 
 ## The report
 
-`reports/phase3_report.pdf` (rebuilt by `src/build_phase3_report.py`, which reads the pipeline outputs, so the numbers stay correct):
+`reports/phase3/phase3_report.pdf` (rebuilt by `src/phase3/build_phase3_report.py`, which reads the pipeline outputs, so the numbers stay correct):
 
 - context, dataset inventory with licences, and traceability (data → features → personas · HMW);
 - schema, the three EDAs, and label mapping;
@@ -249,15 +249,15 @@ Sections are numbered automatically from the `SECTIONS` list in the script.
 
 - **Setup:** the CUDA build of PyTorch for the RTX 2050 (4 GB), installed as described in `requirements-models.txt`. The model is `patrickjohncyh/fashion-clip`, loaded with `transformers`.
 - **Scripts:**
-  - `src/fashionclip.py`: shared helpers (load the model, crop a Fashionpedia item with 5% padding, embed images / texts).
-  - `src/embed_fashionclip.py`: the one-off pass over the data.
-  - `src/similarity.py`: `SimilarityIndex`, nearest-neighbour search with dataset / category filters and `exclude_ids`.
-  - `src/evaluate_embeddings.py`: the evaluation.
+  - `src/phase4/fashionclip.py`: shared helpers (load the model, crop a Fashionpedia item with 5% padding, embed images / texts).
+  - `src/phase4/embed_fashionclip.py`: the one-off pass over the data.
+  - `src/phase4/similarity.py`: `SimilarityIndex`, nearest-neighbour search with dataset / category filters and `exclude_ids`.
+  - `src/phase4/evaluate_embeddings.py`: the evaluation.
 - **Output:** `data/processed/embeddings/fashionclip.npy` (306,636 × 512 float16, unit length) and `fashionclip_ids.csv`.
   - Each picture is embedded once (282,135 distinct pictures); duplicate copies share their vector.
   - The 14,786 Fashionpedia crops under 32 px have no vector.
   - The run takes about 35 min with `DRESSME_WORKERS=4`. Image loading is the bottleneck (about 140 img/s); the GPU could do 680/s.
-- **Results** (`reports/embeddings_evaluation.md`, test split, duplicates left out):
+- **Results** (`reports/phase4/embeddings_evaluation.md`, test split, duplicates left out):
   - **Zero-shot** (no training): 72% category, 60% sub_category.
   - **Linear probe** on the vectors: **88% category** (96% Fashion Product, 95% PolyVore, 81% Fashionpedia), **80% sub_category**, 74% pattern. **This is the bar for the EfficientNet classifier.**
   - **Colour from the vectors:** better on Fashion Product (71% vs 64.5%), but clearly worse on the hand-labelled PolyVore / Fashionpedia items (63% vs 77% and 42% vs 66% at equal coverage). **Decision: keep the gradient-boosting colour model.**
@@ -272,18 +272,18 @@ Sections are numbered automatically from the `SECTIONS` list in the script.
   - A picture only trains the heads it has a label for (PolyVore has no pattern).
   - Classes are weighted 1/√frequency.
 - **Scripts:**
-  - `src/item_images.py`: shared picture helpers, PIL only.
-  - `src/build_image_cache.py`: the one-off image cache.
-  - `src/classifier.py`: the model, GPU batch decoding, and `predict()` for the API.
-  - `src/train_classifier.py`: training.
-  - `src/evaluate_classifier.py`: the evaluation.
+  - `src/phase4/item_images.py`: shared picture helpers, PIL only.
+  - `src/phase4/build_image_cache.py`: the one-off image cache.
+  - `src/phase4/classifier.py`: the model, GPU batch decoding, and `predict()` for the API.
+  - `src/phase4/train_classifier.py`: training.
+  - `src/phase4/evaluate_classifier.py`: the evaluation.
 - **Image cache:** each distinct picture, letterboxed to a 224 px white square, packed into a single file `data/interim/image_cache_224.bin` (2.6 GB) with an index. The first version kept 282k small files, and training crawled at 49 img/s, because Windows opens small files at only ~300/s. With the packed file and GPU JPEG decoding, training runs at ~200 img/s and the GPU is the limit.
 - **Training:**
   - 5 epochs of ~20 min each.
   - AdamW, cosine schedule, mixed precision, batch size 64.
   - Augmentation: crop, flip, brightness / contrast. No hue change, so colours stay true.
-  - The weights go to `models/checkpoints/classifier_best.pt` (git-ignored). The per-epoch log is `reports/classifier_training_log.csv`.
-- **Test results** (`reports/classifier_evaluation.md`; the FashionCLIP probe was scored on the same pictures):
+  - The weights go to `models/checkpoints/classifier_best.pt` (git-ignored). The per-epoch log is `reports/phase4/classifier_training_log.csv`.
+- **Test results** (`reports/phase4/classifier_evaluation.md`; the FashionCLIP probe was scored on the same pictures):
 
 | field | EfficientNet | FashionCLIP probe | Fashionpedia (street crops), EfficientNet vs probe |
 |---|---:|---:|---:|
@@ -291,7 +291,7 @@ Sections are numbered automatically from the `SECTIONS` list in the script.
 | sub_category | **86.4%** | 79.7% | 81.2% vs 69.1% |
 | pattern | **86.8%** | 74.2% | 87.1% vs 74.4% |
 
-- **Model choice:** under the team rule (whichever is better), **EfficientNet is used for all three fields** (`reports/classifier_choice.json`, read by the API).
+- **Model choice:** under the team rule (whichever is better), **EfficientNet is used for all three fields** (`reports/phase4/classifier_choice.json`, read by the API).
 - **Weak spots:**
   - `traditional` (kaftans; mostly read as dress) and `swimwear` have too few public pictures to learn. Local photos are needed.
   - Small sub_categories are weaker; balanced accuracy is about 80%.
@@ -299,7 +299,7 @@ Sections are numbered automatically from the `SECTIONS` list in the script.
 
 ## Phase 4: compatibility formula (sub-project 3, done)
 
-- **The formula** (`src/compatibility.py`): **score = Σ weight × part**, shown from 0 to 100 with short reasons ("red and pink clash", "two bold patterns", "no shoes").
+- **The formula** (`src/phase4/compatibility.py`): **score = Σ weight × part**, shown from 0 to 100 with short reasons ("red and pink clash", "two bold patterns", "no shoes").
   - **The four parts** (0 = bad, 1 = good):
     - style: average FashionCLIP similarity of the items;
     - colour: pair table from colour groups + specific pairs, and a penalty above 3 bold colours;
@@ -317,8 +317,8 @@ Sections are numbered automatically from the `SECTIONS` list in the script.
   - `suggest_outfits`: best cores, completed with shoes / outerwear / bag / accessory; each item appears in at most 2 suggestions;
   - `buy_advice`: buy / think / skip, from the good outfits where the new item **beats every item of its category you already own**, and it warns about near-twins you already own;
   - `complete_outfit`.
-- **Classifier predictions:** `src/predict_item_attributes.py` → `data/processed/predicted_attributes.csv` (306,636 rows). PolyVore has no pattern labels, so the formula uses the predicted pattern above confidence 0.6.
-- **Evaluation** (`reports/compatibility_evaluation.md`; to try other weights: `python src/evaluate_compatibility.py --weights style=..,colour=..,pattern=..,structure=..`):
+- **Classifier predictions:** `src/phase4/predict_item_attributes.py` → `data/processed/predicted_attributes.csv` (306,636 rows). PolyVore has no pattern labels, so the formula uses the predicted pattern above confidence 0.6.
+- **Evaluation** (`reports/phase4/compatibility_evaluation.md`; to try other weights: `python src/phase4/evaluate_compatibility.py --weights style=..,colour=..,pattern=..,structure=..`):
 
 | test set | team weights AUC / FITB | style alone AUC / FITB |
 |---|---:|---:|
@@ -358,7 +358,7 @@ Sections are numbered automatically from the `SECTIONS` list in the script.
   - `/chat`, with history per user.
   - `/tryon`, virtual try-on through a hosted CatVTON Space, with a 2D overlay fallback in the app (see CLAUDE.md).
 - **Chat:** Gemini automatic function calling with four tools bound to the user (`list_wardrobe`, `suggest_outfits`, `score_outfit`, `buy_advice_last_scan`). The system prompt asks it to use the real wardrobe, answer in the user's language and respect their modesty level. **It needs `GEMINI_API_KEY` in `backend/.env`** (set since 2026-10-03); without it `/chat` answers 503. Gemini overload (500 / 503) is retried twice, then answers 502; a used-up quota answers 429 (the free key allows 20 requests a day); see section 5.
-- **Colour model:** `src/estimate_colours.py` now saves the trained model to `models/checkpoints/colour_model.joblib`, which the backend uses for uploads. Re-running it gave byte-identical estimates.
+- **Colour model:** `src/phase3/estimate_colours.py` now saves the trained model to `models/checkpoints/colour_model.joblib`, which the backend uses for uploads. Re-running it gave byte-identical estimates.
 - **Tests** (`backend/tests/`):
   - 19 fast tests at the time (36 now, after the frontend, H&M, background removal, clash-rule and chat-retry work) with fake models / Gemini on a `dressme_test` database (~12 s). They cover auth, validation, privacy (other users' items → 404), uploads, corrections, outfits, buy advice, similar items and chat.
   - `DRESSME_SLOW=1` adds 2 tests of the real models (category right on at least 36 of 40 test photos; catalog search).
@@ -377,21 +377,21 @@ Sections are numbered automatically from the `SECTIONS` list in the script.
 
 - **Why:** the shops block scraping, so the "buy something like this" suggestions come from H&M Personalized Fashion Recommendations (Kaggle competition, closed). Real retail products with type, colour and pattern labels; **no price, no stock**. Licence: non-commercial use under the competition rules; the pictures belong to H&M. It is a shop catalogue, **not** training data: never merge it into `dressme.csv`.
 - **Kaggle access:** the account must have accepted the rules (closed competition: the **Late Submission** button shows them; nothing to submit). The Kaggle CLI reads `~/.kaggle/access_token` **before** `kaggle.json`: both must belong to that account (mohameddazizz). A 403 means the wrong account, a 401 an expired key.
-- **Labels:** `src/map_hm.py` + `mappings/hm_*.csv` → `data/processed/hm.csv`: 105,542 articles → 63,005 adult products (children's wear, underwear, nightwear, socks and non-clothing dropped). Notable rules: blouse → shirt (like Fashionpedia), polo → t-shirt, denim trousers → jeans and men's swimwear bottoms → swim-shorts (`hm_refine_rules.csv`), "Greenish Khaki" → olive, boots → shoes with no sub_category (not in the vocabulary). Pattern comes from "graphical appearance", with keywords in the name / description where it's unclear; textures (lace, sequin…) stay empty.
-- **Pictures:** the full set is ~30 GB, and Kaggle allows only ~500 single-file downloads per period (429 Too Many Requests, then pauses of 12–40 min), so downloading one by one would take days. Instead a **private** Kaggle notebook (`kaggle/hm_images/`, `kaggle kernels push -p kaggle/hm_images`) shrinks the 70,521 adult pictures to 320 px into one zip (670 MB, 15 min on Kaggle), and `src/fetch_hm_images.py` downloads and unpacks it. Kaggle mounts the competition data under a path that changes, so the notebook searches `/kaggle/input`. Keep the notebook private.
-- **Vectors:** `src/embed_hm.py` → `embeddings/hm_fashionclip.*` (62,741 products, ~5 min on the GPU once the pictures are in the disk cache). It writes `.new` files and then swaps them in: on Windows a running backend used to hold the old file open, and a whole run was lost. The backend now reads this file into memory (64 MB) instead of keeping it open.
+- **Labels:** `src/phase3/map_hm.py` + `mappings/hm_*.csv` → `data/processed/hm.csv`: 105,542 articles → 63,005 adult products (children's wear, underwear, nightwear, socks and non-clothing dropped). Notable rules: blouse → shirt (like Fashionpedia), polo → t-shirt, denim trousers → jeans and men's swimwear bottoms → swim-shorts (`hm_refine_rules.csv`), "Greenish Khaki" → olive, boots → shoes with no sub_category (not in the vocabulary). Pattern comes from "graphical appearance", with keywords in the name / description where it's unclear; textures (lace, sequin…) stay empty.
+- **Pictures:** the full set is ~30 GB, and Kaggle allows only ~500 single-file downloads per period (429 Too Many Requests, then pauses of 12–40 min), so downloading one by one would take days. Instead a **private** Kaggle notebook (`kaggle/hm_images/`, `kaggle kernels push -p kaggle/hm_images`) shrinks the 70,521 adult pictures to 320 px into one zip (670 MB, 15 min on Kaggle), and `src/phase3/fetch_hm_images.py` downloads and unpacks it. Kaggle mounts the competition data under a path that changes, so the notebook searches `/kaggle/input`. Keep the notebook private.
+- **Vectors:** `src/phase4/embed_hm.py` → `embeddings/hm_fashionclip.*` (62,741 products, ~5 min on the GPU once the pictures are in the disk cache). It writes `.new` files and then swaps them in: on Windows a running backend used to hold the old file open, and a whole run was lost. The backend now reads this file into memory (64 MB) instead of keeping it open.
 - **API and app:** `SimilarityIndex.load_shop()`, `Catalog.search_shop()`; `/similar` returns `shop` (name, department, colour, score, picture at `/catalog/hm_<id>/image`) in the item's category, or an empty list if the H&M files are missing. The app shows them on Similar pieces.
 - **Quality check:** with Fashion Product items as queries, the closest H&M product has the same category 93.6% of the time even without the category filter (500 items). Navy jeans → blue / navy skinny jeans (0.78–0.80), white sneakers → white runners, green tee → green / teal tees. Weakest: colour on dresses (the shape matches better than the colour).
 
 ## Shop data: scraper and static demo (2026-10-03)
 
-- `src/scrape_shops.py` opens each shop's Tunisia site in Chromium (Playwright) and calls the site's own JSON endpoints: Zara `/categories?ajax=true`, `/category/<id>/products?ajax=true`, product page `?ajax=true` (sizes + SKUs per colour) and `/itxrest/1/catalog/store/<store>/product/id/<id>/availability`; Bershka / Pull&Bear `/itxrest/2|3/catalog/store/<store>/<catalog>/...`. These are private Inditex endpoints.
+- `src/phase3/scrape_shops.py` opens each shop's Tunisia site in Chromium (Playwright) and calls the site's own JSON endpoints: Zara `/categories?ajax=true`, `/category/<id>/products?ajax=true`, product page `?ajax=true` (sizes + SKUs per colour) and `/itxrest/1/catalog/store/<store>/product/id/<id>/availability`; Bershka / Pull&Bear `/itxrest/2|3/catalog/store/<store>/<catalog>/...`. These are private Inditex endpoints.
 - Fixes made after the first real run: Zara's store id is caught from a product page (the home page makes no `/itxrest/` call); stock is filtered to the row's colour (Zara's answer covers every colour); the script stops on a block page; every run saves `debug_home.html/.png` + `debug_requests.txt`.
-- What happened: one Zara run succeeded (prices in TND = raw / 100, checked); then Zara, Bershka and Pull&Bear all answered Akamai "Access Denied". Decision: stop scraping, keep the rows as a static demo (`src/freeze_shop_demo.py`), never use stealth plugins or rotating proxies.
+- What happened: one Zara run succeeded (prices in TND = raw / 100, checked); then Zara, Bershka and Pull&Bear all answered Akamai "Access Denied". Decision: stop scraping, keep the rows as a static demo (`src/phase3/freeze_shop_demo.py`), never use stealth plugins or rotating proxies.
 - Alternatives if more shop data is needed: a public Kaggle catalogue dataset (no Tunisian stock), a small hand-collected sheet of Tunisian shop / friperie items, or asking Inditex Tunisia for academic access.
 
 ## Project rules
 
 - Never commit `data/` or model weights; datasets are for non-commercial academic use only.
-- Scripts go in `src/`, exploration in `notebooks/`, and charts in `reports/figures/`.
+- Scripts go in `src/phase3/` (data collection, mapping, EDA) or `src/phase4/` (prototype), shared helpers in `src/common/`; exploration in `notebooks/`; reports and charts in `reports/phase3/` or `reports/phase4/` (charts under `figures/`).
 - Keep the code simple and commented, because the team has mixed experience.

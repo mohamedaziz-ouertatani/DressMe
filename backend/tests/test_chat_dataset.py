@@ -1,12 +1,12 @@
-"""The synthetic fine-tuning conversations (src/build_chat_dataset.py) use the
+"""The synthetic fine-tuning conversations (src/phase4/build_chat_dataset.py) use the
 real tools correctly: no Mongo, no model needed."""
 
 import json
 import sys
 
-from app.config import ROOT
+from app.config import SRC_DIRS
 
-sys.path.insert(0, str(ROOT / "src"))
+sys.path[:0] = [str(d) for d in SRC_DIRS]
 import build_chat_dataset as B  # noqa: E402
 from app.chat_engine import tool_schema  # noqa: E402
 from app.routers.chat import tools_for  # noqa: E402

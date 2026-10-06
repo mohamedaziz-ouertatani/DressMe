@@ -5,7 +5,7 @@ The H&M competition pictures are ~30 GB and Kaggle only lets us download
 ~500 single files per period, so we shrink them where they already are:
 every adult article (children's wear is dropped, like hm_index_group.csv)
 is resized to 320 px on its longest side and packed into ONE zip in the
-notebook output (~850 MB). src/fetch_hm_images.py then downloads that zip
+notebook output (~850 MB). src/phase3/fetch_hm_images.py then downloads that zip
 in one request.
 
 The notebook must stay PRIVATE: the pictures belong to H&M and are only

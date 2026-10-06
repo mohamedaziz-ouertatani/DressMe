@@ -1,6 +1,6 @@
 """
 Listings: things people can buy now (see LISTINGS.md).
-  - shop products collected by src/collect_listings.py (shared by every user);
+  - shop products collected by src/phase4/collect_listings.py (shared by every user);
   - friperie sellers' own items, posted here and approved by an admin.
 
     GET    /listings                 browse active listings, with filters (in stock only by default)

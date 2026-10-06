@@ -23,14 +23,19 @@ A reproducible pipeline that turns three public fashion datasets into **one data
 
 - **Merged dataset:** 321,422 items (296,921 unique pictures / crops).
 - **Splits:** 246,373 train, 36,750 val, 38,299 test.
-- **Report:** [`reports/phase3_report.pdf`](reports/phase3_report.pdf), 18 pages. It covers EDA, label mapping, colour estimation, splits, decisions and next steps.
+- **Report:** [`reports/phase3/phase3_report.pdf`](reports/phase3/phase3_report.pdf), 18 pages. It covers EDA, label mapping, colour estimation, splits, decisions and next steps.
 
 ```
-src/          pipeline scripts (EDA, mapping, colours, merge, report, embeddings, classifier, compatibility)
+src/
+  common/     shared by both phases (chart style)
+  phase3/     data collection + EDA: EDA, label mapping, colours, merge + splits, shop / H&M data, Phase 3 report
+  phase4/     prototype: embeddings, classifier, compatibility, chat model, listings collector, Phase 4 report
 backend/      FastAPI + MongoDB API (app/, tests/)
 frontend/     React + Vite + TypeScript app and admin dashboard
 mappings/     every label rule, as editable CSV files
-reports/      EDA reports (markdown), figures, Phase 3 PDF
+reports/
+  phase3/     EDA + colour reports (markdown), figures/, Phase 3 PDF
+  phase4/     model / chat evaluations, figures/, Phase 4 PDF
 notebooks/    exploration
 data/         datasets and outputs (NOT in git, see below)
 ```
@@ -70,7 +75,7 @@ The datasets are **not included** (licences: non-commercial academic use, no red
 | [Fashion Product Images (Small)](https://www.kaggle.com/datasets/paramaggarwal/fashion-product-images-small) | `data/raw/FashionProduct/styles.csv` and `data/raw/FashionProduct/images/<id>.jpg` |
 | [Fashionpedia](https://fashionpedia.github.io/home/) | `data/raw/Fashionpedia/`: `instances_attributes_train2020.json` and `instances_attributes_val2020.json` at the root, train images in `train2020/train/`, val images in `validation_and_test_images_2020/test/` |
 | [Maryland Polyvore](https://github.com/xthan/polyvore-dataset) (Re-PolyVore version) | `data/raw/MarylandPolyVore/Re-PolyVore/<category folder>/<outfit_id>_<position>.jpg` |
-| [H&M Personalized Fashion Recommendations](https://www.kaggle.com/competitions/h-and-m-personalized-fashion-recommendations) (shop catalogue, see "Phase 4: H&M shop catalogue") | `data/raw/HM/articles.csv`; pictures are fetched by `src/fetch_hm_images.py` |
+| [H&M Personalized Fashion Recommendations](https://www.kaggle.com/competitions/h-and-m-personalized-fashion-recommendations) (shop catalogue, see "Phase 4: H&M shop catalogue") | `data/raw/HM/articles.csv`; pictures are fetched by `src/phase3/fetch_hm_images.py` |
 
 DeepFashion2 and DressCode are requested but not available yet.
 
@@ -80,24 +85,24 @@ Run from the project root, in this order:
 
 ```bash
 # 1. EDA, once per dataset (also builds the PolyVore image cache used by step 2)
-python src/eda_fashion_product.py
-python src/eda_fashionpedia.py
-python src/eda_polyvore.py
+python src/phase3/eda_fashion_product.py
+python src/phase3/eda_fashionpedia.py
+python src/phase3/eda_polyvore.py
 
 # 2. Map each dataset to the unified schema -> data/processed/<dataset>.csv
-python src/map_fashion_product.py
-python src/map_fashionpedia.py
-python src/map_polyvore.py
-python src/map_local.py            # our own photos, if any (see LOCAL_PHOTOS.md); test only
+python src/phase3/map_fashion_product.py
+python src/phase3/map_fashionpedia.py
+python src/phase3/map_polyvore.py
+python src/phase3/map_local.py            # our own photos, if any (see LOCAL_PHOTOS.md); test only
 
 # 3. Estimate colours for PolyVore and Fashionpedia -> data/processed/colour_estimates.csv
-python src/estimate_colours.py
+python src/phase3/estimate_colours.py
 
 # 4. Merge and split -> data/processed/dressme.csv
-python src/merge_and_split.py
+python src/phase3/merge_and_split.py
 
-# 5. Build the report -> reports/phase3_report.pdf
-python src/build_phase3_report.py
+# 5. Build the report -> reports/phase3/phase3_report.pdf
+python src/phase3/build_phase3_report.py
 ```
 
 Notes:
@@ -132,12 +137,12 @@ Every picture gets a 512-number FashionCLIP vector. Similar items have similar v
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
 pip install -r requirements-models.txt
 
-python src/embed_fashionclip.py --limit 500   # quick test (separate folder)
-python src/embed_fashionclip.py               # all pictures, ~35 min -> data/processed/embeddings/
-python src/evaluate_embeddings.py             # -> reports/embeddings_evaluation.md
+python src/phase4/embed_fashionclip.py --limit 500   # quick test (separate folder)
+python src/phase4/embed_fashionclip.py               # all pictures, ~35 min -> data/processed/embeddings/
+python src/phase4/evaluate_embeddings.py             # -> reports/phase4/embeddings_evaluation.md
 ```
 
-- **What the vectors already know** (test split; full numbers in [`reports/embeddings_evaluation.md`](reports/embeddings_evaluation.md)):
+- **What the vectors already know** (test split; full numbers in [`reports/phase4/embeddings_evaluation.md`](reports/phase4/embeddings_evaluation.md)):
   - A simple linear classifier on them reaches **88% on category** and **80% on sub_category**. The EfficientNet classifier has to beat that.
   - Street photo → product shot search works (see the grid in the report).
 - **Colour:** for colour on PolyVore / Fashionpedia, the existing gradient-boosting model stays. A colour model on the vectors was worse on the hand-labelled items.
@@ -156,9 +161,9 @@ index.search(index.vector("fpd_val_123"), k=5, datasets=["polyvore"])
 One picture in; category, sub_category and pattern out. EfficientNet-B0 is fine-tuned on the train split (about 2 h on an RTX 2050).
 
 ```bash
-python src/build_image_cache.py      # once: every picture as a 224 px square, packed into one file (~35 min + packing)
-python src/train_classifier.py       # ~5 x 20 min -> models/checkpoints/classifier_best.pt (not in git)
-python src/evaluate_classifier.py    # -> reports/classifier_evaluation.md, reports/classifier_choice.json
+python src/phase4/build_image_cache.py      # once: every picture as a 224 px square, packed into one file (~35 min + packing)
+python src/phase4/train_classifier.py       # ~5 x 20 min -> models/checkpoints/classifier_best.pt (not in git)
+python src/phase4/evaluate_classifier.py    # -> reports/phase4/classifier_evaluation.md, reports/phase4/classifier_choice.json
 ```
 
 Run long steps in a terminal you can leave open; training resumes from the last epoch if it stops.
@@ -184,9 +189,9 @@ predict([Image.open("photo.jpg")], model, device)
 A readable formula: **score = Σ weight × part**, from 0 to 100, with reasons. The four parts are style (FashionCLIP similarity), colour harmony, pattern mixing and outfit structure. The team sets the weights and every rule in `mappings/` (`compatibility_weights.csv`, `colour_groups.csv`, `colour_harmony.csv`, `pattern_mixing.csv`, `outfit_structure.csv`, `sub_category_pairing.csv`, `item_seasons.csv`). The data only measures them.
 
 ```bash
-python src/predict_item_attributes.py     # classifier predictions for every item (~10-30 min)
-python src/evaluate_compatibility.py      # -> reports/compatibility_evaluation.md
-python src/evaluate_compatibility.py --weights style=0.6,colour=0.2,pattern=0.1,structure=0.1   # quick try
+python src/phase4/predict_item_attributes.py     # classifier predictions for every item (~10-30 min)
+python src/phase4/evaluate_compatibility.py      # -> reports/phase4/compatibility_evaluation.md
+python src/phase4/evaluate_compatibility.py --weights style=0.6,colour=0.2,pattern=0.1,structure=0.1   # quick try
 ```
 
 | test set | AUC (real vs swapped item) | fill-in-the-blank (1 of 4) |
@@ -203,7 +208,7 @@ buy_advice(new_item, wardrobe, profile={"min_coverage": 3})   # {'verdict': 'buy
 
 ## Phase 4: backend API
 
-FastAPI + MongoDB, in [`backend/`](backend/). It needs a running MongoDB (e.g. the local MongoDB service), the trained models (sections above), and `src/estimate_colours.py` run once, which saves the colour model.
+FastAPI + MongoDB, in [`backend/`](backend/). It needs a running MongoDB (e.g. the local MongoDB service), the trained models (sections above), and `src/phase3/estimate_colours.py` run once, which saves the colour model.
 
 ```bash
 pip install -r backend/requirements.txt
@@ -257,10 +262,10 @@ The shops block scraping (Zara / Bershka / Pull&Bear, team decision 2026-10-03),
 
 ```bash
 kaggle competitions download -c h-and-m-personalized-fashion-recommendations -f articles.csv -p data/raw/HM   # then unzip
-python src/map_hm.py            # labels -> data/processed/hm.csv (63k adult products; children's wear dropped)
+python src/phase3/map_hm.py            # labels -> data/processed/hm.csv (63k adult products; children's wear dropped)
 kaggle kernels push -p kaggle/hm_images     # private Kaggle notebook: shrinks the pictures to 320 px (~20 min on Kaggle)
-python src/fetch_hm_images.py   # when the notebook is COMPLETE: download its zip (~850 MB) and unpack it
-python src/embed_hm.py          # FashionCLIP vectors -> data/processed/embeddings/hm_fashionclip.*
+python src/phase3/fetch_hm_images.py   # when the notebook is COMPLETE: download its zip (~850 MB) and unpack it
+python src/phase4/embed_hm.py          # FashionCLIP vectors -> data/processed/embeddings/hm_fashionclip.*
 ```
 
 The full picture set is ~30 GB and Kaggle allows only ~500 single-file downloads per period, so the pictures are shrunk on Kaggle by a **private** notebook ([`kaggle/hm_images/`](kaggle/hm_images/); change the account in `kernel-metadata.json` and `fetch_hm_images.py` if you use your own) and downloaded as one zip. The label rules are in `mappings/hm_*.csv`, with the same conventions as the other datasets (unknown stays empty; boots have no sub_category because the vocabulary has none).
@@ -268,8 +273,8 @@ The full picture set is ~30 GB and Kaggle allows only ~500 single-file downloads
 ### Colour validation (optional)
 
 ```bash
-python src/make_colour_labelling_sheet.py   # 400 items + offline labelling page in data/interim/colour_labelling/
-python src/evaluate_colour_labels.py        # after labelling: accuracy -> reports/colour_validation.*
+python src/phase3/make_colour_labelling_sheet.py   # 400 items + offline labelling page in data/interim/colour_labelling/
+python src/phase3/evaluate_colour_labels.py        # after labelling: accuracy -> reports/phase3/colour_validation.*
 ```
 
 ## Datasets and licences

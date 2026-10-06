@@ -358,7 +358,7 @@ export function AdminFormula() {
               <Button className="mt-3 w-full" busy={saving} disabled={!changed.length || problems.length > 0} onClick={save}>Save to CSV</Button>
               {error ? <div className="mt-3"><ErrorNote error={error} /></div> : null}
               {result?.note && !error && <p role="status" className="mt-3 text-[13px] text-carbon">{result.note}</p>}
-              <p className="mt-3 text-[12px] text-carbon-soft">Measure the effect: <code className="font-mono">python src/evaluate_compatibility.py</code></p>
+              <p className="mt-3 text-[12px] text-carbon-soft">Measure the effect: <code className="font-mono">python src/phase4/evaluate_compatibility.py</code></p>
             </div>
             <details className="ticket px-4 py-3 text-[13px]">
               <summary className="cursor-pointer font-medium text-ink">Colour and pattern rules (read-only)</summary>

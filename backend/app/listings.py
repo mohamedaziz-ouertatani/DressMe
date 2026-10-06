@@ -1,5 +1,5 @@
 """
-Shop listings: products people can buy now, collected by src/collect_listings.py
+Shop listings: products people can buy now, collected by src/phase4/collect_listings.py
 from the sources the team approved in mappings/listing_sources.csv (see LISTINGS.md).
 
     load_sources(mappings_dir)  -> the sources table (one dict per source)
@@ -23,7 +23,7 @@ from bson import ObjectId
 from .db import vector_from_bson, vector_to_bson
 
 SOURCES_FILE = "listing_sources.csv"
-KINDS = {"inditex", "snapshot", "shopify", "woocommerce", "sitemap"}   # kinds with a connector in src/connectors/
+KINDS = {"inditex", "snapshot", "shopify", "woocommerce", "sitemap"}   # kinds with a connector in src/phase4/connectors/
 SELLERS = "sellers"            # source_id of the listings friperie sellers post in the app
 THUMB_SIDE = 320               # we keep a small picture only, and link to the shop
 
@@ -62,7 +62,7 @@ def load_sources(mappings_dir):
 def usable(source):
     """Why the collector must NOT run this source ("" = it may)."""
     if not source.get("kind"):
-        return "kind not set yet: press Check on Admin > Listings (or run python src/check_shop_source.py --all --save)"
+        return "kind not set yet: press Check on Admin > Listings (or run python src/phase4/check_shop_source.py --all --save)"
     if source.get("kind") not in KINDS:
         return f"no connector for kind '{source.get('kind')}'"
     if source.get("kind") in ("shopify", "woocommerce", "sitemap") and not source.get("base_url"):
