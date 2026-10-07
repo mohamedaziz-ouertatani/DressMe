@@ -85,7 +85,10 @@ def to_raw(url, item, base_url, brand=""):
 
 
 def fetch(source, args, opener=None):
+    """Like sitemap.fetch: each product goes to args.on_listing (the collector) as soon as it is read."""
     should_stop = getattr(args, "should_stop", lambda: False)
+    on_listing = getattr(args, "on_listing", None) or (lambda raw: None)
+    on_total = getattr(args, "on_total", None) or (lambda n: None)
     client = Client(source["base_url"], source["source_id"], source.get("delay_s") or 5, opener)
     source = {**source, "product_pattern": source.get("product_pattern") or DEFAULT_PATTERN}
     try:
@@ -102,6 +105,7 @@ def fetch(source, args, opener=None):
         if getattr(args, "limit", 0):
             how_many = min(how_many, args.limit)
         chosen = sitemap.pick(list(pages), getattr(args, "last_seen", {}) or {}, how_many, key=str)
+        on_total(len(chosen))
         listings, empty, skipped = [], 0, 0
         for ref in chosen:
             if should_stop():
@@ -121,6 +125,7 @@ def fetch(source, args, opener=None):
                 continue
             empty = 0
             listings.append(to_raw(url, items[0], client.base, source.get("brand", "")))
+            on_listing(listings[-1])           # the collector saves it now, picture included
     except SourceBlocked as err:
         return FetchResult("blocked", str(err), mode="api")
     except Forbidden as err:

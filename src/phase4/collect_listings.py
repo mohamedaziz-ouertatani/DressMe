@@ -8,7 +8,9 @@ For each source that may run (enabled = yes + an approved_on date) and is due
   2. new products, or products with a new picture, are analysed like a
      wardrobe upload: background removed, then classifier + colour model +
      FashionCLIP (backend/app/ml.py). The labels are predictions, never
-     shop labels; colour stays empty below 0.7 confidence;
+     shop labels; colour stays empty below 0.7 confidence. Shops read page by
+     page (kinds in ONE_BY_ONE) hand over each product as soon as it is read:
+     it is saved, picture included, before the next page is asked for;
   3. products not seen in a complete run become "gone".
 A source that blocks us (403 / 429 / bot check) is stopped and reported on the
 admin page (Admin > Sources); nothing is saved for it. Never work around it.
@@ -42,13 +44,16 @@ from PIL import Image  # noqa: E402
 from app.config import Settings  # noqa: E402
 from app.db import connect  # noqa: E402
 from app.listings import (THUMB_SIDE, SourceBlocked, last_run, load_sources,  # noqa: E402
-                          record_run, sync_listings, usable)
+                          mark_missing_gone, new_counts, record_run, save_listing, sync_listings,
+                          usable)
 from app.wardrobe import fields_from_analysis  # noqa: E402
 from connectors import CONNECTORS  # noqa: E402
 from job_progress import JobStopped, Progress, now_iso  # noqa: E402
 
 USER_AGENT = "DressMe student project (ESPRIT, academic, non-commercial)"
 MAX_FAILED_PICTURES_IN_A_ROW = 5    # then the image server is refusing us: stop the source
+# connectors that read one product page at a time and pass each product on at once (args.on_listing)
+ONE_BY_ONE = {"sitemap", "hamadiabid"}
 
 
 def due(db, source, now):
@@ -125,11 +130,13 @@ def collect(db, settings, source, args, labeller_for, progress=None):
     """Run one source and save it. Returns ok / blocked / error / stopped."""
     progress = progress or Progress()
     sid, started = source["source_id"], datetime.now(timezone.utc)
-    print(f"[{sid}] reading the shop")
-    progress.update(phase="reading the shop", source=sid, done=0, total=0)
     # when each product was last checked: a big shop (sitemap) fetches new ones first, then the oldest
     args.last_seen = {d["external_id"]: d.get("seen_at") for d in db.listings.find(
         {"source_id": sid, "status": "active"}, {"external_id": 1, "seen_at": 1})}
+    if source["kind"] in ONE_BY_ONE:
+        return collect_one_by_one(db, settings, source, args, labeller_for(source), progress, started)
+    print(f"[{sid}] reading the shop")
+    progress.update(phase="reading the shop", source=sid, done=0, total=0)
     result = CONNECTORS[source["kind"]].fetch(source, args)
     if result.status != "ok":
         print(f"[{sid}] {result.status.upper()}: nothing saved. {result.message.splitlines()[-1:]}")
@@ -159,6 +166,46 @@ def collect(db, settings, source, args, labeller_for, progress=None):
         record_run(db, sid, started, "stopped", "stopped by an admin", mode=result.mode)
         return "stopped"
     progress.update(done=len(result.listings))
+    print(f"[{sid}] done: {counts}")
+    record_run(db, sid, started, "ok", result.message, counts, mode=result.mode)
+    return "ok"
+
+
+def collect_one_by_one(db, settings, source, args, labeller, progress, started):
+    """A shop read page by page (ONE_BY_ONE): each product is saved, its picture downloaded and
+    analysed, as soon as the connector has read it, so listings and pictures appear during the
+    run. What was saved stays if the run is blocked or stopped; only a complete good run marks
+    products gone."""
+    sid = source["source_id"]
+    print(f"[{sid}] reading the shop: each product is saved (picture included) as soon as it is read")
+    progress.update(phase="reading the shop (each product saved as it is read)", source=sid, done=0, total=0)
+    counts, last = new_counts(), [0.0]
+
+    def on_listing(raw):
+        progress.check()                       # Stop pressed: JobStopped
+        save_listing(db, sid, raw, labeller, settings.storage_dir, started, counts)
+        saved = sum(counts[k] for k in ("added", "updated", "no_picture"))
+        if time.time() - last[0] > 1:          # at most one status write per second
+            progress.update(done=saved)
+            last[0] = time.time()
+
+    args.on_listing, args.on_total = on_listing, (lambda n: progress.update(total=n))
+    try:
+        result = CONNECTORS[source["kind"]].fetch(source, args)
+    except JobStopped:
+        result = None
+    finally:
+        args.on_listing = args.on_total = None
+    saved = counts["added"] + counts["updated"]
+    if result is None or result.status != "ok":
+        status, message = ("stopped", "stopped by an admin") if result is None else (result.status, result.message)
+        print(f"[{sid}] {status.upper()}: the {saved} products saved before stay, nothing marked gone. "
+              f"{message.splitlines()[-1:]}")
+        record_run(db, sid, started, status, message, counts, mode=result.mode if result else "")
+        return status
+    if not args.limit:
+        counts["gone"] = mark_missing_gone(db, sid, started, result.present_ids)
+    progress.update(done=saved)
     print(f"[{sid}] done: {counts}")
     record_run(db, sid, started, "ok", result.message, counts, mode=result.mode)
     return "ok"
