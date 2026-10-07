@@ -46,6 +46,7 @@ from plot_style import CMAP, RUST, apply
 apply()  # DressMe chart colours
 
 from colour_utils import Palette
+from dataset_roles import role_markdown
 
 # ---------------------------------------------------------------- paths
 ROOT = Path(__file__).resolve().parents[2]
@@ -146,6 +147,7 @@ def has_white_background(path):
 # ---------------------------------------------------------------- main
 def main():
     report = ["# EDA — Maryland PolyVore (Re-PolyVore)\n"]
+    report += role_markdown("polyvore")  # what it brings + how DressMe uses it (dataset_roles.py)
 
     # 1. Inventory -----------------------------------------------------
     df, junk = scan_files()

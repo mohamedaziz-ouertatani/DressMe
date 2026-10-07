@@ -1,5 +1,22 @@
 # EDA — Fashion Product Images (Small)
 
+## What this dataset brings to DressMe
+
+**Features it brings:**
+
+- the only real labels for colour (`baseColour` → `primary_colour`), `season` and `usage`
+- category / sub_category from `articleType` (142 types)
+- pattern from keywords in `productDisplayName`
+- `gender`
+
+**How the project uses it:**
+
+- trains the colour model (`estimate_colours.py`) that fills colours for PolyVore and Fashionpedia
+- trains the EfficientNet classifier (category, sub_category, pattern)
+- FashionCLIP embeddings and the `/similar` search catalogue
+
+Field-by-field mapping: [dataset_feature_map.md](dataset_feature_map.md)
+
 ## Size and quality
 
 - Products (rows): **44446**
