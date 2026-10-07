@@ -41,6 +41,7 @@ from plot_style import DARK, RUST, apply
 apply()  # DressMe chart colours
 
 from colour_utils import Palette
+from dataset_roles import role_markdown
 
 # ---------------------------------------------------------------- paths
 ROOT = Path(__file__).resolve().parents[2]
@@ -155,6 +156,7 @@ def estimate_colours(segs, images, cat_names):
 # ---------------------------------------------------------------- main
 def main():
     report = ["# EDA — Fashionpedia\n"]
+    report += role_markdown("fashionpedia")  # what it brings + how DressMe uses it (dataset_roles.py)
 
     # Load train (with a sample of masks for colours) and val
     keep_prob = 1.5 * COLOUR_SAMPLE / 80_000  # ~80k large clothes in train; a bit more than needed

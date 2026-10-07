@@ -1,5 +1,25 @@
 # EDA — Fashionpedia
 
+## What this dataset brings to DressMe
+
+**Features it brings:**
+
+- real-life worn items with a bounding box (cropped for the models)
+- pattern from the `textile pattern` attribute
+- sub_category from the `nickname` attribute (kaftan → traditional)
+- `coverage` (modesty, 1-5) from item length + linked sleeve / neckline parts
+- outfits: every photo is one outfit (`outfit_id`)
+- no colour label: colour is estimated
+
+**How the project uses it:**
+
+- trains the classifier on crops closer to real photos than catalogue shots
+- coverage for the modest filter of the style profile (`min_coverage`)
+- compatibility evaluation (AUC / FITB on the test photos)
+- street → shop retrieval check of the FashionCLIP embeddings
+
+Field-by-field mapping: [dataset_feature_map.md](dataset_feature_map.md)
+
 ## Size and quality
 
 | split | images | images on disk | objects | whole items | parts |

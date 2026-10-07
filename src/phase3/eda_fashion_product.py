@@ -26,6 +26,7 @@ from PIL import Image
 
 import src_path  # noqa: F401  (finds modules in src/common, src/phase3, src/phase4)
 from plot_style import RUST, apply
+from dataset_roles import role_markdown
 
 apply()  # DressMe chart colours
 
@@ -96,6 +97,7 @@ def md_table(counts, n_total, name):
 
 def main():
     report = ["# EDA — Fashion Product Images (Small)\n"]
+    report += role_markdown("fashion_product")  # what it brings + how DressMe uses it (dataset_roles.py)
 
     # 1. Size, missing values, duplicates ------------------------------
     df, repaired = load_styles(CSV_PATH)

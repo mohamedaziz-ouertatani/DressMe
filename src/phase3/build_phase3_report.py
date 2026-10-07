@@ -8,6 +8,7 @@ Needs: the EDA figures (reports/phase3/figures/...) and data/processed/*.csv.
 Run:   python src/phase3/build_phase3_report.py
 """
 
+import re
 from datetime import date
 from pathlib import Path
 
@@ -18,6 +19,7 @@ import pandas as pd
 from reportlab.lib import colors
 
 import src_path  # noqa: F401  (finds modules in src/common, src/phase3, src/phase4)
+from dataset_roles import ROLES
 from plot_style import CMAP, CREAM, DARK, GOLD, RUST, SERIES, apply
 from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import A4
@@ -65,7 +67,7 @@ WIDTH = A4[0] - 4 * cm  # usable width
 
 # Section order: numbers are computed from this list, so adding a section
 # never breaks the "see section N" references (use sec("key")).
-SECTIONS = ["context", "inventory", "traceability", "schema", "fp", "fpd", "pv", "mapping",
+SECTIONS = ["context", "inventory", "traceability", "roles", "schema", "fp", "fpd", "pv", "mapping",
             "colour", "merged", "local", "decisions", "risks", "next"]
 
 
@@ -86,6 +88,21 @@ def p(text):
 
 def bullets(items):
     return [Paragraph(t, BULLET, bulletText="•") for t in items]
+
+
+def rl(text):
+    """Markdown-ish text from dataset_roles.py -> report markup (`code` in Courier)."""
+    text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    return re.sub(r"`([^`]+)`", r"<font face='Courier'>\1</font>", text)
+
+
+def role_box(key):
+    """'What it brings / how it is used' at the top of each EDA section."""
+    r = ROLES[key]
+    return ([Paragraph("What this dataset brings to DressMe", H2)]
+            + bullets([rl(b) for b in r["brings"]])
+            + [Paragraph("How the project uses it", H3)]
+            + bullets([rl(u) for u in r["used_for"]]))
 
 
 def fig(path, width=WIDTH, caption=None, max_h=9 * cm, keep=True):
@@ -453,6 +470,21 @@ def build():
                       "Youssef, Skander · H8"]],
                     widths=[3.5 * cm, WIDTH - 8 * cm, 4.5 * cm])]
 
+    # --- dataset roles: what each dataset brings and how the project uses it
+    # (text from dataset_roles.py, shared with the EDA reports and the notebook)
+    story += [CondPageBreak(8 * cm), h1("roles", "What each dataset brings and how it is used"),
+              p("The features each dataset adds to the unified schema, and where the project "
+                "uses it (Phase 3 pipeline and Phase 4 prototype). H&amp;M and the shop demo "
+                "are shop catalogues added in Phase 4: they are never merged into the training "
+                "file. Field-by-field mapping: "
+                "<font face='Courier'>reports/phase3/dataset_feature_map.md</font>."),
+              table([["Dataset", "Features it brings", "How the project uses it"]]
+                    + [[f"{rl(r['name'])}<br/><font size='7'>{rl(r['pictures'])}</font>",
+                        "<br/>".join("• " + rl(b) for b in r["brings"]),
+                        "<br/>".join("• " + rl(u) for u in r["used_for"])]
+                       for r in ROLES.values()],
+                    widths=[3.6 * cm, (WIDTH - 3.6 * cm) / 2, (WIDTH - 3.6 * cm) / 2])]
+
     # --- schema
     story += [CondPageBreak(8 * cm), h1("schema", "Unified label schema"),
               p("Every source is converted to the same fields so the models can be trained on "
@@ -512,7 +544,9 @@ def check_allowed(values, allowed, what):
                      ["Labels", "gender, master/sub category, 142 article types, 46 colours, "
                       "season, usage, product name"]],
                     widths=[5.5 * cm, WIDTH - 5.5 * cm]),
-              Spacer(1, 6), Paragraph("Class balance", H2)]
+              Spacer(1, 6)]
+    story += role_box("fashion_product")
+    story += [Paragraph("Class balance", H2)]
     story += bullets([
         "masterCategory: Apparel 48.1%, Accessories 25.4%, Footwear 20.8%, Personal Care "
         "5.4%. <b>2,430 off-topic rows</b> (Personal Care, Home, Sporting Goods) are dropped.",
@@ -550,6 +584,7 @@ def check_allowed(values, allowed, what):
                      ["test", "2,044", "no labels (not used)", "–", "–"]],
                     widths=[WIDTH / 5] * 5),
               Spacer(1, 6)]
+    story += role_box("fashionpedia")
     story += bullets([
         "Street and runway photos, several items per photo (median 3, max 20): each photo is "
         "one outfit. Median image 682×1024 px.",
@@ -627,6 +662,7 @@ class Palette:
                      ["Text / colour / split", "none"]],
                     widths=[4.5 * cm, WIDTH - 4.5 * cm]),
               Spacer(1, 6)]
+    story += role_box("polyvore")
     story.append(fig(pv / "categories.png", caption="Images per folder", max_h=7 * cm))
     story += bullets([
         "Folders are coarse: <font face='Courier'>pants</font> also holds shorts, "
@@ -1039,6 +1075,10 @@ df["split"] = df["image_group"].map(group_split)
                       "colour_estimates.csv, reports/phase3/colour_estimation.md"],
                      ["src/phase3/merge_and_split.py", "Merge + splits → data/processed/dressme.csv"],
                      ["src/phase3/colour_utils.py", "Lab conversion and palette matching"],
+                     ["src/phase3/dataset_roles.py", "What each dataset brings and how it is "
+                      f"used (section {sec('roles')}, the EDA reports and the notebook)"],
+                     ["reports/phase3/dataset_feature_map.md", "Field-by-field mapping of "
+                      "every dataset to the unified schema"],
                      ["mappings/*.csv", "All mapping rules, palette, sub_category vocabulary"],
                      ["src/phase3/make_colour_labelling_sheet.py", "Hand-labelling set (200 + 200 "
                       "items) and labelling page → data/interim/colour_labelling/"],

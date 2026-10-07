@@ -1,5 +1,21 @@
 # EDA — Maryland PolyVore (Re-PolyVore)
 
+## What this dataset brings to DressMe
+
+**Features it brings:**
+
+- 31,333 user-made outfits (`outfit_id` + `position` from the file name)
+- category (and sub_category for some folders) from the folder name
+- no text, colour or pattern labels: colour is estimated, pattern predicted
+
+**How the project uses it:**
+
+- main source for outfit compatibility (`outfit_split`, clean test outfits for AUC / FITB)
+- trains the classifier (category)
+- FashionCLIP embeddings and the `/similar` search catalogue
+
+Field-by-field mapping: [dataset_feature_map.md](dataset_feature_map.md)
+
 ## Size and quality
 
 - Images: **126927** in 20 category folders.
