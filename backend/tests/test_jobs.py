@@ -139,7 +139,7 @@ def test_gate_and_admin_only(admin_client, client):
     c = admin_client
     r = c.post("/admin/jobs", json={"sources": ["zen_tn"]})                 # off: robots.txt forbids it
     assert r.status_code == 422 and "zen_tn" in r.json()["detail"]
-    assert c.post("/admin/jobs", json={"sources": ["exist_tn"]}).status_code == 422   # not checked yet
+    assert c.post("/admin/jobs", json={"sources": ["hm_fr"]}).status_code == 422       # refused by H&M: no kind
     assert c.post("/admin/jobs", json={"sources": ["nope"]}).status_code == 422
     assert c.post("/admin/jobs", json={"limit": -1}).status_code == 422
     user = sign_up(client, "user@example.com", "User")
@@ -163,7 +163,7 @@ def test_overview(admin_client):
     t = body["totals"]
     assert (t["active"], t["in_stock"], t["gone"], t["pending"], t["sellers_active"]) == (2, 2, 1, 1, 1)
     # on: only the snapshot (Inditex blocked again on 2026-10-05; the shops wait for a kind)
-    assert t["sources_on"] == 1 and t["sources_total"] == 8
+    assert t["sources_on"] == 3 and t["sources_total"] == 8
     snap = next(s for s in body["sources"] if s["source_id"] == "inditex_snapshot")
     assert (snap["active"], snap["in_stock"], snap["gone"], snap["refused"]) == (1, 1, 1, "")
     assert {x["category"]: x["count"] for x in body["categories"]} == {"top": 1, "dress": 1}

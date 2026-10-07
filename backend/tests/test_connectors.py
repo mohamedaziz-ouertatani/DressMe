@@ -23,11 +23,12 @@ class FakeSite:
     """Answers like a shop: {path start: (status, content type, body)}; records each URL."""
 
     def __init__(self, routes, robots="User-agent: *\nDisallow: /checkout\n"):
-        self.routes, self.urls = routes, []
+        self.routes, self.urls, self.accepts = routes, [], []
         self.robots = robots
 
-    def __call__(self, url, timeout=30):
+    def __call__(self, url, timeout=30, accept="*/*"):
         self.urls.append(url)
+        self.accepts.append(accept)
         path = url.split("example.tn", 1)[1]
         if path == "/robots.txt":
             return (200, "text/plain", self.robots.encode()) if self.robots is not None else (404, "", b"")
@@ -253,10 +254,18 @@ def test_inditex_stop_is_reported():
 
 
 def test_check_script_saves_the_kind_but_never_enables(tmp_path, monkeypatch, capsys):
-    import shutil
     from app.listings import load_sources, usable
     csv_path = tmp_path / "listing_sources.csv"
-    shutil.copy(Path(__file__).parents[2] / "mappings" / "listing_sources.csv", csv_path)
+    # the team's table as it was before any check: the shops' kinds empty
+    with open(Path(__file__).parents[2] / "mappings" / "listing_sources.csv", newline="", encoding="utf-8") as f:
+        table = list(csv.DictReader(f))
+    for row in table:
+        if row["source_id"] in ("exist_tn", "hamadiabid_tn", "zen_tn", "hm_fr"):
+            row["kind"] = ""
+    with open(csv_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=list(table[0]))
+        writer.writeheader()
+        writer.writerows(table)
     monkeypatch.setattr(check_shop_source, "Settings", lambda: SimpleNamespace(mappings_dir=tmp_path))
     found = {"https://www.exist.com.tn/": "shopify", "https://ha.com.tn/": "woocommerce", "https://zen.com.tn/fr/": "",
              "https://www2.hm.com/fr_fr/": ""}
@@ -440,3 +449,110 @@ def test_check_shows_sample_pages_when_no_address_matches():
     assert kind == ""                                           # never saved without a pattern
     assert "no address contains 'productpage'" in text
     assert "123-chemise-lin.html HAS product data" in text and "set product_pattern" in text
+
+
+# ------------------------------------------------------------------ fixes of 2026-10-07 (live checks)
+def test_pages_are_asked_for_as_html_and_api_answers_as_json():
+    """exist.com.tn (PrestaShop) answers a page request that prefers JSON with an empty HTTP 500."""
+    site = sm_site()
+    sitemap.fetch(sm_source(), SimpleNamespace(limit=0, last_seen={}), opener=site)
+    asked = dict(zip(site.urls, site.accepts))
+    assert asked["https://shop.example.tn/fr_fr/productpage.111.html"].startswith("text/html")
+    assert asked["https://shop.example.tn/sitemaps/index.xml"].startswith("application/xml")
+    site = FakeSite({"/products.json": paged(SHOPIFY, {"products": []})})
+    shopify.fetch(source("shopify"), ARGS, opener=site)
+    assert site.accepts[-1].startswith("application/json")
+
+
+def test_accented_addresses_are_percent_encoded():
+    """ha.com.tn's sitemap lists e.g. .../sac-à-main: urllib refused it ('ascii' codec)."""
+    from connectors.http import ascii_url
+    assert ascii_url("https://ha.com.tn/catalogue/femme/sac-à-main") == \
+        "https://ha.com.tn/catalogue/femme/sac-%C3%A0-main"
+    already = "https://ha.com.tn/catalogue/femme/sac-%C3%A0-main?a=1&b=x%20y"
+    assert ascii_url(already) == already                       # never encoded twice
+
+
+def test_sitemap_pictures_are_not_pages_and_product_sitemaps_come_first():
+    # Exist lists each product's picture inside its <url> (<image:loc>)
+    text = ('<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
+            'xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">'
+            '<url><loc>https://shop.example.tn/jeans/7885-jean.html</loc>'
+            '<image:image><image:loc>https://shop.example.tn/169496-home_default/jean.jpg</image:loc></image:image>'
+            '</url></urlset>')
+    assert sitemap.sitemap_locs(text) == (False, ["https://shop.example.tn/jeans/7885-jean.html"])
+    # H&M's index lists ~1,000 sitemaps, the products ones among pictures and filters
+    listed = ["https://x/fr_fr.image.0.xml", "https://x/fr_fr.filterpages.0.xml", "https://x/fr_fr.product.0.xml"]
+    assert sitemap.products_first(listed)[0] == "https://x/fr_fr.product.0.xml"
+
+
+# ------------------------------------------------------------------ Hamadi Abid (sitemap + the shop's JSON API)
+from connectors import hamadiabid  # noqa: E402
+
+HA_SITEMAP = ('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+              '<url><loc>https://shop.example.tn/catalogue/femme</loc></url>'
+              '<url><loc>https://shop.example.tn/catalogue/femme/jeans/jean-mom/0039585-article-pantalon-mom-fit</loc></url>'
+              '<url><loc>https://shop.example.tn/catalogue/homme/pulls/pull-col-rond/0040001-article-pull-côtelé</loc></url>'
+              '<url><loc>https://shop.example.tn/catalogue/fillette/t-shirts/t-shirt-mc/0050756-article-t-shirt</loc></url>'
+              '</urlset>').encode("utf-8")
+
+
+def ha_item(ref, section, price="79,99 TND", discounted=None, stock=(1, 0)):
+    return {"list": [{"ref": ref, "title": f"Article {ref}", "image": f"img-{ref}",
+                      "price": price, "priceDiscounted": discounted or price,
+                      "section": {"seoName": section}, "color": {"name": "DARK BLUE"},
+                      "sizes": {"38": [{"stock": stock[0]}], "40": [{"stock": stock[1]}]}}]}
+
+
+def ha_site(answers):
+    def api(path):
+        ref = path.split("reference=")[1].split("&")[0]
+        return (200, "application/json", answers[ref]) if ref in answers else (400, "application/json", b"{}")
+    return FakeSite({"/sitemap.xml": (200, "text/xml", HA_SITEMAP), "/api/items/ref": api},
+                    robots="User-agent: *\nAllow: /\nDisallow: /panier\nSitemap: https://shop.example.tn/sitemap.xml\n")
+
+
+def ha_source(**kw):
+    return {"source_id": "hamadiabid_tn", "kind": "hamadiabid", "brand": "hamadiabid",
+            "base_url": "https://shop.example.tn/", "delay_s": "0",
+            "product_pattern": "/catalogue/(femme|homme)/.*-article-", **kw}
+
+
+def test_hamadiabid_reads_the_api_for_each_sitemap_product():
+    site = ha_site({"0039585": ha_item("0039585", "femme", discounted="59,99 TND"),
+                    "0040001": ha_item("0040001", "homme", price="1.299,00 TND", stock=(0, 0))})
+    result = hamadiabid.fetch(ha_source(), SimpleNamespace(limit=0, last_seen={}), opener=site)
+    assert result.status == "ok", result.message
+    by_id = {r.external_id: r for r in result.listings}
+    assert set(by_id) == {"0039585", "0040001"}                     # kids' section left out by the pattern
+    jeans = by_id["0039585"]
+    assert (jeans.price_tnd, jeans.gender, jeans.shop_colour) == (59.99, "women", "DARK BLUE")
+    assert (jeans.sizes, jeans.sizes_in_stock, jeans.in_stock) == (["38", "40"], ["38"], True)
+    assert jeans.image_url == "https://shop.example.tn/api/image/get/product/img-0039585"
+    assert jeans.url.endswith("0039585-article-pantalon-mom-fit")
+    pull = by_id["0040001"]
+    assert (pull.price_tnd, pull.gender, pull.in_stock) == (1299.0, "men", False)
+    # the same question the shop's page asks, accents encoded
+    api = [u for u in site.urls if "/api/items/ref" in u]
+    assert any("reference=0039585&selectedSection=femme&selectedGroupName=jeans&selectedSubGroupName=jean-mom" in u
+               for u in api)
+    assert result.present_ids == {"0039585", "0040001"}
+
+
+def test_hamadiabid_skips_unknown_products_and_stops_on_blocks():
+    site = ha_site({"0040001": ha_item("0040001", "homme")})        # 0039585: HTTP 400 from the API
+    result = hamadiabid.fetch(ha_source(), SimpleNamespace(limit=0, last_seen={}), opener=site)
+    assert result.status == "ok" and [r.external_id for r in result.listings] == ["0040001"]
+    assert "1 skipped" in result.message
+    refused = FakeSite({"/sitemap.xml": (200, "text/xml", HA_SITEMAP), "/api/items/ref": (403, "text/html", b"no")},
+                       robots="User-agent: *\nSitemap: https://shop.example.tn/sitemap.xml\n")
+    assert hamadiabid.fetch(ha_source(), SimpleNamespace(limit=0), opener=refused).status == "blocked"
+    page = FakeSite({"/sitemap.xml": (200, "text/xml", HA_SITEMAP), "/api/items/ref": (200, "text/html", b"<html>")},
+                    robots="User-agent: *\nSitemap: https://shop.example.tn/sitemap.xml\n")
+    assert hamadiabid.fetch(ha_source(), SimpleNamespace(limit=0), opener=page).status == "blocked"
+    closed = ha_site({})
+    closed.robots = "User-agent: *\nDisallow: /api/\nSitemap: https://shop.example.tn/sitemap.xml\n"
+    result = hamadiabid.fetch(ha_source(), SimpleNamespace(limit=0), opener=closed)
+    assert result.status == "error" and not any("/api/" in u for u in closed.urls)
+    with pytest.raises(ValueError):
+        hamadiabid.tnd("29,99 EUR")

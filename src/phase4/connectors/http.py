@@ -20,7 +20,7 @@ import urllib.request
 import urllib.robotparser
 from datetime import date
 from pathlib import Path
-from urllib.parse import urljoin
+from urllib.parse import quote, urljoin
 
 from app.listings import SourceBlocked
 
@@ -37,11 +37,22 @@ class NotJSON(Exception):
     says a web page is not a block: the platform check, see get_json)."""
 
 
-def urlopen(url, timeout=30):
+# what each kind of request asks for: some shops (Exist, on PrestaShop) answer a page
+# request that prefers JSON with an empty HTTP 500, so a page is asked for as a browser does
+ACCEPT = {"json": "application/json, */*;q=0.5",
+          "xml": "application/xml, text/xml;q=0.9, */*;q=0.5",
+          "html": "text/html, application/xhtml+xml;q=0.9, */*;q=0.5"}
+
+
+def ascii_url(url):
+    """The address with accents percent-encoded (urllib refuses them): Hamadi Abid's
+    sitemap lists e.g. .../sac-à-main. Characters already encoded are left as they are."""
+    return quote(url, safe=":/?#[]@!$&'()*+,;=%~")
+
+
+def urlopen(url, timeout=30, accept="*/*"):
     """(status, content type, body bytes). Tests replace this function."""
-    req = urllib.request.Request(url, headers={
-        "User-Agent": USER_AGENT,
-        "Accept": "application/json, application/xml;q=0.9, text/html;q=0.8, */*;q=0.5"})
+    req = urllib.request.Request(ascii_url(url), headers={"User-Agent": USER_AGENT, "Accept": accept})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return resp.status, resp.headers.get("Content-Type", ""), resp.read()
@@ -68,7 +79,7 @@ class Client:
         if self.robots is None:
             self.robots = urllib.robotparser.RobotFileParser()
             self._wait()
-            status, _, body = self.opener(urljoin(self.base, "/robots.txt"))
+            status, _, body = self.opener(urljoin(self.base, "/robots.txt"), accept="text/plain, */*;q=0.5")
             if status == 200:
                 self.robots.parse(body.decode("utf-8", "replace").splitlines())
             elif status in (403, 429):
@@ -94,7 +105,7 @@ class Client:
             raise Forbidden(f"robots.txt forbids {path}")
         url = urljoin(self.base, path)
         self._wait()
-        status, ctype, body = self.opener(url)
+        status, ctype, body = self.opener(url, accept=ACCEPT["json"])
         if status in (403, 429):
             raise SourceBlocked(f"HTTP {status} on {url}")
         if status == 404:
@@ -127,7 +138,7 @@ class Client:
             raise Forbidden(f"robots.txt forbids {path}")
         url = urljoin(self.base, path)
         self._wait()
-        status, ctype, body = self.opener(url)
+        status, ctype, body = self.opener(url, accept=ACCEPT[kind])
         if status in (403, 429):
             raise SourceBlocked(f"HTTP {status} on {url}")
         if status == 404:

@@ -39,12 +39,23 @@ DEFAULT_MAX_PAGES = 500
 
 
 # ------------------------------------------------------------------ sitemaps
+def _name(el):
+    return el.tag.rsplit("}", 1)[-1]
+
+
 def sitemap_locs(text):
-    """(is_index, [addresses]) of one sitemap file."""
+    """(is_index, [addresses]) of one sitemap file. Only the <loc> of each <url> / <sitemap>:
+    the pictures some shops add inside a <url> (<image:loc>, Exist) are not pages."""
     root = ET.fromstring(text.encode("utf-8"))
-    tag = root.tag.rsplit("}", 1)[-1]
-    locs = [el.text.strip() for el in root.iter() if el.tag.rsplit("}", 1)[-1] == "loc" and el.text]
-    return tag == "sitemapindex", locs
+    locs = [loc.text.strip() for entry in root for loc in entry
+            if _name(entry) in ("url", "sitemap") and _name(loc) == "loc" and loc.text]
+    return _name(root) == "sitemapindex", locs
+
+
+def products_first(urls):
+    """An index's sitemaps, the product ones first: H&M lists ~1,000 per country
+    (pictures, filters, campaigns...) and only MAX_SITEMAPS are read per run."""
+    return sorted(urls, key=lambda u: "product" not in urlsplit(u).path.lower())
 
 
 def under(url, base):
@@ -88,7 +99,7 @@ def product_urls(client, source, should_stop=lambda: False):
             continue
         is_index, locs = sitemap_locs(text)
         if is_index:
-            todo += [u for u in locs if relevant_sitemap(u, client.base) and u not in seen]
+            todo += products_first([u for u in locs if relevant_sitemap(u, client.base) and u not in seen])
         else:
             # keep the whole address: some shops (H&M) put the product number after the "?"
             found += [u.split("#")[0] for u in locs if under(u, client.base) and pattern.search(u)]
@@ -228,12 +239,12 @@ def to_raw(url, data, source, rates):
         in_stock=data["in_stock"], availability_level="colour" if data["sizes"] else "product")
 
 
-def pick(urls, last_seen, how_many):
-    """New pages first, then the ones checked longest ago."""
+def pick(urls, last_seen, how_many, key=page_id):
+    """New pages first, then the ones checked longest ago (`key`: a page's id in last_seen)."""
     oldest = datetime.min.replace(tzinfo=timezone.utc)
 
     def when(url):
-        seen = last_seen.get(page_id(url))
+        seen = last_seen.get(key(url))
         if seen is None:
             return (0, oldest)
         return (1, seen if seen.tzinfo else seen.replace(tzinfo=timezone.utc))

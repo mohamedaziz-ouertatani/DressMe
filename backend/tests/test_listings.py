@@ -172,7 +172,9 @@ def test_admin_sources(client, db):
     assert "kind not set" in rows["zen_tn"]["refused"]
     assert rows["zara_tn"]["last_ok"] is None
     assert rows["inditex_snapshot"]["refused"] == ""
-    assert "check_shop_source" in rows["exist_tn"]["refused"]           # kind not set until checked
+    # checked on 2026-10-07 (Exist: sitemap; Hamadi Abid: its own connector): approved, so they run
+    assert rows["exist_tn"]["refused"] == "" and rows["hamadiabid_tn"]["refused"] == ""
+    assert "check_shop_source" in rows["hm_fr"]["refused"]              # H&M refused us: kind not set
 
 
 # ------------------------------------------------------------------ Inditex connector

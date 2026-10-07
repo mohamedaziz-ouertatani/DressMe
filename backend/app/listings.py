@@ -23,7 +23,7 @@ from bson import ObjectId
 from .db import vector_from_bson, vector_to_bson
 
 SOURCES_FILE = "listing_sources.csv"
-KINDS = {"inditex", "snapshot", "shopify", "woocommerce", "sitemap"}   # kinds with a connector in src/phase4/connectors/
+KINDS = {"inditex", "snapshot", "shopify", "woocommerce", "sitemap", "hamadiabid"}   # kinds with a connector in src/phase4/connectors/
 SELLERS = "sellers"            # source_id of the listings friperie sellers post in the app
 THUMB_SIDE = 320               # we keep a small picture only, and link to the shop
 
@@ -65,7 +65,7 @@ def usable(source):
         return "kind not set yet: press Check on Admin > Listings (or run python src/phase4/check_shop_source.py --all --save)"
     if source.get("kind") not in KINDS:
         return f"no connector for kind '{source.get('kind')}'"
-    if source.get("kind") in ("shopify", "woocommerce", "sitemap") and not source.get("base_url"):
+    if source.get("kind") in ("shopify", "woocommerce", "sitemap", "hamadiabid") and not source.get("base_url"):
         return "no base_url"
     if source.get("enabled", "").strip().lower() != "yes":
         return "not enabled"
