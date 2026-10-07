@@ -278,3 +278,71 @@ def test_snapshot_listing_keeps_its_own_check_date(client):
     assert snap["snapshot"] is True and snap["checked_at"] == "2026-10-03T10:00:00Z"
     assert live["snapshot"] is False and live["checked_at"] == live["seen_at"]
     assert snap["seller"] is None
+
+
+# ------------------------------------------------------------------ one product at a time (sitemap shops)
+def test_page_by_page_shops_save_each_product_as_it_is_read(client, db, monkeypatch):
+    """Exist (kind sitemap): each product is saved, picture included, before the next page."""
+    import collect_listings
+    from connectors import FetchResult
+
+    settings = client.app.state.settings
+    args = type("Args", (), {"limit": 0, "catalogue": False})()
+    source = {"source_id": "exist_tn", "kind": "sitemap"}
+    in_db_while_reading = []
+
+    def fetch(s, a):
+        a.on_total(2)
+        for name in ("a", "b"):
+            a.on_listing(raw(name))
+            in_db_while_reading.append(db.listings.count_documents({"source_id": "exist_tn"}))
+        return FetchResult("ok", "2 pages", [], "sitemap", present_ids={"a", "b"})
+
+    monkeypatch.setitem(collect_listings.CONNECTORS, "sitemap", type("C", (), {"fetch": staticmethod(fetch)}))
+    assert collect_listings.collect(db, settings, source, args, lambda s: FakeLabeller()) == "ok"
+    assert in_db_while_reading == [1, 2]                     # saved during the read, not after it
+    assert len(list((settings.storage_dir / "listings").glob("*.jpg"))) >= 2   # pictures saved too
+    run = db.listing_runs.find_one({"source_id": "exist_tn"})
+    assert run["result"] == "ok" and run["counts"]["added"] == 2
+    assert args.on_listing is None                            # never left behind for the next source
+
+    # the next run: "a" left the sitemap -> gone; then a block mid-run keeps what was saved
+    def fetch_then_block(s, a):
+        a.on_listing(raw("c"))
+        return FetchResult("blocked", "HTTP 403", [], "sitemap")
+
+    monkeypatch.setitem(collect_listings.CONNECTORS, "sitemap",
+                        type("C", (), {"fetch": staticmethod(fetch_then_block)}))
+    assert collect_listings.collect(db, settings, source, args, lambda s: FakeLabeller()) == "blocked"
+    assert db.listings.count_documents({"source_id": "exist_tn", "status": "active"}) == 3   # nothing gone
+    blocked = db.listing_runs.find_one({"result": "blocked"})
+    assert blocked["counts"]["added"] == 1
+
+
+def test_page_by_page_stop_keeps_what_was_saved(client, db, monkeypatch):
+    import collect_listings
+    from connectors import FetchResult
+    from job_progress import JobStopped
+
+    class StopAfterFirst:
+        def __init__(self):
+            self.calls = 0
+
+        def check(self):
+            self.calls += 1
+            if self.calls > 1:
+                raise JobStopped("stopped by an admin")
+
+        def update(self, **kw):
+            pass
+
+    def fetch(s, a):
+        for name in ("a", "b", "c"):
+            a.on_listing(raw(name))
+        return FetchResult("ok", "", [], "sitemap")
+
+    monkeypatch.setitem(collect_listings.CONNECTORS, "sitemap", type("C", (), {"fetch": staticmethod(fetch)}))
+    args = type("Args", (), {"limit": 0, "catalogue": False})()
+    result = collect_listings.collect(db, client.app.state.settings, {"source_id": "exist_tn", "kind": "sitemap"},
+                                      args, lambda s: FakeLabeller(), StopAfterFirst())
+    assert result == "stopped" and db.listings.count_documents({"source_id": "exist_tn"}) == 1

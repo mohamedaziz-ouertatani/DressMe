@@ -556,3 +556,16 @@ def test_hamadiabid_skips_unknown_products_and_stops_on_blocks():
     assert result.status == "error" and not any("/api/" in u for u in closed.urls)
     with pytest.raises(ValueError):
         hamadiabid.tnd("29,99 EUR")
+
+
+def test_product_pages_keep_only_their_product_data(tmp_path, monkeypatch):
+    """Whole Exist pages were ~190 KB each (~95 MB a run): only what was read is kept."""
+    monkeypatch.setattr("connectors.http.RAW_DIR", tmp_path / "raw")
+    handed = []
+    args = SimpleNamespace(limit=0, last_seen={}, on_listing=handed.append, on_total=lambda n: handed.append(n))
+    result = sitemap.fetch(sm_source(), args, opener=sm_site())
+    assert result.status == "ok" and handed[0] == 3 and len(handed) == 4   # the total, then each product
+    saved = [json.loads(p.read_text(encoding="utf-8")) for p in (tmp_path / "raw").rglob("*.json")]
+    pages = [s for s in saved if "productpage" in s["url"]]
+    assert len(pages) == 3 and all(isinstance(s["data"], dict) and "name" in s["data"] for s in pages)
+    assert any(isinstance(s["data"], str) and "<urlset" in s["data"] for s in saved)   # sitemaps kept whole

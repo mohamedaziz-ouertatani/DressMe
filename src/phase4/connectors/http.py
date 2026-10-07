@@ -6,8 +6,9 @@ src/phase4/check_shop_source.py:
   - waits `delay_s` (± 30%) between two requests;
   - stops at the first sign of a block (403, 429, or an HTML page such as a
     captcha where JSON was expected): we never try to get around it;
-  - saves every answer untouched under data/raw/Listings/<source>/<date>/,
-    so a broken parser can be fixed and re-run without downloading again.
+  - saves every answer under data/raw/Listings/<source>/<date>/, so a broken
+    parser can be fixed and re-run without downloading again (a product page
+    keeps only the product data read from it: whole pages were ~190 KB each).
 """
 
 import gzip
@@ -118,10 +119,10 @@ class Client:
             # a bot check or a login page instead of the data
             raise SourceBlocked(f"{url} answered {ctype or 'no content type'}, not JSON (a bot check?)")
         data = json.loads(body)
-        self._save(url, data)
+        self.save(url, data)
         return data
 
-    def _save(self, url, data):
+    def save(self, url, data):
         """Keep the untouched answer, so a broken parser can be fixed without downloading again."""
         if self.folder:
             self.folder.mkdir(parents=True, exist_ok=True)
@@ -132,8 +133,9 @@ class Client:
     def get_text(self, path, kind="xml"):
         """The text of `path` (a sitemap or a product page), or None for a 404.
 
-        kind="xml": a sitemap. A web page instead (a bot check) stops the source.
-        kind="html": a product page. Gzipped sitemaps (.xml.gz) are unpacked."""
+        kind="xml": a sitemap, saved whole. A web page instead (a bot check) stops the source.
+        kind="html": a product page, NOT saved here: the connector saves what it read from it
+        (client.save). Gzipped sitemaps (.xml.gz) are unpacked."""
         if not self.allowed(path):
             raise Forbidden(f"robots.txt forbids {path}")
         url = urljoin(self.base, path)
@@ -150,5 +152,6 @@ class Client:
         text = body.decode("utf-8", "replace")
         if kind == "xml" and not text.lstrip().startswith(("<?xml", "<urlset", "<sitemapindex")):
             raise SourceBlocked(f"{url} answered {ctype or 'something'} instead of a sitemap (a bot check?)")
-        self._save(url, text if kind == "xml" else text[:200_000])
+        if kind == "xml":
+            self.save(url, text)
         return text

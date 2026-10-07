@@ -253,7 +253,11 @@ def pick(urls, last_seen, how_many, key=page_id):
 
 
 def fetch(source, args, opener=None):
+    """Reads the shop page by page. If the collector passes args.on_listing, each product is
+    handed to it as soon as it is read (and args.on_total gets how many pages will be read)."""
     should_stop = getattr(args, "should_stop", lambda: False)
+    on_listing = getattr(args, "on_listing", None) or (lambda raw: None)
+    on_total = getattr(args, "on_total", None) or (lambda n: None)
     client = Client(source["base_url"], source["source_id"], source.get("delay_s") or 5, opener)
     try:
         rates = load_rates()
@@ -266,6 +270,7 @@ def fetch(source, args, opener=None):
             how_many = min(how_many, args.limit)
         listings, empty, skipped, forbidden = [], 0, 0, 0
         chosen = pick(urls, getattr(args, "last_seen", {}) or {}, how_many)
+        on_total(len(chosen))
         for url in chosen:
             if should_stop():
                 return FetchResult("stopped", f"stopped by an admin after {len(listings)} pages",
@@ -280,6 +285,8 @@ def fetch(source, args, opener=None):
                 skipped += 1
                 continue
             data = parse_product(html)
+            # keep what was read (a few KB), or the start of a page without product data (a bot check?)
+            client.save(url, data or {"no_product_data": html[:5000]})
             if not data or not data["image"]:
                 skipped += 1
                 empty += 1
@@ -289,6 +296,7 @@ def fetch(source, args, opener=None):
                 continue
             empty = 0
             listings.append(to_raw(url, data, source, rates))
+            on_listing(listings[-1])           # the collector saves it now, picture included
     except SourceBlocked as err:
         return FetchResult("blocked", str(err), mode="sitemap")
     except InterruptedError as err:

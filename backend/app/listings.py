@@ -104,49 +104,64 @@ def sync_listings(db, source_id, raws, label, storage_dir, now=None, mark_gone=T
     from it become gone; the ones not fetched this time stay as they are.
     """
     now = now or datetime.now(timezone.utc)
-    counts = {"added": 0, "updated": 0, "relabelled": 0, "no_picture": 0, "gone": 0}
-    (storage_dir / "listings").mkdir(parents=True, exist_ok=True)
+    counts = new_counts()
     for i, raw in enumerate(raws):
         if on_item:
             on_item(i, len(raws))
-        old = db.listings.find_one({"source_id": source_id, "external_id": raw.external_id},
-                                   {"_id": 1, "image_url": 1})
-        doc = {"source_id": source_id, "external_id": raw.external_id, "url": raw.url,
-               "title": raw.title, "brand": raw.brand, "shop_colour": raw.shop_colour,
-               "gender": raw.gender, "price_tnd": raw.price_tnd, "sizes": raw.sizes,
-               "sizes_in_stock": raw.sizes_in_stock, "in_stock": raw.in_stock,
-               "availability_level": raw.availability_level, "image_url": raw.image_url,
-               "checked_at": raw.checked_at or None, "snapshot": raw.snapshot,
-               "price_original": raw.price_original,
-               "seen_at": now, "status": "active"}
-        if old is None or old.get("image_url") != raw.image_url:
-            labels = label(raw)
-            if labels is None:
-                counts["no_picture"] += 1
-                if old is None:
-                    continue           # never list an item we could not look at
-                doc.pop("image_url")   # keep the old picture and labels
-            else:
-                listing_id = old["_id"] if old else ObjectId()
-                labels["thumbnail"].save(thumbnail_path(storage_dir, listing_id), quality=85)
-                doc.update(labels["fields"], predicted=labels["predicted"],
-                           vector=vector_to_bson(labels["vector"]))
-                if old is None:
-                    doc.update(_id=listing_id, created_at=now)
-                    db.listings.insert_one(doc)
-                    counts["added"] += 1
-                    continue
-                counts["relabelled"] += 1
-        db.listings.update_one({"_id": old["_id"]}, {"$set": doc})
-        counts["updated"] += 1
+        save_listing(db, source_id, raw, label, storage_dir, now, counts)
     if mark_gone:
-        missing = ({"external_id": {"$nin": list(keep_ids)}} if keep_ids is not None
-                   else {"seen_at": {"$lt": now}})
-        gone = db.listings.update_many(
-            {"source_id": source_id, "status": "active", **missing},
-            {"$set": {"status": "gone"}})
-        counts["gone"] = gone.modified_count
+        counts["gone"] = mark_missing_gone(db, source_id, now, keep_ids)
     return counts
+
+
+def new_counts():
+    return {"added": 0, "updated": 0, "relabelled": 0, "no_picture": 0, "gone": 0}
+
+
+def save_listing(db, source_id, raw, label, storage_dir, now, counts):
+    """Save ONE listing (see sync_listings): its picture is downloaded and analysed only if it is
+    new or changed. The collector calls it as soon as a connector has read a product, so a
+    page-by-page shop (sitemap) gets each listing, picture included, one at a time."""
+    (storage_dir / "listings").mkdir(parents=True, exist_ok=True)
+    old = db.listings.find_one({"source_id": source_id, "external_id": raw.external_id},
+                               {"_id": 1, "image_url": 1})
+    doc = {"source_id": source_id, "external_id": raw.external_id, "url": raw.url,
+           "title": raw.title, "brand": raw.brand, "shop_colour": raw.shop_colour,
+           "gender": raw.gender, "price_tnd": raw.price_tnd, "sizes": raw.sizes,
+           "sizes_in_stock": raw.sizes_in_stock, "in_stock": raw.in_stock,
+           "availability_level": raw.availability_level, "image_url": raw.image_url,
+           "checked_at": raw.checked_at or None, "snapshot": raw.snapshot,
+           "price_original": raw.price_original,
+           "seen_at": now, "status": "active"}
+    if old is None or old.get("image_url") != raw.image_url:
+        labels = label(raw)
+        if labels is None:
+            counts["no_picture"] += 1
+            if old is None:
+                return                 # never list an item we could not look at
+            doc.pop("image_url")       # keep the old picture and labels
+        else:
+            listing_id = old["_id"] if old else ObjectId()
+            labels["thumbnail"].save(thumbnail_path(storage_dir, listing_id), quality=85)
+            doc.update(labels["fields"], predicted=labels["predicted"],
+                       vector=vector_to_bson(labels["vector"]))
+            if old is None:
+                doc.update(_id=listing_id, created_at=now)
+                db.listings.insert_one(doc)
+                counts["added"] += 1
+                return
+            counts["relabelled"] += 1
+    db.listings.update_one({"_id": old["_id"]}, {"$set": doc})
+    counts["updated"] += 1
+
+
+def mark_missing_gone(db, source_id, now, keep_ids=None):
+    """After a complete run: this source's listings not seen in it (or, for a partial sitemap
+    run, missing from `keep_ids`) become "gone". Returns how many."""
+    missing = ({"external_id": {"$nin": list(keep_ids)}} if keep_ids is not None
+               else {"seen_at": {"$lt": now}})
+    return db.listings.update_many({"source_id": source_id, "status": "active", **missing},
+                                   {"$set": {"status": "gone"}}).modified_count
 
 
 def record_run(db, source_id, started_at, result, message="", counts=None, mode=""):
