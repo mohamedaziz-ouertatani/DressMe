@@ -4,6 +4,8 @@ directly, like the chat engine would, on a wardrobe built through the API."""
 from types import SimpleNamespace
 
 from app.agents import stylist
+from app.listings import listing_query
+from app.routers.insights import wardrobe_counts
 from tests.conftest import BLACK, BLUE, RED, sign_up, upload
 
 
@@ -65,3 +67,21 @@ def test_stylist_prompt_keeps_the_user_rules(client):
     prompt = stylist.AGENT.prompt(user_doc(client))
     assert "Never invent items" in prompt
     assert "Shopping advisor" in prompt          # it knows what the other agents do
+
+
+# ------------------------------------------------------------------ shared helpers
+def test_listing_query_only_active_in_stock_by_default():
+    assert listing_query() == {"status": "active", "in_stock": True}
+    assert listing_query(category="top", colour="black", max_price=50, in_stock=False) == {
+        "status": "active", "category": "top", "colour": "black", "price_tnd": {"$lte": 50}}
+
+
+def test_wardrobe_counts_matches_insights(client):
+    headers = sign_up(client)
+    for rgb in (RED, RED, BLUE):
+        upload(client, headers, rgb)
+    docs = list(client.app.state.db.items.find({}))
+    counts = wardrobe_counts(docs)
+    insights = client.get("/insights", headers=headers).json()
+    for key in ("total", "categories", "colours", "patterns", "to_confirm"):
+        assert counts[key] == insights[key]
