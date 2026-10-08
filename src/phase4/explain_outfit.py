@@ -84,3 +84,52 @@ def strengths(items, parts, rules=None, settings=None):
     if parts.get("structure") == 1.0:
         out.append(C.line("structure", "+", "structure_complete"))
     return out
+
+
+def swaps(items, wardrobe, rules=None, style_profile=None):
+    """For each piece: the wardrobe item of the same category that raises the score
+    most when it takes the piece's place (never a clash), and how many points."""
+    rules = rules or C.RULES
+    base = C.score_outfit(items, rules, style_profile=style_profile)["score"]
+    in_outfit = {i["id"] for i in items}
+    out = []
+    for k, piece in enumerate(items):
+        rest = items[:k] + items[k + 1:]
+        best, best_score = None, base
+        for w in wardrobe:
+            if w["id"] in in_outfit or w["category"] != piece["category"]:
+                continue
+            trial = rest + [w]
+            if C.clashes(trial, rules):
+                continue
+            s = C.score_outfit(trial, rules, style_profile=style_profile)["score"]
+            if s > best_score:
+                best, best_score = w, s
+        out.append({"item_id": piece["id"], "best_swap_id": best["id"] if best else None,
+                    "gain": round(best_score - base, 1)})
+    return out
+
+
+def weakest(swap_list, positive_only=True):
+    """The piece whose best swap gains the most (None if no swap helps).
+    positive_only=False always names one (used by the offline evaluation)."""
+    rows = [s for s in swap_list if s["gain"] > 0] if positive_only else list(swap_list)
+    return max(rows, key=lambda s: s["gain"])["item_id"] if rows else None
+
+
+def pair_map(items, rules=None):
+    """Style / colour / pattern score (0-1) of every pair of pieces; None = unknown."""
+    rules = rules or C.RULES
+    out = []
+    for a, b in combinations(items, 2):
+        style = colour = pattern = None
+        if a.get("vector") is not None and b.get("vector") is not None:
+            sim = float(np.asarray(a["vector"], np.float32) @ np.asarray(b["vector"], np.float32))
+            style = round(C.rescale_style(sim, rules), 3)
+        if a.get("colour") and b.get("colour"):
+            colour = round(rules.colour_score(a["colour"], b["colour"]), 3)
+        pa, pb = C.clothing_patterns([a], rules), C.clothing_patterns([b], rules)
+        if pa and pb:
+            pattern = round(rules.pattern_pairs[(pa[0], pb[0])], 3)
+        out.append({"a": a["id"], "b": b["id"], "style": style, "colour": colour, "pattern": pattern})
+    return out

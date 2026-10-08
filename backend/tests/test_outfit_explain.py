@@ -96,3 +96,32 @@ def test_settings_file_has_outfit_rows():
     import explain
     s = explain.load_settings()
     assert {"strength_style", "strength_colour_pair", "near_miss"} <= set(s)
+
+
+def test_swaps_find_a_better_piece_and_never_clash():
+    top = item("t", "top", "t-shirt", "orange", "solid", 1)
+    jeans = item("j", "bottom", "jeans", "blue", "solid", 1)
+    shoes = item("s", "shoes", "sneakers", "white", seed=1)
+    bad_top = item("x", "top", "shirt", "red", "solid", 1)          # orange is replaced by...
+    good_top = item("g", "top", "shirt", "white", "solid", 1)        # ...a neutral white shirt
+    jeans2 = item("j2", "bottom", "jeans", "black", "solid", 1)      # same sub_category: swap OK
+    wardrobe = [top, jeans, shoes, bad_top, good_top, jeans2]
+    rows = {r["item_id"]: r for r in X.swaps([top, jeans, shoes], wardrobe)}
+    assert set(rows) == {"t", "j", "s"}
+    assert rows["t"]["best_swap_id"] == "g" and rows["t"]["gain"] > 0
+    assert rows["s"]["best_swap_id"] is None and rows["s"]["gain"] == 0.0   # no other shoes
+    assert X.weakest(list(rows.values())) == max(rows.values(), key=lambda r: r["gain"])["item_id"]
+    assert X.weakest([{"item_id": "a", "gain": 0.0}]) is None
+    assert X.weakest([{"item_id": "a", "gain": 0.0}], positive_only=False) == "a"
+
+
+def test_pair_map():
+    a = item("a", "top", "t-shirt", "navy", "striped", 1)
+    b = item("b", "bottom", "jeans", "", "floral", 1)
+    s = {**item("s", "shoes", "sneakers", "white", seed=5), "vector": None}
+    rows = {(r["a"], r["b"]): r for r in X.pair_map([a, b, s])}
+    assert len(rows) == 3
+    assert rows[("a", "b")]["style"] == 1.0 and rows[("a", "b")]["colour"] is None
+    assert rows[("a", "b")]["pattern"] == round(C.RULES.pattern_pairs[("striped", "floral")], 3)
+    assert rows[("a", "s")]["style"] is None and rows[("a", "s")]["pattern"] is None   # shoes: no pattern
+    assert rows[("a", "s")]["colour"] == round(C.RULES.colour_score("navy", "white"), 3)
