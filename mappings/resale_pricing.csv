@@ -1,0 +1,4 @@
+kind,name,value,note
+factor,*,0.3,REVIEW: placeholder; share of the new-shop price a second-hand piece sells for (team to set per category)
+setting,neighbours,8,REVIEW: look-alike listings read for one price hint
+setting,min_friperie,3,REVIEW: friperie look-alikes needed to ignore shop prices
