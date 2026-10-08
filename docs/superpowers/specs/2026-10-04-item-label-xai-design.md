@@ -1,6 +1,6 @@
 # Item-label XAI — design (XAI sub-project 1 of 4)
 
-Date: 2026-10-04. Status: approved in chat, waiting for spec review.
+Date: 2026-10-04. Status: implemented (plan: `docs/superpowers/plans/2026-10-04-item-label-xai.md`).
 
 ## Context
 
@@ -167,6 +167,14 @@ Pure functions, no web code, PIL + torch + numpy only.
 
 `CLAUDE.md` Phase 4 gets an "XAI" item (sub-project 1 done, what lives where,
 the REVIEW settings file); the team decides the final cuts.
+
+## Changes while planning
+
+- The colour map's item area reuses the colour model's own background rule (near-white regions touching the border, `WHITE = 235`) instead of "ΔE 6 from white": same pixels the model reads, and no second rule to maintain.
+- The heatmap overlay uses a yellow → red ramp whose opacity follows the heat (cold areas show the plain photo) instead of jet at 45%: easier to read on product shots.
+- `Analyzer.explain` returns PIL images; the router turns them into data URLs with the existing `as_data_url` from `routers/tryon.py`.
+- No `note` field and no 503 in the response: the app writes its own translated text, and the Analyzer is always loaded (no other model endpoint answers 503).
+- For EfficientNet + one linear layer per head, Grad-CAM equals the classic CAM, so the gradient only goes through the head (the body runs once, no backward through it). The code says so.
 
 ## Open questions for the team
 
