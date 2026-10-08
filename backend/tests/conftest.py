@@ -61,9 +61,25 @@ class FakeCatalog:
 
 
 class FakeChatEngine:
-    """Calls a tool when asked about the wardrobe or outfits, like Gemini would."""
+    """Calls a tool when asked about the wardrobe or outfits, like Gemini would.
+    classify(): answers `label`, or acts like a model without a key (label=None),
+    so the router falls back to the keyword table."""
+
+    def __init__(self, label=None):
+        self.label = label
+        self.classify_calls = 0
+        self.systems, self.tool_names = [], []      # what each reply() received
+
+    def classify(self, system, message):
+        from app.chat_engine import ChatUnavailable
+        self.classify_calls += 1
+        if self.label is None:
+            raise ChatUnavailable("fake engine: no router model")
+        return self.label
 
     def reply(self, system, history, message, tools):
+        self.systems.append(system)
+        self.tool_names.append(sorted(tools))
         if "wardrobe" in message:
             items = tools["list_wardrobe"]()
             return f"You have {len(items)} items.", ["list_wardrobe"]

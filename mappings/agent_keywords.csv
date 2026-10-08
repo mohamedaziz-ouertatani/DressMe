@@ -1,0 +1,63 @@
+agent,language,keyword,note
+stylist,en,wear,REVIEW
+stylist,en,outfit,REVIEW
+stylist,en,today,REVIEW
+stylist,en,tonight,REVIEW
+stylist,en,weather,REVIEW
+stylist,en,go with,REVIEW
+stylist,en,match,REVIEW
+stylist,en,combine,REVIEW
+stylist,fr,porter,REVIEW
+stylist,fr,mettre,REVIEW
+stylist,fr,mets,REVIEW
+stylist,fr,tenue,REVIEW
+stylist,fr,aujourd,REVIEW
+stylist,fr,ce soir,REVIEW
+stylist,fr,meteo,REVIEW
+stylist,fr,assorti,REVIEW
+stylist,darija,nelbes,REVIEW: native check
+stylist,darija,lebsa,REVIEW: native check
+stylist,darija,lyoum,REVIEW: native check
+stylist,ar,نلبس,REVIEW: native check
+stylist,ar,لبسة,REVIEW: native check
+stylist,ar,اليوم,REVIEW: native check
+shopping,en,buy,REVIEW
+shopping,en,price,REVIEW
+shopping,en,cheap,REVIEW
+shopping,en,shop,REVIEW
+shopping,en,store,REVIEW
+shopping,en,where can i find,REVIEW
+shopping,en,similar,REVIEW
+shopping,fr,achet,REVIEW
+shopping,fr,prix,REVIEW
+shopping,fr,pas cher,REVIEW
+shopping,fr,boutique,REVIEW
+shopping,fr,magasin,REVIEW
+shopping,fr,friperie,REVIEW
+shopping,fr,ou trouver,REVIEW
+shopping,fr,ressembl,REVIEW
+shopping,darija,nechri,REVIEW: native check
+shopping,darija,chrit,REVIEW: native check
+shopping,darija,soum,REVIEW: native check
+shopping,darija,fripe,REVIEW: native check
+shopping,ar,نشري,REVIEW: native check
+shopping,ar,سوم,REVIEW: native check
+shopping,ar,فريب,REVIEW: native check
+analyst,en,missing,REVIEW
+analyst,en,lack,REVIEW
+analyst,en,too many,REVIEW
+analyst,en,never wear,REVIEW
+analyst,en,duplicate,REVIEW
+analyst,en,statistic,REVIEW
+analyst,en,insight,REVIEW
+analyst,en,analy,REVIEW
+analyst,fr,manque,REVIEW
+analyst,fr,trop de,REVIEW
+analyst,fr,jamais,REVIEW
+analyst,fr,doublon,REVIEW
+analyst,fr,statistique,REVIEW
+analyst,fr,analyse,REVIEW
+analyst,darija,na9es,REVIEW: native check
+analyst,darija,barcha,REVIEW: native check
+analyst,ar,ناقص,REVIEW: native check
+analyst,ar,برشا,REVIEW: native check

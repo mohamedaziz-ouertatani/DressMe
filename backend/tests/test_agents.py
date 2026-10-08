@@ -4,11 +4,15 @@ directly, like the chat engine would, on a wardrobe built through the API."""
 from datetime import datetime, timezone
 from types import SimpleNamespace
 
-from app.agents import analyst, shopping, stylist
+import pytest
+
+from app.agents import AGENTS, DEFAULT_AGENT, analyst, shopping, stylist
+from app.agents.router import by_keywords, load_keywords, route, router_prompt
+from app.chat_engine import ChatBusy, ChatQuota
 from app.db import vector_to_bson
 from app.listings import listing_query
 from app.routers.insights import wardrobe_counts
-from tests.conftest import BLACK, BLUE, RED, fake_vector, photo, sign_up, upload
+from tests.conftest import BLACK, BLUE, RED, FakeChatEngine, fake_vector, photo, sign_up, upload
 
 
 def as_request(client):
@@ -180,3 +184,62 @@ def test_analyst_sees_only_its_user(client):
     sign_up(client, "youssef@example.com", "Youssef")
     upload(client, amira, RED)
     assert analyst_tools(client, "youssef@example.com")["wardrobe_stats"]()["total"] == 0
+
+
+# ------------------------------------------------------------------ registry and router
+def test_three_agents_each_with_tools():
+    assert list(AGENTS) == ["stylist", "shopping", "analyst"]
+    assert DEFAULT_AGENT == "stylist"
+    for agent in AGENTS.values():
+        assert len(agent.tools(None, None)) >= 3
+
+
+def test_keyword_table_names_only_known_agents():
+    rows = load_keywords()
+    assert {agent for agent, _ in rows} == set(AGENTS)
+
+
+def test_keyword_table_rejects_an_unknown_agent(tmp_path):
+    bad = tmp_path / "agent_keywords.csv"
+    bad.write_text("agent,language,keyword,note\ntailor,en,sew,\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="tailor"):
+        load_keywords(bad)
+
+
+@pytest.mark.parametrize("message, agent", [
+    ("Should I buy this jacket?", "shopping"),
+    ("Est-ce que je dois l'acheter ?", "shopping"),
+    ("What should I wear today?", "stylist"),
+    ("Qu'est-ce qui manque dans mes vêtements ?", "analyst"),
+    ("hello", "stylist"),                                      # no keyword: the default
+])
+def test_keywords(message, agent):
+    assert by_keywords(message, load_keywords()) == agent
+
+
+def test_route_uses_the_llm_label():
+    engine = FakeChatEngine(label=" Shopping.\n")
+    assert route(engine, "anything") == ("shopping", "llm")
+
+
+@pytest.mark.parametrize("error", [ChatBusy("down"), ChatQuota("quota")])
+def test_route_falls_back_to_keywords_when_the_llm_fails(error):
+    class Failing(FakeChatEngine):
+        def classify(self, system, message):
+            raise error
+    assert route(Failing(), "should I buy it?") == ("shopping", "keywords")
+
+
+def test_route_ignores_an_unknown_label():
+    assert route(FakeChatEngine(label="tailor"), "what is missing?") == ("analyst", "keywords")
+
+
+def test_keywords_mode_never_calls_the_llm():
+    engine = FakeChatEngine(label="analyst")
+    assert route(engine, "what should I wear?", mode="keywords") == ("stylist", "keywords")
+    assert engine.classify_calls == 0
+
+
+def test_router_prompt_lists_every_agent():
+    prompt = router_prompt()
+    assert all(name in prompt for name in AGENTS)
