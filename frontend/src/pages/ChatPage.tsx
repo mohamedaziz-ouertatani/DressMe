@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { Eraser, SendHorizontal } from 'lucide-react'
 import { ApiError, api } from '../api/client'
 import type { ChatTurn, ChatAttachment } from '../api/types'
@@ -43,7 +44,7 @@ export function ChatPage() {
     try {
       const r = await api.chat(message)
         setTurns((tt) => [...tt, {
-          role: 'model', text: r.reply, tools_used: r.tools_used, attachments: r.attachments, agent: r.agent,
+          role: 'model', text: r.reply, tools_used: r.tools_used, attachments: r.attachments, agent: r.agent, actions: r.actions,
         }])
     } catch (err) {
       setError(err)
@@ -100,6 +101,16 @@ export function ChatPage() {
                           ))}
                         </div>
                       </div>
+                    ))}
+                  </div>
+                )}
+                {m.actions && m.actions.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {m.actions.map((a) => (
+                      <Link key={a.url} to={a.url}
+                        className="inline-flex min-h-11 items-center bg-ink px-4 text-[15px] font-medium text-paper">
+                        {t('chatOpenSell')}
+                      </Link>
                     ))}
                   </div>
                 )}

@@ -187,8 +187,8 @@ def test_analyst_sees_only_its_user(client):
 
 
 # ------------------------------------------------------------------ registry and router
-def test_three_agents_each_with_tools():
-    assert list(AGENTS) == ["stylist", "shopping", "analyst"]
+def test_every_agent_has_tools():
+    assert list(AGENTS) == ["stylist", "shopping", "analyst", "seller"]
     assert DEFAULT_AGENT == "stylist"
     for agent in AGENTS.values():
         assert len(agent.tools(None, None)) >= 3

@@ -31,21 +31,42 @@ def image_attachments(value, group=""):
             yield from image_attachments(child, child_group)
 
 
-def with_attachments(functions, attachments):
+def sell_actions(value):
+    """The chat actions in a tool result: only links to the app's own Sell form
+    (a model must not be able to put any other link in front of the user)."""
+    if isinstance(value, dict):
+        action = value.get("action")
+        if (isinstance(action, dict) and action.get("kind") == "sell"
+                and isinstance(action.get("url"), str) and action["url"].startswith("/sell?")):
+            yield {"kind": "sell", "url": action["url"]}
+        for child in value.values():
+            yield from sell_actions(child)
+    elif isinstance(value, list):
+        for child in value:
+            yield from sell_actions(child)
+
+
+def with_attachments(functions, attachments, actions=None):
     """The tools as {name: function}. With an `attachments` list, every item picture a
-    tool returns is also added to it (once), so the app can show it under the answer."""
-    if attachments is None:
+    tool returns is also added to it (once), so the app can show it under the answer;
+    with an `actions` list, every Sell-form link too (once)."""
+    if attachments is None and actions is None:
         return dict(functions)
 
     def capture(fn):
         @wraps(fn)
         def wrapped(*args, **kwargs):
             result = fn(*args, **kwargs)
-            seen = {item["id"] for item in attachments}
-            for item in image_attachments(result):
-                if item["id"] not in seen:
-                    attachments.append(item)
-                    seen.add(item["id"])
+            if attachments is not None:
+                seen = {item["id"] for item in attachments}
+                for item in image_attachments(result):
+                    if item["id"] not in seen:
+                        attachments.append(item)
+                        seen.add(item["id"])
+            if actions is not None:
+                for action in sell_actions(result):
+                    if action not in actions:
+                        actions.append(action)
             return result
         return wrapped
 
@@ -79,10 +100,11 @@ Rules:
 - Be short, concrete and kind. Budget matters: prefer re-using what they own."""
 
 # What the agents do, so each one can point the user to the right one
-TEAM = """DressMe has three assistants and each message goes to one of them:
+TEAM = """DressMe has four assistants and each message goes to one of them:
 - the Stylist: what to wear today or for an occasion, outfits from the wardrobe, the weather;
 - the Shopping advisor: should I buy this, where to find a piece, prices in shops and friperie;
-- the Wardrobe analyst: what the wardrobe lacks, its most and least useful pieces, near-duplicates.
+- the Wardrobe analyst: what the wardrobe lacks, its most and least useful pieces, near-duplicates;
+- the Seller assistant: what to sell, at what price, writing the listing, the user's listings.
 If the question is for another assistant, say so in one sentence and invite the user to ask it."""
 
 
@@ -104,5 +126,5 @@ class Agent:
     def prompt(self, user):
         return system_prompt(user, self.job)
 
-    def bound_tools(self, request, user, attachments=None):
-        return with_attachments(self.tools(request, user), attachments)
+    def bound_tools(self, request, user, attachments=None, actions=None):
+        return with_attachments(self.tools(request, user), attachments, actions)
