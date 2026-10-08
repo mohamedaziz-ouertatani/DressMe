@@ -51,11 +51,11 @@ def chat(body: ChatMessage, request: Request, user=Depends(current_user)):
     engine = request.app.state.chat_engine
     name, routed_by = route(engine, body.message, request.app.state.settings.router)
     agent = AGENTS[name]
-    attachments = []
+    attachments, actions = [], []
     try:
         answer, used = engine.reply(
             agent.prompt(user), [{"role": h["role"], "text": h["text"]} for h in history],
-            body.message, agent.bound_tools(request, user, attachments))
+            body.message, agent.bound_tools(request, user, attachments, actions))
     except ChatUnavailable as e:       # no key: the assistant is switched off
         raise HTTPException(503, str(e))
     except ChatQuota as e:             # the key's (daily) quota is used up
@@ -67,13 +67,15 @@ def chat(body: ChatMessage, request: Request, user=Depends(current_user)):
         {"user_id": user["_id"], "role": "user", "text": body.message, "created_at": now},
         # 1 ms later: MongoDB keeps milliseconds, and the answer must sort after the question
         {"user_id": user["_id"], "role": "model", "text": answer, "tools": used,
-         "attachments": attachments, "agent": name, "routed_by": routed_by,
+         "attachments": attachments, "actions": actions, "agent": name, "routed_by": routed_by,
          "created_at": now + timedelta(milliseconds=1)},
     ])
     log_event(db, "chat", user["_id"], tools=used, agent=name)
     result = {"reply": answer, "tools_used": used, "agent": name, "agent_title": agent.title}
     if attachments:
         result["attachments"] = attachments
+    if actions:                        # e.g. the Seller assistant's ready-filled Sell form
+        result["actions"] = actions
     return result
 
 
@@ -81,7 +83,7 @@ def chat(body: ChatMessage, request: Request, user=Depends(current_user)):
 def chat_history(request: Request, user=Depends(current_user)):
     docs = request.app.state.db.chats.find({"user_id": user["_id"]}).sort("created_at", 1)
     return [{"role": d["role"], "text": d["text"], "tools_used": d.get("tools", []),
-             "attachments": d.get("attachments", []), "agent": d.get("agent", "")} for d in docs]
+             "attachments": d.get("attachments", []), "agent": d.get("agent", ""), "actions": d.get("actions", [])} for d in docs]
 
 
 @router.delete("/chat/history", status_code=204)

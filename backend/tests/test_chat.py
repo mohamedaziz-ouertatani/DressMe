@@ -165,6 +165,19 @@ def test_keywords_router_setting_skips_the_llm(make_client, settings):
     assert engine.classify_calls == 0
 
 
+def test_seller_answer_carries_a_sell_form_action(client):
+    headers = sign_up(client)
+    top = upload(client, headers, RED)
+    r = client.post("/chat", json={"message": "I want to sell my top"}, headers=headers)
+    assert r.json()["agent"] == "seller"
+    assert r.json()["actions"] == [{"kind": "sell", "url": f"/sell?item={top['id']}&price=12&title=Red+T-shirt"}]
+    history = client.get("/chat/history", headers=headers).json()
+    assert history[-1]["actions"] == r.json()["actions"]
+    assert history[0]["actions"] == []
+    r = client.post("/chat", json={"message": "suggest an outfit"}, headers=headers)
+    assert "actions" not in r.json()
+
+
 import copy  # noqa: E402
 
 from app.chat_engine import ChatUnavailable, OllamaEngine, make_engine, tool_schema  # noqa: E402

@@ -80,6 +80,12 @@ class FakeChatEngine:
     def reply(self, system, history, message, tools):
         self.systems.append(system)
         self.tool_names.append(sorted(tools))
+        if "sell" in message and "prepare_sell" in tools:
+            items = tools["list_wardrobe"]()
+            if not items:
+                return "Nothing to sell yet.", ["list_wardrobe"]
+            tools["prepare_sell"](price_tnd=12, item_id=items[0]["id"], title="Red T-shirt")
+            return "Here is your Sell form.", ["list_wardrobe", "prepare_sell"]
         if "missing" in message and "wardrobe_insights" in tools:
             facts = tools["wardrobe_insights"]()
             return f"Missing: {', '.join(facts['missing']) or 'nothing'}.", ["wardrobe_insights"]
