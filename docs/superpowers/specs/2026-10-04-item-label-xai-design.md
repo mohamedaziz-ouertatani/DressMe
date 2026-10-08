@@ -70,7 +70,7 @@ without `alternatives` keep working: every reader uses `.get`).
 
 The offline calibration table (section 5) shows the team what these cuts give.
 
-### 2. `src/explain.py` (new, shared by the API and the evaluation script)
+### 2. `src/phase4/explain.py` (new, shared by the API and the evaluation script)
 
 Pure functions, no web code, PIL + torch + numpy only.
 
@@ -138,8 +138,8 @@ Pure functions, no web code, PIL + torch + numpy only.
 
 ### 5. Offline evaluation (feeds sub-project 4)
 
-`src/evaluate_explanations.py` → `reports/explanations_evaluation.md` +
-`reports/figures/gradcam_examples.png`, on the test split from the image cache:
+`src/phase4/evaluate_explanations.py` → `reports/phase4/explanations_evaluation.md` +
+`reports/phase4/figures/gradcam_examples.png`, on the test split from the image cache:
 
 - **Examples:** Grad-CAM grid, correct and wrong predictions per category.
 - **Deletion test:** blank (white) the top 10 / 20 / 40% heatmap pixels vs the
@@ -153,7 +153,7 @@ Pure functions, no web code, PIL + torch + numpy only.
 
 ### 6. Tests
 
-- `tests` for `src/explain.py` on synthetic pictures: Grad-CAM shape and range,
+- `tests` for `src/phase4/explain.py` on synthetic pictures: Grad-CAM shape and range,
   zero on the letterbox padding, a different map for a different class;
   `colour_map` on a two-colour picture gives the expected share; `class_index`
   rejects unknown values.
