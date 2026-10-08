@@ -6,16 +6,19 @@ import { Swatch } from './controls'
 import { ItemPhoto } from './ItemPhoto'
 import { Stamp } from './Stamp'
 import { SecondLine, Serial, Ticket } from './ticket'
+import { ExplainLines, PointsBar, ScoreDetails } from './ScoreWhy'
 
 /** An outfit as a strip of perforated tickets, one per piece, with the score
  *  stamped across the top corner. */
-export function OutfitStrip({ outfit, land = false, compact = false, photoOf, onFeedback, feedback }: {
+export function OutfitStrip({ outfit, land = false, compact = false, photoOf, onFeedback, feedback, explainable = false, onSwap }: {
   outfit: Outfit
   land?: boolean
   compact?: boolean
   photoOf?: (id: string) => string | undefined   // e.g. the scanned photo, not stored on the server
   onFeedback?: (rating: OutfitRating) => void
   feedback?: OutfitRating
+  explainable?: boolean                            // show "Why this score?" (swaps + pair map)
+  onSwap?: (from: string, to: string) => void      // Build: apply the suggested swap
 }) {
   const { t, lang, reason } = useI18n()
   const size = compact ? 72 : 96
@@ -59,14 +62,22 @@ export function OutfitStrip({ outfit, land = false, compact = false, photoOf, on
           label={`${t('score')} ${Math.round(outfit.score)} / 100`}
         />
       </div>
-      <ul className="mt-3 space-y-1 text-[14px] text-carbon-soft">
-        {(outfit.reasons.length ? outfit.reasons : ['']).map((r, i) => (
-          <li key={i} className="flex gap-2">
-            <span aria-hidden className="mt-[9px] h-px w-3 shrink-0 bg-perf" />
-            {r ? reason(r) : t('noReasons')}
-          </li>
-        ))}
-      </ul>
+      {outfit.contributions && <div className="mt-3"><PointsBar contributions={outfit.contributions} /></div>}
+      <div className="mt-3">
+        {outfit.explanations
+          ? (outfit.explanations.length ? <ExplainLines lines={outfit.explanations} /> : <p className="text-[14px] text-carbon-soft">{t('noReasons')}</p>)
+          : (
+            <ul className="space-y-1 text-[14px] text-carbon-soft">
+              {(outfit.reasons.length ? outfit.reasons : ['']).map((r, i) => (
+                <li key={i} className="flex gap-2">
+                  <span aria-hidden className="mt-[9px] h-px w-3 shrink-0 bg-perf" />
+                  {r ? reason(r) : t('noReasons')}
+                </li>
+              ))}
+            </ul>
+          )}
+      </div>
+      {explainable && <ScoreDetails outfit={outfit} onSwap={onSwap} />}
       {onFeedback && (
         <div className="mt-4 flex items-center gap-2" aria-label={t('outfitFeedback')}>
           <span className="text-[13px] text-carbon-soft">{t('outfitFeedback')}</span>

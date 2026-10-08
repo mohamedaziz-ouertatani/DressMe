@@ -80,6 +80,8 @@ export interface Outfit {
   parts: Record<'style' | 'colour' | 'pattern' | 'structure', number | null>
   reasons: string[]
   items: OutfitItem[]
+  contributions?: Contribution[]   // points per part (app routes only)
+  explanations?: ExplainLine[]     // strengths (+) and problems (-) as codes
 }
 
 export type OutfitRating = 1 | -1
@@ -94,6 +96,7 @@ export interface BuyAdvice {
   reasons: string[]
   candidate: Item
   best: Outfit[]
+  explanation?: BuyExplanation
 }
 
 export interface CatalogHit {
@@ -399,4 +402,49 @@ export interface ListingsOverview {
   runs_by_day: ({ day: string } & Record<string, number | string>)[]
   running: Job | null
   last_job: Job | null
+}
+
+// ---- outfit + buy advice explanations (src/phase4/explain_outfit.py)
+export type PartName = 'style' | 'colour' | 'pattern' | 'structure'
+
+export interface ExplainLine {
+  code: string
+  part: PartName
+  sign: '+' | '-'
+  params: Record<string, string | number | string[]>
+}
+
+export interface Contribution {
+  part: PartName
+  weight: number
+  value: number | null
+  counted: boolean
+  points: number
+  max_points: number
+  why_not: null | 'no_vectors' | 'no_colours' | 'no_patterns' | 'no_items' | 'weight_zero'
+}
+
+export interface ShortItem {
+  id: string
+  category: Category
+  sub_category: string
+  colour: string
+  image_url: string
+}
+
+/** POST /outfits/explain */
+export interface OutfitExplanation {
+  swaps: { item_id: string; gain: number; swap: ShortItem | null }[]
+  weakest: string | null
+  pair_map: { a: string; b: string; style: number | null; colour: number | null; pattern: number | null }[]
+}
+
+/** /buy-advice explanation */
+export interface BuyExplanation {
+  path: { good: number; buy_min: number; think_min: number; verdict: Verdict }
+  beats: { item_ids: string[]; owned_id: string | null; owned: ShortItem | null; owned_score: number; margin: number }[]
+  lost_to: { owned_id: string; owned: ShortItem; outfits: number }[]
+  near_misses: number
+  to_next_verdict: number | null
+  twins: { item: ShortItem; similarity: number }[]
 }
