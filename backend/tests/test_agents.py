@@ -4,7 +4,7 @@ directly, like the chat engine would, on a wardrobe built through the API."""
 from datetime import datetime, timezone
 from types import SimpleNamespace
 
-from app.agents import shopping, stylist
+from app.agents import analyst, shopping, stylist
 from app.db import vector_to_bson
 from app.listings import listing_query
 from app.routers.insights import wardrobe_counts
@@ -142,3 +142,41 @@ def test_find_similar_ignores_other_users_items(client):
     top = upload(client, amira, RED)
     result = shopping_tools(client, "youssef@example.com")["find_similar"](item_id=top["id"])
     assert "error" in result
+
+
+# ------------------------------------------------------------------ wardrobe analyst
+def analyst_tools(client, email="amira@example.com"):
+    return analyst.AGENT.bound_tools(as_request(client), user_doc(client, email))
+
+
+def test_analyst_has_its_tools():
+    assert set(analyst.tools(None, None)) == {
+        "list_wardrobe", "wardrobe_insights", "wardrobe_stats", "find_near_twins"}
+
+
+def test_wardrobe_insights_says_what_is_missing(client):
+    headers = sign_up(client)
+    upload(client, headers, RED)
+    upload(client, headers, BLUE)
+    facts = analyst_tools(client)["wardrobe_insights"]()
+    assert "shoes" in facts["missing"]
+    assert facts["good_outfits"] >= 0
+    assert set(facts) >= {"versatile", "unmatched", "unmatched_count", "new_pairs", "hidden_by_filters"}
+
+
+def test_wardrobe_stats_and_twins(client):
+    headers = sign_up(client)
+    a = upload(client, headers, RED)
+    b = upload(client, headers, RED)             # same photo: a near twin
+    upload(client, headers, BLUE)
+    tools = analyst_tools(client)
+    assert tools["wardrobe_stats"]()["total"] == 3
+    twins = tools["find_near_twins"]()["twins"]
+    assert {i["id"] for i in twins[0]["items"]} == {a["id"], b["id"]}
+
+
+def test_analyst_sees_only_its_user(client):
+    amira = sign_up(client)
+    sign_up(client, "youssef@example.com", "Youssef")
+    upload(client, amira, RED)
+    assert analyst_tools(client, "youssef@example.com")["wardrobe_stats"]()["total"] == 0
