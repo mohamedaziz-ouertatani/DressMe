@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { ArrowRight, Check, Tag, Trash2 } from 'lucide-react'
-import { api } from '../api/client'
+import { api, loadImage } from '../api/client'
 import type { Item, Listing, ListingPatch, SellForm } from '../api/types'
 import { useI18n } from '../i18n'
 import { Page } from '../shell'
@@ -25,10 +25,15 @@ const asItem = (l: Listing): Item => ({
 
 export function SellPage() {
   const { t } = useI18n()
+  const [params] = useSearchParams()
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState('')
-  const [form, setForm] = useState<SellForm>(EMPTY)
-  const [priceText, setPriceText] = useState('')
+  // the Seller assistant's "Open the Sell form" link fills price, title and size
+  const [form, setForm] = useState<SellForm>(() => ({
+    ...EMPTY, title: params.get('title') ?? '', size: params.get('size') ?? '',
+  }))
+  const [priceText, setPriceText] = useState(() => params.get('price') ?? '')
+  const [prefillFailed, setPrefillFailed] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<unknown>(null)
   const [sent, setSent] = useState<Listing | null>(null)
@@ -41,6 +46,26 @@ export function SellPage() {
     setPreview(URL.createObjectURL(f))
     setError(null)
   }
+  // ... and the photo the app already has of that item or scan
+  const item = params.get('item')
+  const candidate = params.get('candidate')
+  const prefillPath = item ? `/items/${encodeURIComponent(item)}/image`
+    : candidate ? `/candidates/${encodeURIComponent(candidate)}/image` : ''
+  useEffect(() => {
+    if (!prefillPath) return
+    let cancelled = false
+    loadImage(prefillPath)
+      .then((url) => fetch(url).then((r) => r.blob()))
+      .then((blob) => {
+        if (cancelled) return
+        const f = new File([blob], 'photo.jpg', { type: blob.type || 'image/jpeg' })
+        setFile(f)
+        setPreview(URL.createObjectURL(f))
+      })
+      .catch(() => { if (!cancelled) setPrefillFailed(true) })
+    return () => { cancelled = true }
+  }, [prefillPath])
+
   const reset = () => {
     setFile(null); setPreview(''); setForm(EMPTY); setPriceText(''); setSent(null); setError(null)
   }
@@ -78,6 +103,9 @@ export function SellPage() {
               <p className="text-[15px] leading-relaxed text-carbon">{t('sellHint')}</p>
             </div>
             <PhotoPicker onPick={pick} />
+            {prefillFailed && !file ? (
+              <p role="status" className="text-[13px] text-stamp-deep">{t('sellPrefillFailed')}</p>
+            ) : null}
             <div className="grid gap-4 sm:grid-cols-2">
               <TextField label={t('sellPrice')} inputMode="decimal" required value={priceText}
                 onChange={(e) => setPriceText(e.target.value)} />

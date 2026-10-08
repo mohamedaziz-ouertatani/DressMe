@@ -3,7 +3,7 @@
 import type {
   SourceCheck, AdminSource, Job, JobStart, ListingsOverview, AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Insights, Item, ItemPatch,
   Listing, ListingFilters, ListingPage, ListingPatch, ModelQuality, ReviewListing, SellForm, Occasion, Outfit, Season, Similar, Stats, User,
-  ChatAttachment, TryOnResult, Weather,
+  ChatAttachment, ChatAction, TryOnResult, Weather,
 } from './types'
 
 const BASE = '/api'
@@ -165,8 +165,8 @@ export const api = {
   },
 
   chat: (message: string) =>
-    request<{ reply: string; tools_used: string[]; agent: string; agent_title: string; attachments: ChatAttachment[] }>(
-      '/chat', json('POST', { message })),
+    request<{ reply: string; tools_used: string[]; agent: string; agent_title: string;
+              attachments: ChatAttachment[]; actions?: ChatAction[] }>('/chat', json('POST', { message })),
   chatHistory: () => request<ChatTurn[]>('/chat/history'),
   clearChat: () => request<void>('/chat/history', { method: 'DELETE' }),
 
