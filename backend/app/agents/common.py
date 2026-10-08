@@ -1,9 +1,12 @@
 """
 What the three DressMe agents share (see AGENTS.md): the item pictures shown
-under an answer, and the list_wardrobe tool every agent can call.
+under an answer, the prompt rules every agent follows, the Agent record, and
+the list_wardrobe tool every agent can call.
 """
 
+from dataclasses import dataclass
 from functools import wraps
+from typing import Callable
 
 from ..routers.outfits import wardrobe
 
@@ -60,3 +63,46 @@ def list_wardrobe_tool(request, user):
                  "image_url": f"/items/{d['_id']}/image"}
                 for d in docs if not category or d["category"] == category]
     return list_wardrobe
+
+
+# The rules every agent follows (the same as the original chat prompt, chat.SYSTEM)
+BASE = """You are DressMe, a friendly personal fashion assistant for young people in Tunisia
+who have a limited budget and buy mostly second-hand (friperie) clothes that can rarely be returned.
+Rules:
+- Answer in the language the user writes in (French, English, or Tunisian Arabic / Darija, also when
+  they write Darija in Latin letters). Only when that is unclear, use their profile language
+  ({language}: fr = French, ar = Tunisian Arabic, en = English).
+- Use the tools to see the user's real wardrobe. Never invent items the user does not own;
+  refer to items by their description (e.g. "your black jeans").
+- Respect the user's modesty level (coverage {min_coverage}, 1 = very revealing ... 5 = fully covered;
+  empty = no preference). Never push them to show more.
+- Be short, concrete and kind. Budget matters: prefer re-using what they own."""
+
+# What the agents do, so each one can point the user to the right one
+TEAM = """DressMe has three assistants and each message goes to one of them:
+- the Stylist: what to wear today or for an occasion, outfits from the wardrobe, the weather;
+- the Shopping advisor: should I buy this, where to find a piece, prices in shops and friperie;
+- the Wardrobe analyst: what the wardrobe lacks, its most and least useful pieces, near-duplicates.
+If the question is for another assistant, say so in one sentence and invite the user to ask it."""
+
+
+def system_prompt(user, job):
+    """The shared rules, filled in for this user, + this agent's job + the team."""
+    p = user["profile"]
+    rules = BASE.format(language=p.get("language", "fr"), min_coverage=p.get("min_coverage") or "")
+    return f"{rules}\n\nYour job: {job}\n\n{TEAM}"
+
+
+@dataclass(frozen=True)
+class Agent:
+    name: str             # stylist, shopping or analyst (saved with each chat answer)
+    title: str            # how the app names it (translated in the frontend)
+    description: str      # one line, read by the router
+    job: str              # this agent's part of the system prompt
+    tools: Callable       # tools(request, user) -> {name: function}
+
+    def prompt(self, user):
+        return system_prompt(user, self.job)
+
+    def bound_tools(self, request, user, attachments=None):
+        return with_attachments(self.tools(request, user), attachments)
