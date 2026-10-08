@@ -1,9 +1,10 @@
 """
-What the three DressMe agents share (see AGENTS.md): the item pictures shown
+What the DressMe agents share (see AGENTS.md): the item pictures shown
 under an answer, the prompt rules every agent follows, the Agent record, and
 the list_wardrobe tool every agent can call.
 """
 
+import re
 from dataclasses import dataclass
 from functools import wraps
 from typing import Callable
@@ -31,25 +32,29 @@ def image_attachments(value, group=""):
             yield from image_attachments(child, child_group)
 
 
-def sell_actions(value):
-    """The chat actions in a tool result: only links to the app's own Sell form
-    (a model must not be able to put any other link in front of the user)."""
+# The only links a tool may put in front of the user: the app's own Sell form, and an
+# item's "Why these labels?" panel (a model must not be able to show any other link)
+ACTION_URLS = {"sell": re.compile(r"^/sell\?"), "explain": re.compile(r"^/wardrobe/[0-9a-f]{24}\?why=1$")}
+
+
+def chat_actions(value):
+    """The chat actions in a tool result, kept only when their link has an allowed shape."""
     if isinstance(value, dict):
         action = value.get("action")
-        if (isinstance(action, dict) and action.get("kind") == "sell"
-                and isinstance(action.get("url"), str) and action["url"].startswith("/sell?")):
-            yield {"kind": "sell", "url": action["url"]}
+        if (isinstance(action, dict) and action.get("kind") in ACTION_URLS
+                and isinstance(action.get("url"), str) and ACTION_URLS[action["kind"]].match(action["url"])):
+            yield {"kind": action["kind"], "url": action["url"]}
         for child in value.values():
-            yield from sell_actions(child)
+            yield from chat_actions(child)
     elif isinstance(value, list):
         for child in value:
-            yield from sell_actions(child)
+            yield from chat_actions(child)
 
 
 def with_attachments(functions, attachments, actions=None):
     """The tools as {name: function}. With an `attachments` list, every item picture a
     tool returns is also added to it (once), so the app can show it under the answer;
-    with an `actions` list, every Sell-form link too (once)."""
+    with an `actions` list, every allowed chat action too (once)."""
     if attachments is None and actions is None:
         return dict(functions)
 
@@ -64,7 +69,7 @@ def with_attachments(functions, attachments, actions=None):
                         attachments.append(item)
                         seen.add(item["id"])
             if actions is not None:
-                for action in sell_actions(result):
+                for action in chat_actions(result):
                     if action not in actions:
                         actions.append(action)
             return result
@@ -100,11 +105,12 @@ Rules:
 - Be short, concrete and kind. Budget matters: prefer re-using what they own."""
 
 # What the agents do, so each one can point the user to the right one
-TEAM = """DressMe has four assistants and each message goes to one of them:
+TEAM = """DressMe has five assistants and each message goes to one of them:
 - the Stylist: what to wear today or for an occasion, outfits from the wardrobe, the weather;
 - the Shopping advisor: should I buy this, where to find a piece, prices in shops and friperie;
 - the Wardrobe analyst: what the wardrobe lacks, its most and least useful pieces, near-duplicates;
-- the Seller assistant: what to sell, at what price, writing the listing, the user's listings.
+- the Seller assistant: what to sell, at what price, writing the listing, the user's listings;
+- the Explainer: why an outfit has its score, why a piece got its labels, why a buy verdict, how scoring works.
 If the question is for another assistant, say so in one sentence and invite the user to ask it."""
 
 
