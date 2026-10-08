@@ -9,6 +9,7 @@ from app.config import SRC_DIRS
 
 sys.path[:0] = [str(d) for d in SRC_DIRS]
 import compatibility as C  # noqa: E402
+import explain_outfit as X  # noqa: E402
 
 
 def vec(seed, base=3.0):
@@ -55,3 +56,43 @@ def test_style_helpers():
     shirt = item("s", "top", pattern="striped")
     shoes = item("f", "shoes", pattern="striped")                     # shoes are not clothes here
     assert C.clothing_patterns([shirt, shoes], C.RULES) == ["striped"]
+
+
+SETTINGS = {"strength_style": 0.7, "strength_colour_pair": 0.8, "near_miss": 5}
+
+
+def test_contributions_add_up_and_rescale():
+    result = {"score": 71.8, "parts": {"style": 0.8, "colour": 0.6, "pattern": None, "structure": 0.75}}
+    w = {"style": 0.35, "colour": 0.30, "pattern": 0.15, "structure": 0.20}
+    rows = {r["part"]: r for r in X.contributions(result, w)}
+    assert round(sum(r["points"] for r in rows.values()), 1) == 71.8   # 71.76 exact
+    assert rows["pattern"]["counted"] is False and rows["pattern"]["why_not"] == "no_patterns"
+    assert rows["style"]["max_points"] == round(100 * 0.35 / 0.85, 1)     # rescaled without pattern
+    w0 = {**w, "colour": 0.0}
+    assert {r["part"]: r for r in X.contributions(result, w0)}["colour"]["why_not"] == "weight_zero"
+
+
+def test_contributions_match_score_outfit():
+    outfit = [item("t", "top", "t-shirt", "navy", "solid", 1), item("b", "bottom", "jeans", "white", "solid", 2),
+              item("s", "shoes", "sneakers", "white", seed=3)]
+    r = C.score_outfit(outfit)
+    assert round(sum(x["points"] for x in X.contributions(r, C.RULES.weights)), 1) == r["score"]
+
+
+def test_strengths():
+    same = [item("t", "top", "t-shirt", "navy", "striped", 1), item("b", "bottom", "jeans", "white", "solid", 1),
+            item("s", "shoes", "sneakers", "white", seed=1)]
+    r = C.score_outfit(same)
+    got = codes(X.strengths(same, r["parts"], C.RULES, SETTINGS))
+    assert ("+", "style_coherent") in got                      # identical vectors
+    assert ("+", "pattern_one_bold") in got and ("+", "structure_complete") in got
+    assert all(sign == "+" for sign, _ in got)
+    plain = [item("t", "top", "t-shirt", "", "solid", 1), item("b", "bottom", "jeans", "", "solid", 9)]
+    got = codes(X.strengths(plain, C.score_outfit(plain)["parts"], C.RULES, SETTINGS))
+    assert ("+", "pattern_calm") in got and ("+", "structure_complete") not in got
+
+
+def test_settings_file_has_outfit_rows():
+    import explain
+    s = explain.load_settings()
+    assert {"strength_style", "strength_colour_pair", "near_miss"} <= set(s)

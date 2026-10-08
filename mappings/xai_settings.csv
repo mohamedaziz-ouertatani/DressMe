@@ -4,3 +4,6 @@ min_conf_sub_category,0.5,REVIEW: start value; sub_category has many close class
 min_conf_pattern,0.6,REVIEW: start value
 min_conf_colour,0.7,REVIEW: same as MIN_CONFIDENCE in estimate_colours.py (the empty-colour rule does not change)
 margin,0.15,REVIEW: also unsure when the best answer leads the second by less than this
+strength_style,0.7,"REVIEW: outfit style coherence (0-1) from which the app says ""the pieces share one style"""
+strength_colour_pair,0.8,"REVIEW: colour pair score from which the app says ""navy and white go together"""
+near_miss,5,REVIEW: buy advice: outfits this many points below good_outfit count as near misses

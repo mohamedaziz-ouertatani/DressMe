@@ -91,8 +91,9 @@ def test_unsure_rule():
 
 def test_settings_file_has_every_cut():
     s = explain.load_settings()
-    assert set(s) == {"min_conf_" + f for f in explain.FIELDS} | {"margin"}
-    assert all(0 <= v <= 1 for v in s.values())
+    cuts = {"min_conf_" + f for f in explain.FIELDS} | {"margin"}
+    assert cuts <= set(s)
+    assert all(0 <= s[k] <= 1 for k in cuts)
 
 
 @pytest.fixture(scope="module")
