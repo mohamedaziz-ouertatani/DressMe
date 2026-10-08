@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ChartBar, CheckCheck, Lightbulb, Search, Trash2 } from 'lucide-react'
 import { api } from '../api/client'
 import type { Category, Item, ItemPatch } from '../api/types'
@@ -118,7 +118,8 @@ export function ItemPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<unknown>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const [why, setWhy] = useState(false)
+  const [params] = useSearchParams()
+  const [why, setWhy] = useState(params.get('why') === '1')   // ?why=1: opened from the Explainer
 
   const save = async (patch: ItemPatch) => {
     setSaving(true)

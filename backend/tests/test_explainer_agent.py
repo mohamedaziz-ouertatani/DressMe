@@ -116,3 +116,18 @@ def test_why_questions_go_to_the_explainer():
                     "explain the verdict", "علاش؟"]:
         assert by_keywords(message, keywords) == "explainer", message
     assert by_keywords("what should I wear today?", keywords) == "stylist"
+
+
+def test_pieces_can_be_named_by_description(client):
+    """Small models often pass 'jeans' instead of an id: a description that matches
+    exactly one piece is accepted; an ambiguous one returns the candidates, never a guess."""
+    headers = sign_up(client)
+    top, jeans, shoes = outfit(client, headers)
+    t = tools_for(client)
+    by_ids = t["explain_outfit"]([top, jeans, shoes])
+    by_words = t["explain_outfit"](["red t-shirt", "jeans", "black_sneakers"])
+    assert by_words["score"] == by_ids["score"]
+    upload(client, headers, RED)                                     # a second red t-shirt
+    ambiguous = t["explain_outfit"](["red t-shirt", "jeans", "sneakers"])
+    assert "error" in ambiguous and len(ambiguous["candidates"]["red t-shirt"]) == 2
+    assert "error" in t["explain_outfit"](["blue dress", "jeans"])  # matches nothing

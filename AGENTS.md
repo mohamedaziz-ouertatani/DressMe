@@ -1,6 +1,6 @@
 # DressMe AI agents
 
-DressMe's chat is four AI agents. Each is a language model (Gemini, or our local
+DressMe's chat is five AI agents. Each is a language model (Gemini, or our local
 Qwen3-4B through Ollama, see LLM.md) with its own instructions and its own tools:
 Python functions on the user's real data that the model decides to call.
 Code: `backend/app/agents/`.
@@ -11,6 +11,7 @@ Code: `backend/app/agents/`.
 | Shopping advisor | should I buy this, where to find one, prices | `list_wardrobe`, `buy_advice_last_scan`, `search_listings`, `find_similar` |
 | Wardrobe analyst | what is missing, unused pieces, near-duplicates | `list_wardrobe`, `wardrobe_insights`, `wardrobe_stats`, `find_near_twins` |
 | Seller assistant | what to sell, at what price, the listing | `list_wardrobe`, `pieces_to_sell`, `price_hint`, `my_listings`, `prepare_sell` |
+| Explainer | why an outfit has its score, what would change it, why a piece got its labels, why a buy verdict, how scoring works | `list_wardrobe`, `explain_outfit`, `what_if`, `explain_labels`, `explain_verdict`, `how_scoring_works` |
 
 ## How a message is answered
 
@@ -18,7 +19,7 @@ Code: `backend/app/agents/`.
         │
         ▼
     router (agents/router.py)
-        1. the model answers one word: stylist / shopping / analyst / seller   (skipped with ROUTER=keywords)
+        1. the model answers one word: stylist / shopping / analyst / seller / explainer   (skipped with ROUTER=keywords)
         2. failed or unclear → keyword table mappings/agent_keywords.csv (team-owned, REVIEW)
         3. no keyword → stylist
         │
@@ -52,19 +53,38 @@ What each tool wraps (no new fashion logic: the team's formula in `src/phase4/co
 - `prepare_sell`: posts nothing. It returns a chat action, a link to the Sell page already filled
   (photo, price, title, size); the user adds city and contact and presses Send, then an admin reviews it.
 
+- `explain_outfit`: why an outfit scores what it does (XAI, `src/phase4/explain_outfit.py`): points per
+  part, what works and what does not (as short English facts, from the same codes as the app's lines),
+  the weakest piece and its best swap (only above the team's `min_swap_gain`), the least alike pair.
+- `what_if`: score and points before / after taking a piece out and / or putting another in.
+- `explain_labels`: the stored model guesses of a piece or of `last_scan` (value, confidence, top 3,
+  unsure flag with the team's cuts, corrected or not) + an `explain` action opening the item's
+  "Why these labels?" panel (heatmaps). Nothing is recomputed.
+- `explain_verdict`: the last scan's verdict made visible (`buy_explanation`: thresholds, what it beats,
+  owned pieces that do as well, near misses, near twins).
+- `how_scoring_works`: the team's current weights and thresholds, read from `mappings/`.
+
+The Explainer's outfit tools take ids or short descriptions ("pink top"): a description is used only
+when exactly one of the user's pieces matches it; otherwise the tool returns the candidates and the
+agent asks which one is meant (by description, never by id). Its prompt: only give reasons found in a
+tool result, never invent a rule, a number or a cause; labels are guesses with a confidence.
+
 Every tool reads only the logged-in user's data; another user's ids are ignored.
 
 ## Chat actions
 
-A tool can return `{"action": {"kind": "sell", "url": "/sell?..."}}`. `/chat` collects these like
-pictures (`actions` in the answer and the history) and the Chat page shows a button. Only `sell`
-actions pointing to `/sell?` are kept, so a model cannot put any other link in front of the user.
+A tool can return `{"action": {"kind": "sell", "url": "/sell?..."}}` or
+`{"action": {"kind": "explain", "url": "/wardrobe/<id>?why=1"}}`. `/chat` collects these like
+pictures (`actions` in the answer and the history) and the Chat page shows a button ("Open the
+Sell form" / "Open the explanation"). Only these two shapes are kept (`common.ACTION_URLS`: `/sell?...`
+and `/wardrobe/<24 hex>?why=1`), so a model cannot put any other link in front of the user.
 
 ## Keyword table
 
 `mappings/agent_keywords.csv` (`agent, language, keyword, note`): a keyword matches at the
 start of a word, ignoring case and accents (`achet` matches "acheter" and "achète"); the
-agent with the most matches wins, ties go to the Stylist. An unknown agent name stops the
+agent with the most matches wins; a tie goes to the agent whose keyword comes first in the
+message ("Why is my outfit…" is a why question); no match: the Stylist. An unknown agent name stops the
 backend with the line number. All rows are REVIEW; the Darija rows (Arabizi and Arabic
 script) are a first draft for the native-speaker review.
 
@@ -78,6 +98,12 @@ Gemini key allows ~20 requests a day: set `ROUTER=keywords` in `backend/.env` fo
 The fine-tuned model (LLM.md) was trained on the original four tools (`chat.tools_for`):
 `list_wardrobe`, `suggest_outfits`, `score_outfit`, `buy_advice_last_scan`. The other tools
 work with the base model; adding them to the training data is a follow-up.
+Explainer, tried live on 2026-10-08 on the demo wardrobe ("why is the outfit with my skirt, my pink
+t-shirt and my brown casual shoes scored like that?"): `qwen3:4b-instruct` called `explain_outfit` once
+with descriptions and gave a correct, grounded answer (points per part, what works); when a description
+matched two pieces it asked which one. The fine-tuned `dressme-chat` (never trained on these tools)
+wandered between tools and ran out of rounds. Use the base model or Gemini for the Explainer until
+Explainer conversations are in the training data (Darija wording needs the native review first).
 
 ## Tests
 

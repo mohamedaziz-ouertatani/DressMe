@@ -5,6 +5,8 @@ verdicts) and the label guesses stored with each item (src/phase4/explain.py).
 It never makes a new kind of answer: it only shows how an existing one was made.
 """
 
+import re
+
 from .. import ml  # noqa: F401  (puts src/ on the import path)
 import compatibility
 import explain_outfit
@@ -58,16 +60,53 @@ def fact(line):
     return FACTS.get(line["code"], line["code"]).format(**p)
 
 
+def words(text):
+    """'Pink_top', 'casual-shoes' -> {'pink', 'top', 'casual', 'shoes'}."""
+    return set(re.findall(r"[a-z0-9]+", text.lower()))
+
+
+def matching(ref, docs):
+    """The user's pieces whose colour / type / category / pattern contain every word of
+    `ref` ("pink top", "casual shoes"). Words the app does not know ("my") are ignored."""
+    want = words(ref) - {"my", "the", "a", "an", "and", "with"}
+    if not want:
+        return []
+    found = []
+    for d in docs:
+        have = (words(d.get("colour", "")) | words(d.get("sub_category", "")) | words(d["category"])
+                | words(d.get("pattern", "")) | words(d.get("predicted", {}).get("colour", {}).get("value", "")))
+        if want <= have:
+            found.append(d)
+    return found
+
+
 def tools(request, user):
     """The Explainer's tools, bound to this user."""
 
     def outfit_items(item_ids):
-        """(wardrobe docs, docs by id, compat items) or an error dict: only the user's own ids."""
+        """(wardrobe docs, docs by id, compat items) or an error dict. Each entry is one of
+        the user's ids, or a description ("pink top") that matches exactly one of their pieces."""
         docs, by_id = wardrobe(request, user)
-        unknown = [i for i in item_ids if i not in by_id]
-        if not item_ids or unknown:
-            return None, None, {"error": "unknown item ids (use list_wardrobe): " + ", ".join(unknown)}
-        items = [to_compat(by_id[i]) for i in item_ids]
+        ids, unknown, candidates = [], [], {}
+        for ref in item_ids or []:
+            if ref in by_id:
+                ids.append(ref)
+                continue
+            found = matching(ref, docs)
+            if len(found) == 1:
+                ids.append(str(found[0]["_id"]))
+            elif found:
+                candidates[ref] = [describe({"id": str(d["_id"])}, by_id) for d in found[:6]]
+            else:
+                unknown.append(ref)
+        if not item_ids or unknown or candidates:
+            error = {"error": "use the ids from list_wardrobe"
+                              + (": nothing matches " + ", ".join(unknown) if unknown else "")}
+            if candidates:
+                error["error"] += "; several pieces match, pick one id"
+                error["candidates"] = candidates
+            return None, None, error
+        items = [to_compat(by_id[i]) for i in ids]
         why = compatibility.clashes(items)
         if why:
             return None, None, {"error": "these pieces can't be worn together: " + "; ".join(why)}
@@ -88,7 +127,7 @@ def tools(request, user):
         """Why an outfit of the user's pieces gets its score (0-100): the points each part earns
         (style, colour, pattern, structure), what works, what does not, the weakest piece with the
         best swap from the wardrobe, and the pair of pieces that look least alike.
-        item_ids: ids from list_wardrobe."""
+        item_ids: ids from list_wardrobe (or short descriptions such as "pink top")."""
         docs, by_id, items = outfit_items(item_ids)
         if docs is None:
             return items
@@ -221,5 +260,5 @@ AGENT = Agent(
          "skip, and how_scoring_works for how scoring works in general. Only give reasons that appear in a "
          "tool result; never invent a rule, a number or a cause. Labels are guesses from a photo: give their "
          "confidence, and say when the app is unsure. If no tool says why, say it is not known. When a "
-         "tool gives an 'explain' action, tell the user they can open it to see the picture."),
+         "tool gives an 'explain' action, tell the user they can open it to see the picture. If a tool lists several matching pieces, ask which one the user means, by description, never by id."),
     tools=tools)
