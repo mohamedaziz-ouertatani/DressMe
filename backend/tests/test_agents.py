@@ -1,12 +1,14 @@
 """The three agents' tools and the router (see AGENTS.md). Tools are called
 directly, like the chat engine would, on a wardrobe built through the API."""
 
+from datetime import datetime, timezone
 from types import SimpleNamespace
 
-from app.agents import stylist
+from app.agents import shopping, stylist
+from app.db import vector_to_bson
 from app.listings import listing_query
 from app.routers.insights import wardrobe_counts
-from tests.conftest import BLACK, BLUE, RED, sign_up, upload
+from tests.conftest import BLACK, BLUE, RED, fake_vector, photo, sign_up, upload
 
 
 def as_request(client):
@@ -85,3 +87,58 @@ def test_wardrobe_counts_matches_insights(client):
     insights = client.get("/insights", headers=headers).json()
     for key in ("total", "categories", "colours", "patterns", "to_confirm"):
         assert counts[key] == insights[key]
+
+
+# ------------------------------------------------------------------ shopping advisor
+def add_listing(client, **fields):
+    """A listing document like the collector or a seller would save."""
+    db = client.app.state.db
+    doc = {"source_id": "exist", "external_id": f"p{db.listings.count_documents({})}", "title": "Shirt", "brand": "Exist", "status": "active",
+           "in_stock": True, "category": "top", "sub_category": "shirt", "pattern": "solid",
+           "colour": "black", "price_tnd": 49.0, "created_at": datetime.now(timezone.utc),
+           "vector": vector_to_bson(fake_vector(1)), **fields}
+    return str(db.listings.insert_one(doc).inserted_id)
+
+
+def shopping_tools(client, email="amira@example.com"):
+    return shopping.AGENT.bound_tools(as_request(client), user_doc(client, email))
+
+
+def test_shopping_has_its_tools():
+    assert set(shopping.tools(None, None)) == {
+        "list_wardrobe", "buy_advice_last_scan", "search_listings", "find_similar"}
+
+
+def test_search_listings_shows_only_what_people_can_buy(client):
+    sign_up(client)
+    ok = add_listing(client, title="Black shirt")
+    add_listing(client, title="Pending", source_id="sellers", status="pending")
+    add_listing(client, title="Gone", status="gone")
+    add_listing(client, title="Sold out", in_stock=False)
+    add_listing(client, title="Too dear", price_tnd=300.0)
+    result = shopping_tools(client)["search_listings"](category="top", max_price=100)
+    assert [x["id"] for x in result["listings"]] == [ok]
+    assert result["total"] == 1
+    assert result["listings"][0]["image_url"] == f"/listings/{ok}/image"
+    assert "contact" not in result["listings"][0]       # a seller's contact never goes to the model
+
+
+def test_find_similar_from_an_item_and_from_the_last_scan(client):
+    headers = sign_up(client)
+    top = upload(client, headers, RED)
+    add_listing(client)
+    tools = shopping_tools(client)
+    result = tools["find_similar"](item_id=top["id"], n=3)
+    assert len(result["shop"]) == 3 and result["shop"][0]["image_url"].startswith("/catalog/hm_")
+    assert len(result["listings"]) == 1
+    assert "no such item" in tools["find_similar"]()["error"]      # no scan yet
+    client.post("/analyze", files={"photo": photo(BLUE)}, headers=headers)
+    assert "shop" in tools["find_similar"]()
+
+
+def test_find_similar_ignores_other_users_items(client):
+    amira = sign_up(client)
+    sign_up(client, "youssef@example.com", "Youssef")
+    top = upload(client, amira, RED)
+    result = shopping_tools(client, "youssef@example.com")["find_similar"](item_id=top["id"])
+    assert "error" in result
