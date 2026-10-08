@@ -46,3 +46,9 @@ class Palette:
         """Name of the palette colour closest to one RGB colour."""
         dist = np.linalg.norm(self.lab - rgb_to_lab([rgb]), axis=1)
         return self.names[dist.argmin()]
+
+    def nearest_index(self, rgb):
+        """Index (in self.names) of the closest palette colour, for many RGB colours (N x 3)."""
+        lab = rgb_to_lab(np.asarray(rgb).reshape(-1, 3))
+        dist = np.linalg.norm(lab[:, None, :] - self.lab[None, :, :], axis=2)
+        return dist.argmin(axis=1)

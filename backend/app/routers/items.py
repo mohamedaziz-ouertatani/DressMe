@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 
 from bson import Binary, ObjectId
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import Response
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from ..background import on_white
@@ -126,24 +126,29 @@ def delete_item(item_id: str, request: Request, user=Depends(current_user)):
     path.unlink(missing_ok=True)
 
 
+def load_photo(request, user, doc):
+    """The stored cleaned JPEG of an item or candidate (bytes), or None.
+    Scans keep it in the document; items and shop-listing candidates as a file."""
+    if doc.get("photo"):
+        return bytes(doc["photo"])
+    path = request.app.state.settings.storage_dir / str(user["_id"]) / f"{doc['_id']}.jpg"
+    return path.read_bytes() if path.exists() else None
+
+
 @router.get("/items/{item_id}/image")
 def item_image(item_id: str, request: Request, user=Depends(current_user)):
-    doc = own_item(request, user, item_id)
-    path = request.app.state.settings.storage_dir / str(user["_id"]) / f"{doc['_id']}.jpg"
-    if not path.exists():
+    data = load_photo(request, user, own_item(request, user, item_id))
+    if data is None:
         raise HTTPException(404, "Image missing")
-    return FileResponse(path, media_type="image/jpeg")
+    return Response(data, media_type="image/jpeg")
 
 
 @router.get("/candidates/{candidate_id}/image")
 def candidate_image(candidate_id: str, request: Request, user=Depends(current_user)):
-    doc = own_item(request, user, candidate_id, collection="candidates")
-    if doc.get("photo"):                 # a scan: the photo is in the document
-        return Response(bytes(doc["photo"]), media_type="image/jpeg")
-    path = request.app.state.settings.storage_dir / str(user["_id"]) / f"{doc['_id']}.jpg"
-    if not path.exists():                # a shop listing: its picture was copied as a file
+    data = load_photo(request, user, own_item(request, user, candidate_id, collection="candidates"))
+    if data is None:
         raise HTTPException(404, "Image missing")
-    return FileResponse(path, media_type="image/jpeg")
+    return Response(data, media_type="image/jpeg")
 
 
 @router.post("/analyze", status_code=201)

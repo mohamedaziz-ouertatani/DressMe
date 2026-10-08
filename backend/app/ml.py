@@ -2,15 +2,17 @@
 The models behind the API, loaded once at start-up (they take ~1 min and
 ~1.5 GB of GPU memory). Tests replace them with small fakes.
 
-    Analyzer.analyze(pil_image) -> {"category": {"value": "top", "conf": 0.98},
+    Analyzer.analyze(pil_image) -> {"category": {"value": "top", "conf": 0.98,
+                                                 "alternatives": [top 3], "unsure": False},
                                     "sub_category": ..., "pattern": ..., "colour": ...,
                                     "vector": <512 FashionCLIP numbers>}
+    Analyzer.explain(pil_image, head, value) -> pictures of why (src/phase4/explain.py)
     Catalog.search(vector, k)   -> nearest dataset product shots
     Catalog.search_shop(vector, k) -> nearest H&M products to buy ([] if not set up)
     Catalog.image(item_id)      -> PIL image of one dataset or H&M item (cropped)
 
 They reuse the Phase 4 code in src/ (classifier, fashionclip, similarity,
-estimate_colours) instead of copying it.
+estimate_colours, explain) instead of copying it.
 """
 
 import io
@@ -26,26 +28,58 @@ class Analyzer:
         import joblib
         import classifier
         import estimate_colours
+        import explain
         import fashionclip
+        from colour_utils import Palette
 
         self._classifier, self.device = classifier.load_classifier()
         self._clip, self._processor, _ = fashionclip.load_model(self.device)
         # our own file, written by src/phase3/estimate_colours.py (never load one from elsewhere)
         self._colour = joblib.load(estimate_colours.MODEL_PATH)
         self._modules = (classifier, fashionclip, estimate_colours)
+        self._explain, self._palette = explain, Palette()
 
     def analyze(self, img):
-        fashionclip, estimate_colours = self._modules[1:]
+        explain = self._explain
         p = self.classify_for_mask(img)
-        out = {f: {"value": p[f], "conf": round(p[f + "_conf"], 3)}
+        out = {f: {"value": p[f], "conf": round(p[f + "_conf"], 3), "alternatives": p["top3"][f]}
                for f in ("category", "sub_category", "pattern")}
-        # colour: same features and metal rule as the dataset estimates
+        colours = self.colour_alternatives(img, p["category"])
+        out["colour"] = {"value": colours[0]["value"], "conf": colours[0]["conf"], "alternatives": colours}
+        settings = explain.load_settings()
+        for f, guess in out.items():
+            guess["unsure"] = explain.is_unsure(f, guess["alternatives"], settings)
+        fashionclip = self._modules[1]
+        out["vector"] = fashionclip.embed_images([img], self._clip, self._processor, self.device)[0]
+        return out
+
+    def colour_alternatives(self, img, category):
+        """Top 3 colours: same features and metal rule as the dataset estimates."""
+        estimate_colours = self._modules[2]
         buf = io.BytesIO()
         img.save(buf, format="JPEG")
         X = estimate_colours.product_features(io.BytesIO(buf.getvalue())).reshape(1, -1)
-        colour, conf = estimate_colours.predict(self._colour, X, [p["category"]])
-        out["colour"] = {"value": str(colour[0]), "conf": round(float(conf[0]), 3)}
-        out["vector"] = fashionclip.embed_images([img], self._clip, self._processor, self.device)[0]
+        return estimate_colours.predict_top(self._colour, X, [category])[0]
+
+    def explain(self, img, head=None, value=None):
+        """Pictures of why each label was given (see src/phase4/explain.py). Without
+        `head`: the 4 fields at their best answer; with `head` + `value`: that answer only."""
+        explain = self._explain
+        if head is not None and head not in explain.FIELDS:
+            raise ValueError(f"unknown field {head!r}")
+        p = self.classify_for_mask(img)
+        out = {}
+        for f in [head] if head else explain.FIELDS:
+            alternatives = self.colour_alternatives(img, p["category"]) if f == "colour" else p["top3"][f]
+            shown = value or alternatives[0]["value"]
+            entry = {"shown": shown, "alternatives": alternatives}
+            if f == "colour":
+                mask, share, reliable = explain.colour_map(img, shown, self._palette)
+                entry.update(pixels=explain.mask_overlay(img, mask), share=share, reliable=reliable)
+            else:
+                heat = explain.gradcam(self._classifier, img, f, explain.class_index(f, shown), self.device)
+                entry["heatmap"] = explain.overlay(img, heat)
+            out[f] = entry
         return out
 
     def classify_for_mask(self, img):
@@ -108,3 +142,9 @@ def colour_min_confidence():
         return estimate_colours.MIN_CONFIDENCE
     except Exception:
         return 0.7
+
+
+def unsure(field, alternatives):
+    """The team's "not sure, check" rule (mappings/xai_settings.csv), for stored guesses."""
+    import explain
+    return explain.is_unsure(field, alternatives, explain.load_settings())

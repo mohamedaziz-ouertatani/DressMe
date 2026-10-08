@@ -1,0 +1,6 @@
+setting,value,note
+min_conf_category,0.6,"REVIEW: start value; below it the app says ""not sure, check"" (see reports/phase4/explanations_evaluation.md)"
+min_conf_sub_category,0.5,REVIEW: start value; sub_category has many close classes
+min_conf_pattern,0.6,REVIEW: start value
+min_conf_colour,0.7,REVIEW: same as MIN_CONFIDENCE in estimate_colours.py (the empty-colour rule does not change)
+margin,0.15,REVIEW: also unsure when the best answer leads the second by less than this

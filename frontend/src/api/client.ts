@@ -3,7 +3,7 @@
 import type {
   SourceCheck, AdminSource, Job, JobStart, ListingsOverview, AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Insights, Item, ItemPatch,
   Listing, ListingFilters, ListingPage, ListingPatch, ModelQuality, ReviewListing, SellForm, Occasion, Outfit, Season, Similar, Stats, User,
-  ChatAttachment, ChatAction, TryOnResult, Weather,
+  ChatAttachment, ChatAction, TryOnResult, Weather, Explanation, GuessField,
 } from './types'
 
 const BASE = '/api'
@@ -137,6 +137,13 @@ export const api = {
     if (ref.itemId) q.set('item_id', ref.itemId)
     if (ref.candidateId) q.set('candidate_id', ref.candidateId)
     return request<Similar>(`/similar?${q}`)
+  },
+  explain: (ref: { itemId?: string; candidateId?: string }, head?: GuessField, value?: string) => {
+    const q = new URLSearchParams()
+    if (head) q.set('head', head)
+    if (value) q.set('value', value)
+    const base = ref.itemId ? `/items/${ref.itemId}` : `/candidates/${ref.candidateId}`
+    return request<Explanation>(`${base}/explain${q.toString() ? `?${q}` : ''}`)
   },
 
   listings: (f: ListingFilters = {}) => {

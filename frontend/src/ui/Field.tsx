@@ -90,8 +90,8 @@ export function FieldRow({ item, field, onSave, saving }: {
               ? field === 'colour' && guess ? t('colourMissing') : t('notSet')
               : values.map((v) => vocab(table, v, lang)).join(lang === 'ar' ? '، ' : ', ')}
           </span>
-          <span className="ms-auto shrink-0 font-mono text-[11px] text-ink-soft tabular">
-            {sure ? t('confirmed') : guess ? t('guessed', { p: Math.round(guess.conf * 100) }) : ''}
+          <span className={`ms-auto shrink-0 font-mono text-[11px] tabular ${!sure && guess?.unsure ? 'font-semibold text-stamp' : 'text-ink-soft'}`}>
+            {sure ? t('confirmed') : guess ? (guess.unsure ? t('unsureBadge') : t('guessed', { p: Math.round(guess.conf * 100) })) : ''}
           </span>
           <ChevronDown className={`size-4 shrink-0 text-ink transition-transform duration-150 ${open ? 'rotate-180' : ''}`} aria-hidden />
         </span>

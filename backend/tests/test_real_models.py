@@ -41,3 +41,20 @@ def test_catalog_search(models):
     hits = catalog.search(np.ones(512, np.float32) / np.sqrt(512), k=4, category="shoes")
     assert len(hits) == 4 and all(h["category"] == "shoes" for h in hits)
     assert catalog.image(hits[0]["id"]) is not None
+
+
+def test_explain_on_a_test_photo(models):
+    from item_images import DATA, load_item_image
+    analyzer, _ = models
+    df = pd.read_csv(DATA / "processed" / "fashion_product.csv", dtype=str, keep_default_na=False, nrows=50)
+    img = load_item_image(df.iloc[0].to_dict())
+    out = analyzer.analyze(img)
+    for f in ("category", "sub_category", "pattern", "colour"):
+        assert out[f]["alternatives"][0]["value"] == out[f]["value"]
+        assert isinstance(out[f]["unsure"], bool)
+    why = analyzer.explain(img)
+    assert why["category"]["shown"] == out["category"]["value"]
+    assert why["category"]["heatmap"].size == (224, 224)
+    assert 0 <= why["colour"]["share"] <= 1
+    other = analyzer.explain(img, head="pattern", value="striped")
+    assert list(other) == ["pattern"] and other["pattern"]["shown"] == "striped"

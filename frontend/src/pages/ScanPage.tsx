@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, Plus, ScanLine, Search, ShoppingBag, Sparkles, Tag } from 'lucide-react'
+import { ArrowRight, Lightbulb, Plus, ScanLine, Search, ShoppingBag, Sparkles, Tag } from 'lucide-react'
 import { api } from '../api/client'
 import type { BuyAdvice, Item, ItemPatch } from '../api/types'
 import { useI18n } from '../i18n'
@@ -8,6 +8,7 @@ import { plural } from '../i18n/plurals'
 import { CATEGORY_LABELS, SUB_LABELS, secondLine, vocab } from '../i18n/vocab'
 import { Page } from '../shell'
 import { Button } from '../ui/controls'
+import { ExplainPanel } from '../ui/ExplainPanel'
 import { FieldRow } from '../ui/Field'
 import { ItemPhoto } from '../ui/ItemPhoto'
 import { OutfitStrip } from '../ui/OutfitStrip'
@@ -36,11 +37,12 @@ export function ScanPage() {
   const [advice, setAdvice] = useState<BuyAdvice | null>(null)
   const [busy, setBusy] = useState<'' | 'analyse' | 'verdict' | 'add'>('')
   const [error, setError] = useState<unknown>(null)
+  const [why, setWhy] = useState(false)
 
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview) }, [preview])
 
   const reset = () => {
-    setFile(null); setPreview(''); setCandidate(null); setPatch({}); setAdvice(null); setError(null)
+    setFile(null); setPreview(''); setCandidate(null); setPatch({}); setAdvice(null); setError(null); setWhy(false)
   }
 
   const analyse = async (f: File) => {
@@ -162,6 +164,10 @@ export function ScanPage() {
                 />
               ))}
             </div>
+            <Button variant="quiet" className="mt-3" onClick={() => setWhy(!why)} aria-expanded={why}>
+              <Lightbulb className="size-4" aria-hidden /> {why ? t('hideWhy') : t('whyLabels')}
+            </Button>
+            {why && <div className="mt-2 border-t border-perf/40 pt-4"><ExplainPanel target={{ candidateId: candidate.id }} /></div>}
             <Button className="mt-4 w-full" busy={busy === 'verdict'} onClick={askVerdict}>
               {busy === 'verdict' ? t('asking') : t('askVerdict')} <ArrowRight className="size-4 mirror-rtl" aria-hidden />
             </Button>
