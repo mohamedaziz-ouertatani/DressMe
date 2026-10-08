@@ -44,6 +44,28 @@ class FakeAnalyzer:
                 "colour": {"value": colour, "conf": 0.9},
                 "vector": fake_vector(sum(rgb))}
 
+    def explain(self, img, head=None, value=None):
+        """Like the real one: fixed small pictures, alternatives from analyze()."""
+        fields = ["category", "sub_category", "pattern", "colour"]
+        if head is not None and head not in fields:
+            raise ValueError(f"unknown field {head!r}")
+        if value == "nonsense":
+            raise ValueError(f"unknown {head} {value!r}")
+        analysis = self.analyze(img)
+        out = {}
+        for f in [head] if head else fields:
+            best = analysis[f]
+            entry = {"shown": value or best["value"],
+                     "alternatives": [{"value": best["value"], "conf": best["conf"]},
+                                      {"value": "other", "conf": round(1 - best["conf"], 3)}]}
+            picture = Image.new("RGB", (8, 8), (255, 0, 0))
+            if f == "colour":
+                entry.update(pixels=picture, share=0.5, reliable=True)
+            else:
+                entry["heatmap"] = picture
+            out[f] = entry
+        return out
+
 
 class FakeCatalog:
     def search(self, vector, k=6, category=None):
