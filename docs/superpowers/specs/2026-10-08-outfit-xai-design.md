@@ -1,6 +1,6 @@
 # Outfit score + buy advice XAI — design (XAI sub-project 2 of 4)
 
-Date: 2026-10-08. Status: approved in chat, waiting for spec review.
+Date: 2026-10-08. Status: implemented (plan: `docs/superpowers/plans/2026-10-08-outfit-xai.md`).
 
 ## Context
 
@@ -167,6 +167,14 @@ Also checks that contributions add up to the score on every outfit.
 
 `CLAUDE.md` Phase 4 item 7 (XAI) gets sub-project 2.
 
+## Changes while planning
+
+- `POST /outfits/explain` takes only `item_ids` (no `candidate_id`): the expander is shown on Build and Today, which only use wardrobe items. Scan / Shop explain the verdict instead.
+- `buy_advice` `detail` lists every completed outfit (`{item_ids, score, owned_id, owned_score}`); `explain_outfit.buy_explanation` derives beats / lost_to / near_misses from it with the team settings, so `compatibility.py` never reads `xai_settings.csv`.
+- When a colour pair strength is shown, `colour_neutral_base` is not (it would say the same thing twice).
+- Swaps and gains use the same personal `style_profile` as `/outfits/score`, so the gain matches the score the user sees.
+- Added while testing in the app: `min_swap_gain` (2 points, REVIEW in `xai_settings.csv`): below it no weakest piece is named (a 0.2-point swap is noise). The offline evaluation does not use it.
+
 ## Open questions for the team
 
-- `strength_style`, `strength_colour_pair`, `near_miss` in `mappings/xai_settings.csv` (REVIEW).
+- `strength_style`, `strength_colour_pair`, `near_miss`, `min_swap_gain` in `mappings/xai_settings.csv` (REVIEW).
