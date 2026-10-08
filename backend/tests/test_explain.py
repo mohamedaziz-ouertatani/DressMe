@@ -14,6 +14,7 @@ sys.path[:0] = [str(d) for d in SRC_DIRS]
 import classifier  # noqa: E402
 import colour_utils  # noqa: E402
 import estimate_colours  # noqa: E402
+import explain  # noqa: E402
 
 
 def probs_with(head_values):
@@ -69,3 +70,26 @@ def test_predict_top_skips_metals_for_clothes():
     # same best answer as predict()
     colour, conf = estimate_colours.predict(FakeColourModel(), X, ["top", "bag"])
     assert list(colour) == ["navy", "gold"]
+
+
+SETTINGS = {"min_conf_category": 0.6, "min_conf_sub_category": 0.5, "min_conf_pattern": 0.6,
+            "min_conf_colour": 0.7, "margin": 0.15}
+
+
+def alts(*confs):
+    return [{"value": f"c{i}", "conf": c} for i, c in enumerate(confs)]
+
+
+def test_unsure_rule():
+    assert not explain.is_unsure("category", alts(0.9, 0.05), SETTINGS)
+    assert explain.is_unsure("category", alts(0.55, 0.3), SETTINGS)       # below the cut
+    assert explain.is_unsure("category", alts(0.62, 0.5), SETTINGS)       # too close to the 2nd
+    assert not explain.is_unsure("sub_category", alts(0.55, 0.1), SETTINGS)
+    assert not explain.is_unsure("pattern", alts(0.8), SETTINGS)          # only one answer
+    assert not explain.is_unsure("colour", [], SETTINGS)                  # old item, nothing known
+
+
+def test_settings_file_has_every_cut():
+    s = explain.load_settings()
+    assert set(s) == {"min_conf_" + f for f in explain.FIELDS} | {"margin"}
+    assert all(0 <= v <= 1 for v in s.values())
