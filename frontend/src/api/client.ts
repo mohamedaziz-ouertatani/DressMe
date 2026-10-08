@@ -165,7 +165,8 @@ export const api = {
   },
 
   chat: (message: string) =>
-    request<{ reply: string; tools_used: string[]; attachments: ChatAttachment[] }>('/chat', json('POST', { message })),
+    request<{ reply: string; tools_used: string[]; agent: string; agent_title: string; attachments: ChatAttachment[] }>(
+      '/chat', json('POST', { message })),
   chatHistory: () => request<ChatTurn[]>('/chat/history'),
   clearChat: () => request<void>('/chat/history', { method: 'DELETE' }),
 
