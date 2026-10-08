@@ -73,12 +73,13 @@ Codes (params in brackets):
 The strength thresholds are new team rows in `mappings/xai_settings.csv`
 (REVIEW): `strength_style` = 0.7, `strength_colour_pair` = 0.8.
 
-The part functions in `compatibility.py` keep their logic; each also returns
-its structured lines (they already know the worst pair, the bold colours...),
-so the English reason and the code come from one place. `score_outfit` adds
-`explanations` to its result (one more key; nothing else changes). Strengths
-are computed by `explain_outfit.strengths(items, parts, rules)` from the same
-pair tables, so `compatibility.py` only grows the problem codes.
+The part functions in `compatibility.py` keep their logic and now return
+`(value, reasons, problems)`: `problems` are the "-" lines, built next to the
+English reason they mirror (they already know the worst pair, the bold
+colours...), so both come from one place. Only `score_outfit` calls them.
+`score_outfit` adds `problems` to its result (one more key; nothing else
+changes). Strengths are computed by `explain_outfit.strengths(...)` from the
+same pair tables. `outfit_out` sends `explanations` = strengths + problems.
 
 ### 2. `src/phase4/explain_outfit.py` (new, pure functions)
 
@@ -88,7 +89,7 @@ pair tables, so `compatibility.py` only grows the problem codes.
   Points are rounded to 0.1 with largest-remainder so they add up exactly to
   `result["score"]`. A part not counted has `why_not`: `no_vectors` (style),
   `no_colours`, `no_patterns`, or `weight_zero`.
-- `strengths(items, parts, rules, settings)` -> the "+" lines of the table above.
+- `strengths(items, parts, rules, settings)` -> the "+" lines of the table above (`settings` = `explain.load_settings()`).
 - `swaps(items, wardrobe, rules, style_profile=None) -> list` per piece:
   `{"item_id", "best_swap_id" | None, "gain": float}` — every wardrobe item of
   the same category not already in the outfit, kept only if `clashes()` is
