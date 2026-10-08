@@ -4,7 +4,7 @@ import pytest
 
 from app import chat_engine
 from app.chat_engine import ChatBusy, ChatQuota, GeminiEngine, clean_model_text
-from tests.conftest import BLACK, BLUE, RED, photo, sign_up, upload
+from tests.conftest import BLACK, BLUE, RED, FakeChatEngine, photo, sign_up, upload
 
 
 def test_chat_uses_the_real_wardrobe(client):
@@ -107,6 +107,7 @@ def test_gemini_wrong_model_is_not_retried(settings, monkeypatch):
 
 
 def test_chat_busy_answers_502(make_client, settings, monkeypatch):
+    settings.router = "keywords"     # the router's call would use one of the scripted answers
     monkeypatch.setattr(chat_engine, "RETRY_WAITS", [0, 0])
     client = make_client(chat_engine=engine_with(FlakyClient(503, 503, 503), settings))
     r = client.post("/chat", json={"message": "hello"}, headers=sign_up(client))
@@ -114,6 +115,7 @@ def test_chat_busy_answers_502(make_client, settings, monkeypatch):
 
 
 def test_used_up_quota_is_not_retried(make_client, settings, monkeypatch):
+    settings.router = "keywords"     # the router's call would use one of the scripted answers
     monkeypatch.setattr(chat_engine, "RETRY_WAITS", [0, 0])
     flaky = FlakyClient(429)
     with pytest.raises(ChatQuota):
@@ -125,6 +127,44 @@ def test_used_up_quota_is_not_retried(make_client, settings, monkeypatch):
 
 
 # ------------------------------------------------------------------ local model (Ollama)
+def test_chat_answers_with_the_routed_agent(client):
+    headers = sign_up(client)
+    upload(client, headers, RED)
+    r = client.post("/chat", json={"message": "what is missing?"}, headers=headers)
+    assert r.json()["agent"] == "analyst"
+    assert r.json()["agent_title"] == "Wardrobe analyst"
+    assert r.json()["tools_used"] == ["wardrobe_insights"]
+    assert "shoes" in r.json()["reply"]
+    r = client.post("/chat", json={"message": "suggest an outfit"}, headers=headers)
+    assert r.json()["agent"] == "stylist"
+    history = client.get("/chat/history", headers=headers).json()
+    assert [h["agent"] for h in history if h["role"] == "model"] == ["analyst", "stylist"]
+    assert all(h["agent"] == "" for h in history if h["role"] == "user")
+
+
+def test_chat_uses_the_llm_router_and_the_agent_tools(make_client):
+    engine = FakeChatEngine(label="shopping")
+    client = make_client(chat_engine=engine)
+    headers = sign_up(client)
+    r = client.post("/chat", json={"message": "anything in the shop?"}, headers=headers)
+    assert r.json()["agent"] == "shopping"
+    assert r.json()["reply"] == "0 listings."
+    assert "search_listings" in engine.tool_names[-1]
+    assert "Your job: help the user spend little" in engine.systems[-1]
+    doc = client.app.state.db.chats.find_one({"role": "model"})
+    assert doc["agent"] == "shopping" and doc["routed_by"] == "llm"
+
+
+def test_keywords_router_setting_skips_the_llm(make_client, settings):
+    settings.router = "keywords"
+    engine = FakeChatEngine(label="analyst")
+    client = make_client(chat_engine=engine)
+    headers = sign_up(client)
+    r = client.post("/chat", json={"message": "suggest an outfit"}, headers=headers)
+    assert r.json()["agent"] == "stylist"
+    assert engine.classify_calls == 0
+
+
 import copy  # noqa: E402
 
 from app.chat_engine import ChatUnavailable, OllamaEngine, make_engine, tool_schema  # noqa: E402

@@ -81,3 +81,11 @@ Answers are capped at 600 tokens (`num_predict`, backend and evaluation; our lon
 → `reports/phase4/chat_evaluation.md`. Every assistant turn of a test conversation is one decision, and the model sees the real conversation up to that point. It reports: tool decision (call a tool or answer?), tool name, arguments, and language of the answer, per scenario, with example answers. The test wardrobes are new, and about a third of the questions use phrasings the training split never saw.
 
 Limits: synthetic data measures tool use and language, not how natural the answers sound. Also try a few real questions in the app. If the fine-tuned model sounds stiff or repeats our templates word for word, try fewer steps (`--epochs 0.5`) or add more phrasings to `chat_phrases.py`.
+
+## Agents
+
+Since 2026-10-08 the chat is three agents (AGENTS.md). The fine-tuned model was trained on
+the original four tools (`chat.tools_for`); the Shopping advisor's and Wardrobe analyst's
+new tools are not in `data/processed/chat_sft/` yet. With `CHAT_ENGINE=ollama`, the router
+adds one short call per message (`OllamaEngine.classify`, at most 10 tokens; not timed yet
+on the RTX 2050, `ROUTER=keywords` skips it).

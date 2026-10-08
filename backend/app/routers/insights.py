@@ -22,19 +22,13 @@ router = APIRouter(tags=["outfits"])
 TOP_VERSATILE = 3      # main pieces shown as "works with the most"
 
 
-@router.get("/insights")
-def insights(request: Request, user=Depends(current_user)):
-    docs, by_id = wardrobe(request, user)
-    items = [to_compat(d) for d in docs]
-    facts = compatibility.wardrobe_insights(items, user_profile(user, docs, request))
-    piece = lambda i: describe(i, by_id)
+def wardrobe_counts(docs):
+    """What the wardrobe is made of: categories, colours (with the neutral ones marked),
+    patterns, and the empty fields the user can still fill."""
     group = compatibility.RULES.group
-
     categories = Counter(d["category"] for d in docs)
     patterns = Counter(d["pattern"] for d in docs if d.get("pattern"))
     colours = Counter(d["colour"] for d in docs if d.get("colour"))
-    use = facts["outfit_use"]
-
     return {
         "total": len(docs),
         "categories": [{"category": c, "count": categories[c]} for c in CATEGORIES if categories[c]],
@@ -49,6 +43,19 @@ def insights(request: Request, user=Depends(current_user)):
             "season": sum(not d.get("season") for d in docs),
             "usage": sum(not d.get("usage") for d in docs),
         },
+    }
+
+
+@router.get("/insights")
+def insights(request: Request, user=Depends(current_user)):
+    docs, by_id = wardrobe(request, user)
+    items = [to_compat(d) for d in docs]
+    facts = compatibility.wardrobe_insights(items, user_profile(user, docs, request))
+    piece = lambda i: describe(i, by_id)
+    use = facts["outfit_use"]
+
+    return {
+        **wardrobe_counts(docs),
         "outfits": {"good": facts["good_outfits"], "complete": facts["complete"],
                     "good_score": int(compatibility.RULES.settings["good_outfit"])},
         "versatile": [{**piece(i), "outfits": use[i["id"]]} for i in facts["versatile"][:TOP_VERSATILE]],

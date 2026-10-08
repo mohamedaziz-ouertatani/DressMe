@@ -178,6 +178,22 @@ def last_run(db, source_id, result=None):
 
 
 # ------------------------------------------------------------------ app answers
+def listing_query(category=None, sub_category=None, colour=None, size=None, source=None,
+                  max_price=None, in_stock=True):
+    """The MongoDB filter for listings people can see: active only (pending or rejected
+    seller listings and gone products never show), in stock unless in_stock=False."""
+    query = {"status": "active"}
+    for key, value in (("category", category), ("sub_category", sub_category),
+                       ("colour", colour), ("source_id", source), ("sizes", size)):
+        if value:
+            query[key] = value
+    if max_price is not None:
+        query["price_tnd"] = {"$lte": max_price}
+    if in_stock:
+        query["in_stock"] = True
+    return query
+
+
 def listing_out(doc):
     lid = str(doc["_id"])
     return {

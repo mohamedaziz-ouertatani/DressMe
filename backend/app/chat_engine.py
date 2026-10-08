@@ -8,6 +8,7 @@ The chat assistant's language model. Two engines, chosen by CHAT_ENGINE in backe
 The router only needs:
 
     engine.reply(system, history, message, tools) -> (answer text, [tool names used])
+    engine.classify(system, message) -> one short answer, no tools (the agent router)
 
 `tools` is a dict {name: python function}. Gemini reads each function's name,
 type hints and docstring, decides when to call it, and our code runs it
@@ -96,6 +97,23 @@ class GeminiEngine:
                 if code not in RETRY_CODES or attempt == len(RETRY_WAITS):
                     raise ChatBusy(f"Gemini error: {e}") from e
                 time.sleep(RETRY_WAITS[attempt])
+
+    def classify(self, system, message):
+        """One short answer without tools (the agent router). Not retried: the router
+        falls back to keywords, and a retry would spend more of the daily quota."""
+        from google.genai import types
+
+        client = self._get_client()
+        config = types.GenerateContentConfig(system_instruction=system, temperature=0,
+                                             max_output_tokens=20)
+        try:
+            response = client.models.generate_content(
+                model=self.settings.gemini_model, contents=message, config=config)
+        except Exception as e:
+            if getattr(e, "code", None) == 429:
+                raise ChatQuota(f"Gemini quota used up: {e}") from e
+            raise ChatBusy(f"Gemini error: {e}") from e
+        return (response.text or "").strip()
 
 
 # ------------------------------------------------------------------ local model (Ollama)
@@ -251,3 +269,12 @@ class OllamaEngine:
                     content = clean_model_text(final.get("content"))
                     return content or "I found outfit ideas from your wardrobe. See the pieces below.", used
         return last_content or "I couldn't finish that answer. Please try again.", used
+
+    def classify(self, system, message):
+        """One short answer without tools (the agent router)."""
+        answer = self._post({"model": self.settings.ollama_model, "stream": False,
+                             "messages": [{"role": "system", "content": system},
+                                          {"role": "user", "content": message}],
+                             "options": {"temperature": 0, "num_ctx": self.settings.ollama_num_ctx,
+                                         "num_predict": 10}})
+        return clean_model_text(answer.get("content"))

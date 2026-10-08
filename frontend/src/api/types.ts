@@ -212,6 +212,7 @@ export interface ChatTurn {
   text: string
   tools_used: string[]
   attachments?: ChatAttachment[]
+  agent?: string            // stylist, shopping or analyst ('' for old messages)
 }
 
 export interface ChatAttachment {

@@ -43,7 +43,7 @@ export function ChatPage() {
     try {
       const r = await api.chat(message)
         setTurns((tt) => [...tt, {
-          role: 'model', text: r.reply, tools_used: r.tools_used, attachments: r.attachments,
+          role: 'model', text: r.reply, tools_used: r.tools_used, attachments: r.attachments, agent: r.agent,
         }])
     } catch (err) {
       setError(err)
@@ -74,6 +74,11 @@ export function ChatPage() {
           <ol className="flex flex-col gap-3" aria-live="polite">
             {turns.map((m, i) => (
               <li key={i} className={m.role === 'user' ? 'ms-10 self-end' : 'me-10 self-start'}>
+                {m.role === 'model' && m.agent && (
+                  <p className="mb-1 font-mono text-[11px] uppercase tracking-wide text-ink-soft">
+                    {t(`agent_${m.agent}` as StringKey)}
+                  </p>
+                )}
                 {m.text && (
                   <div className={`whitespace-pre-wrap px-4 py-3 text-[15px] leading-relaxed ${m.role === 'user' ? 'bg-ink text-paper' : 'ticket text-carbon'}`}>
                     {m.text}

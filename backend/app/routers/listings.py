@@ -31,7 +31,7 @@ from pydantic import BaseModel, Field
 
 from ..db import object_id
 from ..events import log_event
-from ..listings import SELLERS, listing_out, thumbnail_path
+from ..listings import SELLERS, listing_out, listing_query, thumbnail_path
 from ..schemas import ItemUpdate
 from ..security import current_user
 from ..wardrobe import item_out
@@ -83,15 +83,7 @@ def list_listings(request: Request, category: str | None = None, sub_category: s
                   user=Depends(current_user)):
     """`size` matches the sizes the product comes in; its stock per size is only
     known when availability_level = colour (then see sizes_in_stock)."""
-    query = {"status": "active"}
-    for key, value in (("category", category), ("sub_category", sub_category),
-                       ("colour", colour), ("source_id", source), ("sizes", size)):
-        if value:
-            query[key] = value
-    if max_price is not None:
-        query["price_tnd"] = {"$lte": max_price}
-    if in_stock:
-        query["in_stock"] = True
+    query = listing_query(category, sub_category, colour, size, source, max_price, in_stock)
     order = [("price_tnd", 1), ("_id", 1)] if sort == "price" else [("created_at", -1), ("_id", -1)]
     db = request.app.state.db
     docs = db.listings.find(query, NO_VECTOR).sort(order).skip((page - 1) * per_page).limit(per_page)
