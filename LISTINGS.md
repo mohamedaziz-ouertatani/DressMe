@@ -187,3 +187,10 @@ The thumbnail (≤ 320 px) is stored under `STORAGE_DIR/listings/`. The full pic
 3. Which `source` value shop and seller items get (already open in `HANDOFF.md`).
 4. Moderation rules for seller listings. (~~Which contact details sellers may show~~: one free-text handle, 2026-10-04.)
 5. How long a `gone` listing is kept before it is deleted.
+
+## Seller assistant
+
+In the chat, the Seller assistant (AGENTS.md) helps friperie sellers: which pieces to sell, a price
+range from look-alike listings (friperie prices as they are, shop prices × the team's second-hand
+factor in `mappings/resale_pricing.csv`, REVIEW), and a link that opens the Sell page already filled.
+It never posts: the seller sends the form, and the listing waits for an admin as usual.
