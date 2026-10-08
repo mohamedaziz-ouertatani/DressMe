@@ -4,19 +4,15 @@ by calling our functions (tools) instead of inventing clothes.
 """
 
 from datetime import datetime, timedelta, timezone
-from functools import wraps
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from .. import ml  # noqa: F401  (puts src/ on the import path)
-import compatibility
-
+from ..agents import shopping, stylist
+from ..agents.common import with_attachments
 from ..chat_engine import ChatBusy, ChatQuota, ChatUnavailable
 from ..events import log_event
 from ..schemas import ChatMessage
 from ..security import current_user
-from ..wardrobe import outfit_out, to_compat
-from .outfits import profile, user_profile, wardrobe
 
 router = APIRouter(tags=["chat"])
 HISTORY = 20     # messages sent back to the model as context
@@ -35,96 +31,13 @@ Rules:
 - Be short, concrete and kind. Budget matters: prefer re-using what they own."""
 
 
-def _image_attachments(value, group=""):
-    """Extract safe, displayable item images from a tool result."""
-    if isinstance(value, dict):
-        if isinstance(value.get("image_url"), str) and isinstance(value.get("id"), str):
-            yield {
-                "id": value["id"],
-                "category": value.get("category", ""),
-                "sub_category": value.get("sub_category", ""),
-                "colour": value.get("colour", ""),
-                "image_url": value["image_url"],
-                "group": group,
-            }
-        for child in value.values():
-            yield from _image_attachments(child, group)
-    elif isinstance(value, list):
-        for index, child in enumerate(value, 1):
-            child_group = group or f"outfit-{index}"
-            yield from _image_attachments(child, child_group)
-
-
 def tools_for(request, user, attachments=None):
-    """The functions the model may call, already bound to this user."""
-    def list_wardrobe(category: str = "") -> list[dict]:
-        """List the user's clothes. category: optional filter (top, bottom, dress, outerwear,
-        shoes, bag, accessory, traditional, swimwear)."""
-        docs, _ = wardrobe(request, user)
-        return [{"id": str(d["_id"]), "category": d["category"], "sub_category": d["sub_category"],
-                 "colour": d["colour"], "pattern": d["pattern"],
-                 "image_url": f"/items/{d['_id']}/image"}
-                for d in docs if not category or d["category"] == category]
-
-    def suggest_outfits(season: str = "", occasion: str = "", n: int = 1) -> list[dict]:
-        """Recommend one best outfit from the user's wardrobe. season: summer, winter or
-        mid-season. occasion: casual, formal, sport, wedding, eid or work. n: how many
-        when the user explicitly asks for more (1-10)."""
-        docs, by_id = wardrobe(request, user)
-        outfits = compatibility.suggest_outfits(
-            [to_compat(d) for d in docs], user_profile(
-                user, docs, request, season or None, occasion or None),
-            n=max(1, min(int(n), 10)))
-        return [outfit_out(o, by_id) for o in outfits]
-
-    def score_outfit(item_ids: list[str]) -> dict:
-        """Score (0-100) and reasons for an outfit made of the user's items (ids from list_wardrobe)."""
-        docs, by_id = wardrobe(request, user)
-        chosen = [by_id[i] for i in item_ids if i in by_id]
-        if not chosen:
-            return {"error": "none of these ids are in the wardrobe"}
-        items = [to_compat(d) for d in chosen]
-        clash = compatibility.clashes(items)
-        if clash:          # same hard rule as /outfits/score
-            return {"error": "these pieces can't be worn together: " + "; ".join(clash)}
-        return outfit_out({**compatibility.score_outfit(
-            items, style_profile=user_profile(user, docs, request)["style_vector"]),
-            "items": items}, by_id)
-
-    def buy_advice_last_scan() -> dict:
-        """'Should I buy this?' for the last photo the user analysed in the app (buy / think / skip)."""
-        cand = request.app.state.db.candidates.find_one({"user_id": user["_id"]},
-                                                        sort=[("created_at", -1)])
-        if not cand:
-            return {"error": "no analysed photo in the last 24 hours"}
-        docs, by_id = wardrobe(request, user)
-        by_id[str(cand["_id"])] = cand
-        advice = compatibility.buy_advice(
-            to_compat(cand), [to_compat(d) for d in docs],
-            user_profile(user, docs, request))
-        return {"item": {"id": str(cand["_id"]), "category": cand["category"],
-                         "sub_category": cand["sub_category"], "colour": cand["colour"],
-                         "image_url": f"/candidates/{cand['_id']}/image"},
-                "verdict": advice["verdict"], "good_outfits": advice["good_outfits"],
-                "reasons": advice["reasons"], "best": [outfit_out(o, by_id) for o in advice["best"]]}
-
-    functions = (list_wardrobe, suggest_outfits, score_outfit, buy_advice_last_scan)
-    if attachments is None:
-        return {f.__name__: f for f in functions}
-
-    def capture(fn):
-        @wraps(fn)
-        def wrapped(*args, **kwargs):
-            result = fn(*args, **kwargs)
-            seen = {item["id"] for item in attachments}
-            for item in _image_attachments(result):
-                if item["id"] not in seen:
-                    attachments.append(item)
-                    seen.add(item["id"])
-            return result
-        return wrapped
-
-    return {f.__name__: capture(f) for f in functions}
+    """The original four chat tools. Kept for src/phase4/build_chat_dataset.py: the
+    fine-tuned local model (LLM.md) was trained on exactly these."""
+    s, b = stylist.tools(request, user), shopping.tools(request, user)
+    functions = {name: s[name] for name in ("list_wardrobe", "suggest_outfits", "score_outfit")}
+    functions["buy_advice_last_scan"] = b["buy_advice_last_scan"]
+    return with_attachments(functions, attachments)
 
 
 @router.post("/chat")
