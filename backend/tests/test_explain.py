@@ -93,3 +93,41 @@ def test_settings_file_has_every_cut():
     s = explain.load_settings()
     assert set(s) == {"min_conf_" + f for f in explain.FIELDS} | {"margin"}
     assert all(0 <= v <= 1 for v in s.values())
+
+
+@pytest.fixture(scope="module")
+def untrained():
+    return classifier.DressMeNet(pretrained=False).eval()
+
+
+def noise(size, seed=0):
+    rng = np.random.default_rng(seed)
+    return Image.fromarray(rng.integers(0, 255, (size[1], size[0], 3), dtype=np.uint8))
+
+
+def test_class_index():
+    assert explain.class_index("pattern", "striped") == classifier.PATTERNS.index("striped")
+    with pytest.raises(ValueError):
+        explain.class_index("pattern", "polka")
+    with pytest.raises(ValueError):
+        explain.class_index("brand", "zara")
+
+
+def test_letterbox_box():
+    assert explain.letterbox_box(100, 200) == (56, 0, 168, 224)      # tall picture: white sides
+
+
+def test_gradcam_shape_range_and_padding(untrained):
+    img = noise((100, 200))
+    heat = explain.gradcam(untrained, img, "category", 0, "cpu")
+    assert heat.shape == (224, 224) and heat.dtype == np.float32
+    assert heat.min() >= 0 and heat.max() <= 1
+    assert heat[:, :56].max() == 0 and heat[:, 168:].max() == 0         # nothing on the padding
+    other = explain.gradcam(untrained, img, "category", 1, "cpu")
+    assert not np.allclose(heat, other)                                # another class, another map
+
+
+def test_overlay_is_a_224_picture(untrained):
+    img = noise((80, 80))
+    out = explain.overlay(img, explain.gradcam(untrained, img, "pattern", 0, "cpu"))
+    assert out.size == (224, 224) and out.mode == "RGB"
