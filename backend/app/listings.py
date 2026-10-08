@@ -244,7 +244,9 @@ class ListingIndex:
                          if self._docs else np.zeros((0, 512), np.float32))
         self._key = key
 
-    def search(self, db, vector, k=6, category=None):
+    def search(self, db, vector, k=6, category=None, exclude_seller=None):
+        """The k nearest listings. exclude_seller: leave out that seller's own listings
+        (the Seller assistant's price hint must not quote the user's own prices)."""
         self._refresh(db)
         if not self._docs:
             return []
@@ -253,6 +255,8 @@ class ListingIndex:
         for i in np.argsort(-scores):
             doc = self._docs[i]
             if category and doc.get("category") != category:
+                continue
+            if exclude_seller is not None and doc.get("seller_id") == exclude_seller:
                 continue
             hits.append({**listing_out(doc), "score": round(float(scores[i]), 3)})
             if len(hits) == k:
