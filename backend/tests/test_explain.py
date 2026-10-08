@@ -131,3 +131,42 @@ def test_overlay_is_a_224_picture(untrained):
     img = noise((80, 80))
     out = explain.overlay(img, explain.gradcam(untrained, img, "pattern", 0, "cpu"))
     assert out.size == (224, 224) and out.mode == "RGB"
+
+
+def hex_rgb(name):
+    import pandas as pd
+    pal = pd.read_csv(colour_utils.PALETTE_PATH, keep_default_na=False).set_index("colour")
+    h = pal.loc[name, "hex"]
+    return tuple(int(h[i:i + 2], 16) for i in (1, 3, 5))
+
+
+def two_colour_piece():
+    """A piece on white: left half black, right half navy."""
+    img = Image.new("RGB", (200, 200), (255, 255, 255))
+    img.paste(Image.new("RGB", (50, 100), hex_rgb("black")), (50, 50))
+    img.paste(Image.new("RGB", (50, 100), hex_rgb("navy")), (100, 50))
+    return img
+
+
+def test_colour_map_finds_half_the_piece():
+    mask, share, reliable = explain.colour_map(two_colour_piece(), "black")
+    assert mask.shape == (224, 224) and reliable
+    assert 0.4 < share < 0.6
+    assert mask[:, :100].sum() > mask[:, 124:].sum()                  # the black half is on the left
+
+
+def test_colour_map_light_colours_are_not_reliable():
+    _, _, reliable = explain.colour_map(two_colour_piece(), "white")
+    assert not reliable
+
+
+def test_colour_map_multicolour_and_unknown():
+    mask, share, reliable = explain.colour_map(two_colour_piece(), "multicolour")   # no single hex
+    assert mask.sum() == 0 and share == 0 and not reliable
+    with pytest.raises(ValueError):
+        explain.colour_map(two_colour_piece(), "rainbow")
+
+
+def test_mask_overlay_size():
+    mask, _, _ = explain.colour_map(two_colour_piece(), "navy")
+    assert explain.mask_overlay(two_colour_piece(), mask).size == (224, 224)

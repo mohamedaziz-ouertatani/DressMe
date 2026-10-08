@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 
+from colour_utils import PALETTE_PATH, Palette
 from item_images import ROOT, letterbox
 
 SETTINGS_PATH = ROOT / "mappings" / "xai_settings.csv"
@@ -93,3 +94,39 @@ def overlay(img, heat):
     colour = np.stack([np.full_like(heat, 255), 230 * (1 - heat), np.zeros_like(heat)], axis=-1)
     alpha = (0.6 * heat)[..., None]                              # cold areas show the plain photo
     return Image.fromarray((base * (1 - alpha) + colour * alpha).astype(np.uint8))
+
+
+LIGHT = {"white", "cream"}     # these blend into the white background: no reliable map
+ALL_COLOURS = pd.read_csv(PALETTE_PATH, keep_default_na=False)["colour"].tolist()
+
+
+def colour_map(img, colour, palette=None):
+    """The item pixels whose nearest palette colour is `colour`.
+
+    Returns (mask 224 x 224, share of the item's pixels, reliable). This is a
+    picture to help the user: the colour model itself reads a histogram of all
+    the item's colours, not single pixels. The item area uses the colour
+    model's own background rule (estimate_colours.item_pixels_mask).
+    """
+    from estimate_colours import item_pixels_mask
+    if colour not in ALL_COLOURS:
+        raise ValueError(f"unknown colour {colour!r}")
+    palette = palette or Palette()
+    px = np.asarray(letterbox(img.convert("RGB"), SIZE)).astype(int)
+    item = item_pixels_mask(px)
+    reliable = colour not in LIGHT and colour in palette.names and item.mean() >= 0.03
+    if item.mean() < 0.03:              # nothing but white found: look at the whole picture
+        item = np.ones(item.shape, dtype=bool)
+    if colour not in palette.names:     # "multicolour" has no single colour to look for
+        return np.zeros(item.shape, dtype=bool), 0.0, False
+    nearest = np.full(item.shape, -1)
+    nearest[item] = palette.nearest_index(px[item])
+    mask = nearest == palette.names.index(colour)
+    return mask, round(float(mask.sum() / item.sum()), 3), bool(reliable)
+
+
+def mask_overlay(img, mask):
+    """The letterboxed photo with everything outside `mask` faded out."""
+    base = np.asarray(letterbox(img.convert("RGB"), SIZE)).astype(float)
+    faded = base * 0.25 + 255 * 0.75
+    return Image.fromarray(np.where(mask[..., None], base, faded).astype(np.uint8))
