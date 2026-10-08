@@ -19,9 +19,36 @@ export interface User {
   language: Language
 }
 
+export interface Alternative {
+  value: string
+  conf: number
+}
+
 export interface Guess {
   value: string
   conf: number
+  alternatives?: Alternative[]   // items analysed before the XAI layer have none
+  unsure?: boolean
+}
+
+export type GuessField = 'category' | 'sub_category' | 'pattern' | 'colour'
+
+/** GET /items/{id}/explain, /candidates/{id}/explain (backend/app/routers/explain.py) */
+export interface ExplainField {
+  shown: string                  // the answer the picture is for
+  value: string                  // the model's stored answer
+  conf: number | null
+  alternatives: Alternative[]
+  unsure: boolean
+  corrected: boolean
+  heatmap?: string               // data URL (category / sub_category / pattern)
+  pixels?: string                // data URL (colour)
+  share?: number
+  reliable?: boolean
+}
+
+export interface Explanation {
+  fields: Partial<Record<GuessField, ExplainField>>
 }
 
 export interface Item {
@@ -33,7 +60,7 @@ export interface Item {
   coverage: number | null
   season: Season[]
   usage: Occasion[]
-  predicted: Partial<Record<'category' | 'sub_category' | 'pattern' | 'colour', Guess>>
+  predicted: Partial<Record<GuessField, Guess>>
   corrected: string[]
   image_url?: string
 }

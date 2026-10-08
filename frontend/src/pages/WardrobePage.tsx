@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, ChartBar, CheckCheck, Search, Trash2 } from 'lucide-react'
+import { ArrowLeft, ChartBar, CheckCheck, Lightbulb, Search, Trash2 } from 'lucide-react'
 import { api } from '../api/client'
 import type { Category, Item, ItemPatch } from '../api/types'
 import { useAuth } from '../auth'
@@ -9,6 +9,7 @@ import { plural } from '../i18n/plurals'
 import { CATEGORY_LABELS, SUB_LABELS, secondLine, vocab } from '../i18n/vocab'
 import { Page } from '../shell'
 import { Button, Chip } from '../ui/controls'
+import { ExplainPanel } from '../ui/ExplainPanel'
 import { FieldRow } from '../ui/Field'
 import { ItemPhoto } from '../ui/ItemPhoto'
 import { PhotoPicker } from '../ui/PhotoPicker'
@@ -117,6 +118,7 @@ export function ItemPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<unknown>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [why, setWhy] = useState(false)
 
   const save = async (patch: ItemPatch) => {
     setSaving(true)
@@ -181,6 +183,10 @@ export function ItemPage() {
                 </Button>
               )}
             </section>
+            <Button variant="quiet" className="mt-3" onClick={() => setWhy(!why)} aria-expanded={why}>
+              <Lightbulb className="size-4" aria-hidden /> {why ? t('hideWhy') : t('whyLabels')}
+            </Button>
+            {why && <section className="ticket mt-2 px-4 py-4"><ExplainPanel target={{ itemId: it.id }} /></section>}
             {error ? <div className="mt-3"><ErrorNote error={error} /></div> : null}
             <div className="mt-5 flex flex-wrap items-center gap-3">
               <Link to={`/similar?item=${it.id}`} className="inline-flex min-h-11 items-center gap-2 border-[1.5px] border-ink bg-paper px-4 text-[15px] font-medium text-ink">
