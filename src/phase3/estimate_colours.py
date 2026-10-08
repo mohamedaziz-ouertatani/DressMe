@@ -88,17 +88,23 @@ def features(rgb_pixels):
     return np.concatenate([hist, pct, lab.mean(axis=0), lab.std(axis=0)])
 
 
+def item_pixels_mask(px):
+    """True for the item's pixels of a product shot on white (H x W x 3, 0-255).
+    Background = near-white regions touching the border, so white parts INSIDE
+    the item (e.g. a white shirt with a dark outline) are kept.
+    Also used by src/phase4/explain.py for the colour pixel map."""
+    near_white = (px > WHITE).all(axis=2)
+    regions, _ = ndimage.label(near_white)
+    border = np.unique(np.concatenate([regions[0], regions[-1], regions[:, 0], regions[:, -1]]))
+    return ~np.isin(regions, border[border > 0])
+
+
 def product_features(path):
     """Product shot on white: drop the white background, keep the item."""
     img = Image.open(path).convert("RGB")
     img.thumbnail((THUMB, THUMB))
     px = np.asarray(img).astype(int)
-    near_white = (px > WHITE).all(axis=2)
-    # background = near-white regions touching the border (so white parts
-    # INSIDE the item, e.g. a white shirt with a dark outline, are kept)
-    regions, _ = ndimage.label(near_white)
-    border = np.unique(np.concatenate([regions[0], regions[-1], regions[:, 0], regions[:, -1]]))
-    item = px[~np.isin(regions, border[border > 0])]
+    item = px[item_pixels_mask(px)]
     if len(item) < 30:  # nothing left: the item itself is white-ish
         item = px.reshape(-1, 3)
     return features(item)
@@ -229,15 +235,27 @@ def fashionpedia_features():
 
 
 # ------------------------------------------------------------ model
-def predict(clf, X, categories):
-    """Best colour per row; metallic colours are skipped for clothes."""
+def probabilities(clf, X, categories):
+    """Colour probabilities per row; metallic colours are skipped for clothes."""
     proba = clf.predict_proba(X)
     classes = np.array(clf.classes_)
     no_metal = np.isin(np.asarray(categories), list(METAL_FREE))
     proba[np.ix_(no_metal, np.isin(classes, list(METALS)))] = 0
-    proba = proba / proba.sum(axis=1, keepdims=True)
+    return classes, proba / proba.sum(axis=1, keepdims=True)
+
+
+def predict(clf, X, categories):
+    """Best colour per row; metallic colours are skipped for clothes."""
+    classes, proba = probabilities(clf, X, categories)
     best = proba.argmax(axis=1)
     return classes[best], proba[np.arange(len(best)), best]
+
+
+def predict_top(clf, X, categories, k=3):
+    """The k most probable colours per row (best first), for the app's "why" panel."""
+    classes, proba = probabilities(clf, X, categories)
+    return [[{"value": str(classes[i]), "conf": round(float(row[i]), 3)}
+             for i in np.argsort(row)[::-1][:k] if row[i] > 0] for row in proba]
 
 
 def check_grid(df, title, filename, n=24):

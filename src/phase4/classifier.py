@@ -9,7 +9,8 @@ One picture goes in; three answers come out:
 Usage (e.g. from the API):
     model, device = load_classifier()
     predict([pil_image], model, device)
-    -> [{"category": "top", "category_conf": 0.97, "sub_category": "t-shirt", ...}]
+    -> [{"category": "top", "category_conf": 0.97, "sub_category": "t-shirt", ...,
+         "top3": {"category": [{"value": "top", "conf": 0.97}, ...], ...}}]
 
 The sub_category answer is always one that belongs to the predicted category
 (e.g. never "jeans" for a "shoes" item), using mappings/sub_category_vocabulary.csv.
@@ -114,19 +115,32 @@ def predict_tensors(x, model, device):
 _ALLOWED = np.array([[SUB_PARENT[s] == c for s in SUB_CATEGORIES] for c in CATEGORIES])
 
 
+def top_k(p, classes, k=3):
+    """The k most probable classes of one probability row, best first."""
+    order = np.argsort(p)[::-1][:k]
+    return [{"value": classes[i], "conf": round(float(p[i]), 3)} for i in order]
+
+
 def decode(probs):
-    """Turn the probabilities of one batch into readable answers."""
+    """Turn the probabilities of one batch into readable answers, with the
+    top 3 of each head (`top3`) for the app's "why these labels?" panel."""
     results = []
     for i in range(len(probs["category"])):
         cat = int(probs["category"][i].argmax())
         sub_p = probs["sub_category"][i] * _ALLOWED[cat]        # only this category's children
         sub = int(sub_p.argmax())
         pat = int(probs["pattern"][i].argmax())
+        sub_norm = sub_p / max(sub_p.sum(), 1e-9)
+        sub_top = [a for a in top_k(sub_norm, SUB_CATEGORIES)
+                   if SUB_PARENT[a["value"]] == CATEGORIES[cat]]     # a category may have < 3 children
         results.append({
             "category": CATEGORIES[cat], "category_conf": float(probs["category"][i][cat]),
             "sub_category": SUB_CATEGORIES[sub],
-            "sub_category_conf": float(sub_p[sub] / max(sub_p.sum(), 1e-9)),
+            "sub_category_conf": float(sub_norm[sub]),
             "pattern": PATTERNS[pat], "pattern_conf": float(probs["pattern"][i][pat]),
+            "top3": {"category": top_k(probs["category"][i], CATEGORIES),
+                     "sub_category": sub_top,
+                     "pattern": top_k(probs["pattern"][i], PATTERNS)},
         })
     return results
 
