@@ -1,14 +1,16 @@
 """
-The DressMe chat assistant (Gemini or a local model, see app/chat_engine.py). It answers from the user's REAL wardrobe
-by calling our functions (tools) instead of inventing clothes.
+The DressMe chat (Gemini or a local model, see app/chat_engine.py): each message goes to one of
+three agents (Stylist, Shopping advisor, Wardrobe analyst; see AGENTS.md and app/agents/), which
+answers from the user's REAL data by calling our functions (tools) instead of inventing clothes.
 """
 
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from ..agents import shopping, stylist
+from ..agents import AGENTS, shopping, stylist
 from ..agents.common import with_attachments
+from ..agents.router import route
 from ..chat_engine import ChatBusy, ChatQuota, ChatUnavailable
 from ..events import log_event
 from ..schemas import ChatMessage
@@ -17,6 +19,8 @@ from ..security import current_user
 router = APIRouter(tags=["chat"])
 HISTORY = 20     # messages sent back to the model as context
 
+# The original single-assistant prompt: still used by src/phase4/build_chat_dataset.py
+# (the agents' prompts are in app/agents/common.py)
 SYSTEM = """You are DressMe, a friendly personal fashion assistant for young people in Tunisia
 who have a limited budget and buy mostly second-hand (friperie) clothes that can rarely be returned.
 Rules:
@@ -44,13 +48,14 @@ def tools_for(request, user, attachments=None):
 def chat(body: ChatMessage, request: Request, user=Depends(current_user)):
     db = request.app.state.db
     history = list(db.chats.find({"user_id": user["_id"]}).sort("created_at", -1).limit(HISTORY))[::-1]
-    p = user["profile"]
-    system = SYSTEM.format(language=p.get("language", "fr"), min_coverage=p.get("min_coverage") or "")
+    engine = request.app.state.chat_engine
+    name, routed_by = route(engine, body.message, request.app.state.settings.router)
+    agent = AGENTS[name]
     attachments = []
     try:
-        answer, used = request.app.state.chat_engine.reply(
-            system, [{"role": h["role"], "text": h["text"]} for h in history],
-            body.message, tools_for(request, user, attachments))
+        answer, used = engine.reply(
+            agent.prompt(user), [{"role": h["role"], "text": h["text"]} for h in history],
+            body.message, agent.bound_tools(request, user, attachments))
     except ChatUnavailable as e:       # no key: the assistant is switched off
         raise HTTPException(503, str(e))
     except ChatQuota as e:             # the key's (daily) quota is used up
@@ -62,11 +67,11 @@ def chat(body: ChatMessage, request: Request, user=Depends(current_user)):
         {"user_id": user["_id"], "role": "user", "text": body.message, "created_at": now},
         # 1 ms later: MongoDB keeps milliseconds, and the answer must sort after the question
         {"user_id": user["_id"], "role": "model", "text": answer, "tools": used,
-         "attachments": attachments,
+         "attachments": attachments, "agent": name, "routed_by": routed_by,
          "created_at": now + timedelta(milliseconds=1)},
     ])
-    log_event(db, "chat", user["_id"], tools=used)
-    result = {"reply": answer, "tools_used": used}
+    log_event(db, "chat", user["_id"], tools=used, agent=name)
+    result = {"reply": answer, "tools_used": used, "agent": name, "agent_title": agent.title}
     if attachments:
         result["attachments"] = attachments
     return result
@@ -76,7 +81,7 @@ def chat(body: ChatMessage, request: Request, user=Depends(current_user)):
 def chat_history(request: Request, user=Depends(current_user)):
     docs = request.app.state.db.chats.find({"user_id": user["_id"]}).sort("created_at", 1)
     return [{"role": d["role"], "text": d["text"], "tools_used": d.get("tools", []),
-             "attachments": d.get("attachments", [])} for d in docs]
+             "attachments": d.get("attachments", []), "agent": d.get("agent", "")} for d in docs]
 
 
 @router.delete("/chat/history", status_code=204)

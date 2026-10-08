@@ -80,6 +80,12 @@ class FakeChatEngine:
     def reply(self, system, history, message, tools):
         self.systems.append(system)
         self.tool_names.append(sorted(tools))
+        if "missing" in message and "wardrobe_insights" in tools:
+            facts = tools["wardrobe_insights"]()
+            return f"Missing: {', '.join(facts['missing']) or 'nothing'}.", ["wardrobe_insights"]
+        if "shop" in message and "search_listings" in tools:
+            found = tools["search_listings"]()
+            return f"{found['total']} listings.", ["search_listings"]
         if "wardrobe" in message:
             items = tools["list_wardrobe"]()
             return f"You have {len(items)} items.", ["list_wardrobe"]
