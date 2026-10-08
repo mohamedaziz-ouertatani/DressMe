@@ -110,10 +110,11 @@ def swaps(items, wardrobe, rules=None, style_profile=None):
     return out
 
 
-def weakest(swap_list, positive_only=True):
-    """The piece whose best swap gains the most (None if no swap helps).
-    positive_only=False always names one (used by the offline evaluation)."""
-    rows = [s for s in swap_list if s["gain"] > 0] if positive_only else list(swap_list)
+def weakest(swap_list, positive_only=True, min_gain=0.0):
+    """The piece whose best swap gains the most (None if no swap gains more than
+    `min_gain`: the app passes the team's min_swap_gain, so a 0.2-point swap is not
+    called a weakness). positive_only=False always names one (offline evaluation)."""
+    rows = [s for s in swap_list if s["gain"] > min_gain] if positive_only else list(swap_list)
     return max(rows, key=lambda s: s["gain"])["item_id"] if rows else None
 
 

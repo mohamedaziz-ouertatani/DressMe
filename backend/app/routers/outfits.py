@@ -94,7 +94,8 @@ def explain_outfit_route(body: ItemIds, request: Request, user=Depends(current_u
     return {"swaps": [{"item_id": s["item_id"], "gain": s["gain"],
                        "swap": short_item(by_id[s["best_swap_id"]]) if s["best_swap_id"] else None}
                       for s in swaps],
-            "weakest": explain_outfit.weakest(swaps),
+            "weakest": explain_outfit.weakest(
+                swaps, min_gain=explain_outfit.explain.load_settings()["min_swap_gain"]),
             "pair_map": explain_outfit.pair_map(items)}
 
 

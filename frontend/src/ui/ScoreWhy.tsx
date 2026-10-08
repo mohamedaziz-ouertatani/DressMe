@@ -35,7 +35,8 @@ export function PointsBar({ contributions }: { contributions: Contribution[] }) 
           <li key={c.part} className="inline-flex items-center gap-1.5">
             <span aria-hidden className={`size-2 ${c.counted ? PART_COLOUR[c.part] : 'bg-perf'}`} />
             {t(PART_KEY[c.part])}{' '}
-            <span className="font-mono tabular" dir="ltr">
+            {/* no dir="ltr" here: the sentence holds a word ("of", "من") that must follow the page's direction */}
+            <span className="font-mono tabular">
               {c.counted ? t('pointsOf', { p: c.points.toFixed(1), max: c.max_points.toFixed(1) }) : t('partNotCounted')}
             </span>
           </li>

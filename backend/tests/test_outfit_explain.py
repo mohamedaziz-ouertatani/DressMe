@@ -113,6 +113,7 @@ def test_swaps_find_a_better_piece_and_never_clash():
     assert X.weakest(list(rows.values())) == max(rows.values(), key=lambda r: r["gain"])["item_id"]
     assert X.weakest([{"item_id": "a", "gain": 0.0}]) is None
     assert X.weakest([{"item_id": "a", "gain": 0.0}], positive_only=False) == "a"
+    assert X.weakest([{"item_id": "a", "gain": 1.5}], min_gain=2) is None          # noise, not a weakness
 
 
 def test_pair_map():

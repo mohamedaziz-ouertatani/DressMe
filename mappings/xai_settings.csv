@@ -7,3 +7,4 @@ margin,0.15,REVIEW: also unsure when the best answer leads the second by less th
 strength_style,0.7,"REVIEW: outfit style coherence (0-1) from which the app says ""the pieces share one style"""
 strength_colour_pair,0.8,"REVIEW: colour pair score from which the app says ""navy and white go together"""
 near_miss,5,REVIEW: buy advice: outfits this many points below good_outfit count as near misses
+min_swap_gain,2,REVIEW: outfit swaps: a swap must gain at least this many points before the app names a weakest piece

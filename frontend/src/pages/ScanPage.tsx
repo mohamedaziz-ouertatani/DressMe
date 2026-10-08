@@ -12,6 +12,7 @@ import { ExplainPanel } from '../ui/ExplainPanel'
 import { FieldRow } from '../ui/Field'
 import { ItemPhoto } from '../ui/ItemPhoto'
 import { OutfitStrip } from '../ui/OutfitStrip'
+import { VerdictWhy } from '../ui/VerdictWhy'
 import { PhotoPicker } from '../ui/PhotoPicker'
 import { Stamp } from '../ui/Stamp'
 import { ErrorNote, Skeleton } from '../ui/states'
@@ -184,6 +185,7 @@ export function ScanPage() {
                 {advice.reasons.map((r) => <li key={r}>{reason(r)}</li>)}
               </ul>
             )}
+            {advice.explanation && <VerdictWhy explanation={advice.explanation} />}
 
             <div className="mt-5 flex flex-wrap gap-2">
               <Link to={`/similar?candidate=${advice.candidate.id}`} className="inline-flex min-h-11 items-center gap-2 border-[1.5px] border-ink bg-paper px-4 text-[15px] font-medium text-ink">

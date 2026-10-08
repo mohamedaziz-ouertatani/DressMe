@@ -139,6 +139,7 @@ export function TodayPage() {
           key={index}
           outfit={outfit}
           land
+          explainable
           feedback={feedback[outfit.items.map((item) => item.id).sort().join('|')]}
           onFeedback={(rating) => {
             const key = outfit.items.map((item) => item.id).sort().join('|')
