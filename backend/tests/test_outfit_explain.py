@@ -125,3 +125,43 @@ def test_pair_map():
     assert rows[("a", "b")]["pattern"] == round(C.RULES.pattern_pairs[("striped", "floral")], 3)
     assert rows[("a", "s")]["style"] is None and rows[("a", "s")]["pattern"] is None   # shoes: no pattern
     assert rows[("a", "s")]["colour"] == round(C.RULES.colour_score("navy", "white"), 3)
+
+
+def test_buy_advice_detail_and_explanation():
+    cand = item("c", "top", "shirt", "white", "solid", 1)
+    owned_top = item("o", "top", "t-shirt", "orange", "solid", 1)
+    wardrobe = [owned_top, item("j", "bottom", "jeans", "blue", "solid", 1),
+                item("s", "shoes", "sneakers", "white", seed=1)]
+    advice = C.buy_advice(cand, wardrobe)
+    d = advice["detail"]
+    assert d["outfits"] and all("c" in o["item_ids"] for o in d["outfits"])
+    assert d["outfits"][0]["owned_id"] == "o"
+    assert [t["id"] for t in d["twins"]] == ["o"]                   # identical vectors: a twin
+    why = X.buy_explanation(advice, settings=SETTINGS)
+    assert why["path"]["verdict"] == advice["verdict"] and why["path"]["good"] == advice["good_outfits"]
+    assert why["path"]["buy_min"] == C.RULES.settings["buy_min_outfits"]
+    assert all(b["margin"] > 0 for b in why["beats"])
+    if advice["verdict"] != "buy":
+        assert why["to_next_verdict"] >= 1
+    assert why["twins"] == d["twins"]
+
+
+def test_buy_explanation_counts():
+    advice = {"verdict": "think", "good_outfits": 1, "detail": {"twins": [], "outfits": [
+        {"item_ids": ["c", "a"], "score": 80.0, "owned_id": "o1", "owned_score": 70.0},   # beats o1
+        {"item_ids": ["c", "b"], "score": 75.0, "owned_id": "o2", "owned_score": 78.0},   # o2 wins
+        {"item_ids": ["c", "d"], "score": 73.0, "owned_id": "o2", "owned_score": 73.0},   # tie: o2 wins
+        {"item_ids": ["c", "e"], "score": 57.0, "owned_id": None, "owned_score": 0.0},    # near miss
+        {"item_ids": ["c", "f"], "score": 40.0, "owned_id": None, "owned_score": 0.0}]}}
+    why = X.buy_explanation(advice, settings=SETTINGS)
+    assert [b["owned_id"] for b in why["beats"]] == ["o1"] and why["beats"][0]["margin"] == 10.0
+    assert why["lost_to"] == [{"owned_id": "o2", "outfits": 2}]
+    assert why["near_misses"] == 1                                   # 57 is within 5 of 60
+    buy_min = C.RULES.settings["buy_min_outfits"]
+    assert why["to_next_verdict"] == int(buy_min) - 1
+
+
+def test_buy_advice_filtered_candidate_has_empty_detail():
+    cand = {**item("c", "top", "shirt", "white", "solid", 1), "coverage": 1}
+    advice = C.buy_advice(cand, [], {"min_coverage": 4})
+    assert advice["verdict"] == "skip" and advice["detail"] == {"outfits": [], "twins": []}

@@ -434,35 +434,42 @@ def buy_advice(candidate, wardrobe, profile=None, rules=RULES):
     kept, removed = filter_items([candidate], profile, rules)
     if not kept:
         return {"verdict": "skip", "good_outfits": 0, "best": [],
-                "reasons": [removed[candidate.get("id")]]}
+                "reasons": [removed[candidate.get("id")]], "detail": {"outfits": [], "twins": []}}
     items, _ = filter_items(wardrobe, profile, rules)
     style_profile = (profile or {}).get("style_vector")
     outfits = _outfits(items + [candidate], rules, must=candidate, style_profile=style_profile)
     # an outfit only counts if the new item beats every piece you already own
     # in the same slot (otherwise buying it changes nothing)
     same_cat = [w for w in items if w["category"] == candidate["category"]]
-    good = []
-    for result, outfit in outfits:
-        if result["score"] < rules.settings["good_outfit"]:
-            continue
-        others = [i for i in outfit if i is not candidate]
-        best_owned = max((score_outfit(
-            others + [w], rules, style_profile=style_profile)["score"] for w in same_cat), default=0)
-        if result["score"] > best_owned:
-            good.append((result, outfit))
     s = rules.settings
+    good, rows = [], []
+    for result, outfit in outfits:
+        others = [i for i in outfit if i is not candidate]
+        # the owned pieces are scored from 20 points below "good": the good outfits
+        # need it, and the near misses of the explanation (explain_outfit.py) too
+        owned = [(score_outfit(others + [w], rules, style_profile=style_profile)["score"], w)
+                 for w in same_cat] if result["score"] >= s["good_outfit"] - 20 else []
+        best_score, best_item = max(owned, key=lambda o: o[0], default=(0, None))
+        rows.append({"item_ids": [i["id"] for i in outfit], "score": result["score"],
+                     "owned_id": best_item["id"] if best_item else None, "owned_score": best_score})
+        if result["score"] >= s["good_outfit"] and result["score"] > best_score:
+            good.append((result, outfit))
     verdict = ("buy" if len(good) >= s["buy_min_outfits"]
                else "think" if len(good) >= s["think_min_outfits"] else "skip")
-    reasons = []
+    reasons, twins = [], []
     if candidate.get("vector") is not None:      # friperie items can't be returned
-        twins = [w for w in items if w["category"] == candidate["category"]
-                 and w.get("vector") is not None
-                 and float(np.asarray(w["vector"], np.float32)
-                           @ np.asarray(candidate["vector"], np.float32)) >= s["similar_item"]]
+        for w in items:
+            if w["category"] == candidate["category"] and w.get("vector") is not None:
+                sim = float(np.asarray(w["vector"], np.float32) @ np.asarray(candidate["vector"], np.float32))
+                if sim >= s["similar_item"]:
+                    twins.append({"id": w["id"], "similarity": round(sim, 3)})
         if twins:
             reasons.append(f"you already own {len(twins)} very similar {candidate['category']} item(s)")
+    # detail = every completed outfit with the best owned piece of the same category,
+    # and the near twins: explain_outfit.buy_explanation turns it into the "why"
     return {"verdict": verdict, "good_outfits": len(good), "reasons": reasons,
-            "best": [{**r, "items": o} for r, o in (good or outfits)[:3]]}
+            "best": [{**r, "items": o} for r, o in (good or outfits)[:3]],
+            "detail": {"outfits": rows, "twins": twins}}
 
 
 def complete_outfit(items, candidates, profile=None, k=5, rules=RULES):

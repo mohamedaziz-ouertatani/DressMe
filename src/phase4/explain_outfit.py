@@ -133,3 +133,34 @@ def pair_map(items, rules=None):
             pattern = round(rules.pattern_pairs[(pa[0], pb[0])], 3)
         out.append({"a": a["id"], "b": b["id"], "style": style, "colour": colour, "pattern": pattern})
     return out
+
+
+def buy_explanation(advice, rules=None, settings=None):
+    """The verdict made visible: good outfits vs the team's thresholds, what the new
+    piece beats, which owned pieces beat it, near misses and near twins."""
+    rules = rules or C.RULES
+    settings = settings or explain.load_settings()
+    s = rules.settings
+    good_cut, near = s["good_outfit"], settings["near_miss"]
+    beats, lost, near_misses = [], {}, 0
+    for o in advice["detail"]["outfits"]:
+        if o["score"] >= good_cut:
+            if o["score"] > o["owned_score"]:
+                beats.append({"item_ids": o["item_ids"], "owned_id": o["owned_id"],
+                              "owned_score": o["owned_score"],
+                              "margin": round(o["score"] - o["owned_score"], 1)})
+            elif o["owned_id"]:
+                lost[o["owned_id"]] = lost.get(o["owned_id"], 0) + 1
+        elif o["score"] >= good_cut - near and o["score"] > o["owned_score"]:
+            near_misses += 1
+    good = advice["good_outfits"]
+    next_cut = (s["think_min_outfits"] if advice["verdict"] == "skip"
+                else s["buy_min_outfits"] if advice["verdict"] == "think" else None)
+    return {"path": {"good": good, "buy_min": int(s["buy_min_outfits"]),
+                     "think_min": int(s["think_min_outfits"]), "verdict": advice["verdict"]},
+            "beats": beats,
+            "lost_to": [{"owned_id": k, "outfits": n}
+                        for k, n in sorted(lost.items(), key=lambda kv: -kv[1])],
+            "near_misses": near_misses,
+            "to_next_verdict": int(next_cut - good) if next_cut is not None else None,
+            "twins": advice["detail"]["twins"]}
