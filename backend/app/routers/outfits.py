@@ -14,6 +14,7 @@ from fastapi.responses import StreamingResponse
 from .. import ml  # noqa: F401  (puts src/ on the import path)
 import compatibility
 import explain_outfit
+import explain_similarity
 
 from ..db import vector_from_bson, vector_to_bson
 from ..events import log_event
@@ -193,8 +194,19 @@ def similar(request: Request, item_id: str | None = None, candidate_id: str | No
         request.app.state.db, query, k=k + 1, category=doc["category"])
     # a candidate made from a listing: leave the listing itself out
     listings = [x for x in listings if x["id"] != str(doc.get("listing_id"))][:k]
-    return {"wardrobe": [{**item_out(d), "similarity": round(s, 3)} for s, d in mine],
-            "catalog": catalog, "shop": shop, "listings": listings}
+
+    # why each one looks alike (XAI): shared labels + what the picture model
+    # associates with both pictures; the vectors themselves never leave the server
+    concepts = request.app.state.analyzer.concept_vectors()
+    explain = lambda hit, vector: explain_similarity.explain_pair(doc, hit, query, vector, concepts)
+    out_mine = [{**item_out(d), "similarity": round(s, 3)} for s, d in mine]
+    for hit, (_, d) in zip(out_mine, mine):
+        hit["why"] = explain(hit, vector_from_bson(d["vector"]))
+    for hit in catalog + shop:
+        hit["why"] = explain(hit, request.app.state.catalog.vector(hit["id"]))
+    for hit in listings:
+        hit["why"] = explain(hit, request.app.state.listing_index.vector(request.app.state.db, hit["id"]))
+    return {"wardrobe": out_mine, "catalog": catalog, "shop": shop, "listings": listings}
 
 
 @router.get("/catalog/{item_id}/image")

@@ -82,6 +82,17 @@ class Analyzer:
             out[f] = entry
         return out
 
+    def concept_vectors(self):
+        """{concept: unit text vector} for the team's concepts (mappings/style_concepts.csv),
+        computed once with FashionCLIP's text side (XAI: why two pieces look alike)."""
+        if getattr(self, "_concepts", None) is None:
+            import explain_similarity
+            fashionclip = self._modules[1]
+            rows = explain_similarity.load_concepts()
+            vecs = fashionclip.embed_texts([r["prompt"] for r in rows], self._clip, self._processor, self.device)
+            self._concepts = {r["concept"]: v.astype("float32") for r, v in zip(rows, vecs)}
+        return self._concepts
+
     def classify_for_mask(self, img):
         """Small category-only hook used before background removal."""
         return self._modules[0].predict([img], self._classifier, self.device)[0]
@@ -122,6 +133,13 @@ class Catalog:
                  "category": r.category, "sub_category": r.sub_category,
                  "colour": r.primary_colour, "score": round(float(r.score), 3)}
                 for r in hits.itertuples()]
+
+    def vector(self, item_id):
+        """The stored picture vector of a dataset or H&M item (None if unknown)."""
+        index = self._shop if item_id.startswith("hm_") else self._index
+        if index is None or item_id not in index.row_of:
+            return None
+        return index.vector(item_id)
 
     def image(self, item_id):
         if item_id.startswith("hm_"):

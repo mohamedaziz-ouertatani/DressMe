@@ -44,6 +44,12 @@ class FakeAnalyzer:
                 "colour": {"value": colour, "conf": 0.9},
                 "vector": fake_vector(sum(rgb))}
 
+    def concept_vectors(self):
+        """{concept: vector} for the team's concepts (fixed fakes, like the real text vectors)."""
+        import explain_similarity
+        return {r["concept"]: fake_vector(1000 + i)
+                for i, r in enumerate(explain_similarity.load_concepts())}
+
     def explain(self, img, head=None, value=None):
         """Like the real one: fixed small pictures, alternatives from analyze()."""
         fields = ["category", "sub_category", "pattern", "colour"]
@@ -80,6 +86,10 @@ class FakeCatalog:
     def image(self, item_id):
         known = item_id.startswith(("pv_", "hm_"))
         return Image.new("RGB", (20, 20), (128, 128, 128)) if known else None
+
+    def vector(self, item_id):
+        """The stored picture vector of a dataset / H&M item (a fixed fake)."""
+        return fake_vector(sum(map(ord, item_id)))
 
 
 class FakeChatEngine:
