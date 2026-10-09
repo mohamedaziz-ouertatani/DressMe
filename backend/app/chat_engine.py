@@ -187,9 +187,10 @@ def clean_model_text(text):
 class OllamaEngine:
     """A local model served by Ollama (http://localhost:11434). Ollama does not run
     the tools itself: it answers with `tool_calls`, we run them, send the results
-    back as "tool" messages and ask again, at most MAX_ROUNDS times."""
+    back as "tool" messages and ask again. After MAX_ROUNDS rounds of tool calls, or
+    when the model repeats a call it already made, it must answer without tools."""
 
-    MAX_ROUNDS = 6                  # like Gemini's maximum_remote_calls
+    MAX_ROUNDS = 6                  # rounds of tool calls (Gemini: maximum_remote_calls)
 
     def __init__(self, settings):
         self.settings = settings
@@ -218,33 +219,37 @@ class OllamaEngine:
             raise ChatBusy("Ollama returned an invalid message")
         return message
 
+    def _ask(self, messages, schemas):
+        return self._post({"model": self.settings.ollama_model, "messages": messages,
+                           "tools": schemas, "stream": False,
+                           "options": {"temperature": self.settings.ollama_temperature,
+                                       # Ollama's default window is too short for
+                                       # 20 messages of history + tool answers
+                                       "num_ctx": self.settings.ollama_num_ctx,
+                                       # a small model sometimes repeats itself until
+                                       # the timeout: cut the answer instead
+                                       "num_predict": self.settings.ollama_max_tokens}})
+
     def reply(self, system, history, message, tools):
+        """(answer, [tool names used]). The answer can be "" when the model says nothing:
+        the chat route then writes a short message in the user's language."""
         messages = [{"role": "system", "content": system}]
         messages += [{"role": "assistant" if h["role"] == "model" else "user", "content": h["text"]}
                      for h in history]
         messages.append({"role": "user", "content": message})
         schemas = [tool_schema(f) for f in tools.values()]
-        used = []
-        last_content = ""
-        for _ in range(self.MAX_ROUNDS + 1):
-            answer = self._post({"model": self.settings.ollama_model, "messages": messages,
-                                 "tools": schemas, "stream": False,
-                                 "options": {"temperature": self.settings.ollama_temperature,
-                                             # Ollama's default window is too short for
-                                             # 20 messages of history + tool answers
-                                             "num_ctx": self.settings.ollama_num_ctx,
-                                             # a small model sometimes repeats itself until
-                                             # the timeout: cut the answer instead
-                                             "num_predict": self.settings.ollama_max_tokens}})
+        used, done = [], set()        # tool names in order; (name, arguments) already run
+        for _ in range(self.MAX_ROUNDS):
+            answer = self._ask(messages, schemas)
             calls = answer.get("tool_calls") or []
             if not isinstance(calls, list):
                 raise ChatBusy("Ollama returned invalid tool calls")
-            last_content = clean_model_text(answer.get("content"))
-            if not calls or len(used) >= self.MAX_ROUNDS:
-                return last_content or "I couldn't finish that answer. Please try again.", used
+            if not calls:
+                return clean_model_text(answer.get("content")), used
             messages.append({"role": "assistant", "content": answer.get("content", ""),
                              "tool_calls": calls})
-            for call in calls:
+            looping = False
+            for call in calls:        # every call of the reply gets its answer
                 try:
                     function = call["function"]
                     name = function["name"]
@@ -253,22 +258,19 @@ class OllamaEngine:
                 if not isinstance(name, str) or not name:
                     raise ChatBusy("Ollama returned a tool call without a name")
                 used.append(name)
+                # the same tool with NEW arguments is a normal plan (tops, then bottoms);
+                # the same call twice means the model is going round in circles
+                key = (name, json.dumps(function.get("arguments"), sort_keys=True, default=str))
+                looping = looping or key in done
+                done.add(key)
                 messages.append({"role": "tool", "tool_name": name,
                                  "content": run_tool(tools, name, function.get("arguments"))})
-                if name in used[:-1]:
-                    messages.append({
-                        "role": "user",
-                        "content": "Use the tool result above and answer the original user directly. "
-                                   "Do not call any more tools.",
-                    })
-                    final = self._post({"model": self.settings.ollama_model, "messages": messages,
-                                        "tools": [], "stream": False,
-                                        "options": {"temperature": self.settings.ollama_temperature,
-                                                    "num_ctx": self.settings.ollama_num_ctx,
-                                                    "num_predict": self.settings.ollama_max_tokens}})
-                    content = clean_model_text(final.get("content"))
-                    return content or "I found outfit ideas from your wardrobe. See the pieces below.", used
-        return last_content or "I couldn't finish that answer. Please try again.", used
+            if looping:
+                break
+        # a loop or too many rounds: one last answer from the results so far, without tools
+        messages.append({"role": "user", "content": "Use the tool results above and answer my "
+                         "last message directly, in my language. Do not call any more tools."})
+        return clean_model_text(self._ask(messages, []).get("content")), used
 
     def classify(self, system, message):
         """One short answer without tools (the agent router)."""

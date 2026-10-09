@@ -4,6 +4,7 @@ import pytest
 
 from app import chat_engine
 from app.chat_engine import ChatBusy, ChatQuota, GeminiEngine, clean_model_text
+from app.routers import chat as chat_router
 from tests.conftest import BLACK, BLUE, RED, FakeChatEngine, photo, sign_up, upload
 
 
@@ -276,13 +277,78 @@ def test_ollama_malformed_responses_are_controlled_errors(settings, monkeypatch,
         ollama_engine(settings, monkeypatch, FakeOllama(payload)).reply("s", [], "hi", {})
 
 
-def test_ollama_tool_loop_never_returns_empty_answer(settings, monkeypatch):
-    call = {"role": "assistant", "content": "", "tool_calls": [
-        {"function": {"name": "unknown", "arguments": {}}}]}
-    fake = FakeOllama(*([call] * (OllamaEngine.MAX_ROUNDS + 1)))
+def tool_call(name, **arguments):
+    return {"function": {"name": name, "arguments": arguments}}
+
+
+def test_ollama_same_tool_with_new_arguments_keeps_going(settings, monkeypatch):
+    """Tops, then bottoms, then a score: calling list_wardrobe twice is a normal plan."""
+    fake = FakeOllama(
+        {"content": "", "tool_calls": [tool_call("list_wardrobe", category="top")]},
+        {"content": "", "tool_calls": [tool_call("list_wardrobe", category="bottom")]},
+        {"content": "", "tool_calls": [tool_call("score_outfit", item_ids=["a", "b"])]},
+        {"content": "That makes 70/100."})
+    tools = {"list_wardrobe": lambda category="": [{"id": category}],
+             "score_outfit": lambda item_ids: {"score": 70}}
+    answer, used = ollama_engine(settings, monkeypatch, fake).reply("s", [], "a with b?", tools)
+    assert answer == "That makes 70/100."
+    assert used == ["list_wardrobe", "list_wardrobe", "score_outfit"]
+
+
+def test_ollama_every_call_of_a_reply_gets_its_answer(settings, monkeypatch):
+    fake = FakeOllama(
+        {"content": "", "tool_calls": [tool_call("score_outfit", item_ids=["a"]),
+                                       tool_call("score_outfit", item_ids=["b"]),
+                                       tool_call("list_wardrobe")]},
+        {"content": "The first one."})
+    tools = {"list_wardrobe": lambda category="": [], "score_outfit": lambda item_ids: {"score": 1}}
+    answer, used = ollama_engine(settings, monkeypatch, fake).reply("s", [], "which?", tools)
+    assert answer == "The first one."
+    answered = [m["tool_name"] for m in fake.requests[1]["messages"] if m["role"] == "tool"]
+    assert answered == ["score_outfit", "score_outfit", "list_wardrobe"]
+
+
+def test_ollama_repeated_identical_call_asks_for_the_answer_without_tools(settings, monkeypatch):
+    call = {"content": "", "tool_calls": [tool_call("list_wardrobe", category="top")]}
+    fake = FakeOllama(call, call, {"content": "You have one top."})
+    answer, used = ollama_engine(settings, monkeypatch, fake).reply(
+        "s", [], "tops?", {"list_wardrobe": lambda category="": [{"id": "1"}]})
+    assert answer == "You have one top." and used == ["list_wardrobe", "list_wardrobe"]
+    assert fake.requests[-1]["tools"] == []
+
+
+def test_ollama_too_many_rounds_ends_with_an_answer_without_tools(settings, monkeypatch):
+    rounds = [{"content": "", "tool_calls": [tool_call("list_wardrobe", category=str(k))]}
+              for k in range(OllamaEngine.MAX_ROUNDS)]
+    fake = FakeOllama(*rounds, {"content": "Here is what I found."})
+    answer, used = ollama_engine(settings, monkeypatch, fake).reply(
+        "s", [], "hi", {"list_wardrobe": lambda category="": []})
+    assert answer == "Here is what I found." and len(used) == OllamaEngine.MAX_ROUNDS
+    assert fake.requests[-1]["tools"] == []
+
+
+def test_ollama_gives_no_made_up_text_when_the_model_says_nothing(settings, monkeypatch):
+    call = {"content": "", "tool_calls": [tool_call("unknown")]}
+    fake = FakeOllama(call, call, {"content": ""})
     answer, used = ollama_engine(settings, monkeypatch, fake).reply("s", [], "hi", {})
-    assert answer
-    assert used == ["unknown", "unknown"]
+    assert answer == "" and used == ["unknown", "unknown"]
+
+
+class SilentEngine:
+    def classify(self, system, message):
+        return "stylist"
+
+    def reply(self, system, history, message, tools):
+        return "", ["pieces_to_sell"]
+
+
+def test_empty_model_answer_gets_a_neutral_message_in_the_user_language(make_client):
+    client = make_client(chat_engine=SilentEngine())
+    headers = sign_up(client)
+    client.put("/me", json={"language": "fr"}, headers=headers)
+    reply = client.post("/chat", json={"message": "hello"}, headers=headers).json()["reply"]
+    assert reply == chat_router.NO_ANSWER["fr"]
+    assert "tenue" not in reply and "outfit" not in reply
 
 
 def test_model_text_hides_tool_protocol_artifacts():
