@@ -22,8 +22,8 @@ def outfit(client, headers):
 def test_explainer_is_registered_with_its_tools():
     assert "explainer" in AGENTS
     assert set(explainer.tools(None, None)) == {
-        "list_wardrobe", "explain_outfit", "what_if", "explain_labels", "explain_verdict",
-        "how_scoring_works"}
+        "list_wardrobe", "explain_outfit", "what_if", "explain_labels", "explain_similarity",
+        "explain_verdict", "how_scoring_works"}
 
 
 def test_explain_outfit_matches_the_app_score(client):
@@ -131,3 +131,19 @@ def test_pieces_can_be_named_by_description(client):
     ambiguous = t["explain_outfit"](["red t-shirt", "jeans", "sneakers"])
     assert "error" in ambiguous and len(ambiguous["candidates"]["red t-shirt"]) == 2
     assert "error" in t["explain_outfit"](["blue dress", "jeans"])  # matches nothing
+
+
+def test_explain_similarity_of_two_pieces(client):
+    headers = sign_up(client)
+    first = upload(client, headers, RED)["id"]
+    second = upload(client, headers, RED)["id"]
+    jeans = upload(client, headers, BLUE)["id"]
+    t = tools_for(client)
+    twins = t["explain_similarity"](first, second)
+    assert {"field": "sub_category", "value": "t-shirt"} in twins["shared_labels"]
+    assert 0 <= twins["similarity"] <= 1.0001 and isinstance(twins["near_twin"], bool)
+    apart = t["explain_similarity"](first, "jeans")                  # a description is fine
+    assert {"field": "category", "a": "top", "b": "bottom"} in apart["different_labels"]
+    assert "candidates" in t["explain_similarity"](jeans, "t-shirt")  # two t-shirts: ask which
+    sign_up(client, "sami@example.com", "Sami")
+    assert "error" in tools_for(client, "sami@example.com")["explain_similarity"](first, second)

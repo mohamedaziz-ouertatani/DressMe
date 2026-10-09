@@ -10,8 +10,9 @@ import re
 from .. import ml  # noqa: F401  (puts src/ on the import path)
 import compatibility
 import explain_outfit
+import explain_similarity as similarity_xai   # (explain_similarity is also a tool's name)
 
-from ..db import object_id
+from ..db import object_id, vector_from_bson
 from ..ml import unsure
 from ..routers.outfits import user_profile, wardrobe
 from ..wardrobe import describe, to_compat
@@ -229,6 +230,41 @@ def tools(request, user):
                 "twins": [{"item": describe({"id": t["id"]}, by_id), "similarity": t["similarity"]}
                           for t in why["twins"]]}
 
+    def explain_similarity(item_id: str, other_id: str) -> dict:
+        """Why DressMe says two pieces look alike (or not): their picture similarity, the labels
+        they share or not, and the styles / materials the picture model associates with both.
+        item_id / other_id: ids from list_wardrobe, a short description ("blue jeans"), or
+        "last_scan" for the last photo analysed."""
+        db = request.app.state.db
+        docs, by_id = wardrobe(request, user)
+        pieces = []
+        for ref in (item_id, other_id):
+            if ref == "last_scan":
+                doc = db.candidates.find_one({"user_id": user["_id"]}, sort=[("created_at", -1)])
+            elif ref in by_id:
+                doc = by_id[ref]
+            else:
+                found = matching(ref, docs)
+                if len(found) > 1:
+                    return {"error": f"several pieces match {ref!r}, pick one id",
+                            "candidates": [describe({"id": str(d["_id"])}, by_id) for d in found[:6]]}
+                doc = found[0] if found else None
+            if not doc:
+                return {"error": f"unknown piece {ref!r} (use list_wardrobe, or 'last_scan')"}
+            pieces.append(doc)
+        (a, b), (va, vb) = pieces, [vector_from_bson(d.get("vector")) for d in pieces]
+        why = similarity_xai.explain_pair(a, b, va, vb, request.app.state.analyzer.concept_vectors())
+        short = lambda d: {"id": str(d["_id"]), "category": d["category"], "sub_category": d["sub_category"],
+                           "colour": d["colour"]}
+        out = {"pieces": [short(a), short(b)], "shared_labels": why["shared"], "different_labels": why["differs"],
+               "both_read_as": why["both"], "contrast": why["contrast"],
+               "note": "'read as' = what the picture model associates with the photos, not a fact"}
+        if va is not None and vb is not None:
+            sim = float(va @ vb)
+            out["similarity"] = round(sim, 3)
+            out["near_twin"] = sim >= compatibility.RULES.settings["similar_item"]
+        return out
+
     def how_scoring_works() -> dict:
         """How DressMe scores outfits and gives buy verdicts: the four parts, the team's current
         weights and thresholds, and when a label counts as unsure."""
@@ -246,6 +282,7 @@ def tools(request, user):
                 "set_by": "the DressMe team, in the mappings/ files; the data only measures them"}
 
     functions = (list_wardrobe_tool(request, user), explain_outfit_tool, what_if, explain_labels,
+                 explain_similarity,
                  explain_verdict, how_scoring_works)
     return {f.__name__: f for f in functions}
 
@@ -253,10 +290,10 @@ def tools(request, user):
 AGENT = Agent(
     name="explainer", title="Explainer",
     description="why an outfit has its score, what would change it, why a piece got its labels, "
-                "why a buy verdict, how DressMe scores",
+                "why two pieces look alike, why a buy verdict, how DressMe scores",
     job=("explain how DressMe reached its answers. Use explain_outfit for why an outfit has its score "
          "(and the weakest piece), what_if for 'what if I wear X instead', explain_labels for why a piece "
-         "got its category, type, pattern or colour, explain_verdict for why the last scan got buy / think / "
+         "got its category, type, pattern or colour, explain_similarity for why two pieces look alike, explain_verdict for why the last scan got buy / think / "
          "skip, and how_scoring_works for how scoring works in general. Only give reasons that appear in a "
          "tool result; never invent a rule, a number or a cause. Labels are guesses from a photo: give their "
          "confidence, and say when the app is unsure. If no tool says why, say it is not known. When a "
