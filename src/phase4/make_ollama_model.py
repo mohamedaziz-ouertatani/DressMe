@@ -10,8 +10,8 @@ always tell Ollama how to handle tools.
 
 Usage (from the project root, Ollama running):
     python src/phase4/make_ollama_model.py
-    python src/phase4/make_ollama_model.py --gguf path/to/model.gguf --name dressme-chat --base qwen3:4b-instruct
-Writes models/llm/dressme-chat/Modelfile, then runs `ollama create`.
+    python src/phase4/make_ollama_model.py --gguf models/llm/dressme-chat-v2/gguf/x.gguf --name dressme-chat-v2
+Writes the Modelfile next to the GGUF's model folder, then runs `ollama create`.
 """
 
 import argparse
@@ -61,7 +61,9 @@ def main():
         if key != "temperature":           # the backend sets it per request
             lines.append(f"PARAMETER {key} {value.strip()}")
 
-    modelfile = MODEL_DIR / "Modelfile"
+    # next to the GGUF's model folder (models/llm/<model>/gguf/x.gguf -> models/llm/<model>/Modelfile)
+    folder = gguf.resolve().parent
+    modelfile = (folder.parent if folder.name == "gguf" else folder) / "Modelfile"
     modelfile.parent.mkdir(parents=True, exist_ok=True)
     modelfile.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"wrote {modelfile}; creating {args.name} (copies ~2.5 GB)...")

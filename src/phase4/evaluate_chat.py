@@ -1,6 +1,7 @@
 """
 Compares chat models served by Ollama (the base qwen3:4b-instruct and our
-fine-tuned dressme-chat) on the test conversations of src/phase4/build_chat_dataset.py.
+fine-tuned dressme-chat / dressme-chat-v2) on the test conversations of
+src/phase4/build_chat_dataset.py (five agents, each with its own prompt and tools).
 
 Every assistant turn of a test conversation is one decision. The model gets
 the conversation up to that point (system prompt, tools, earlier messages and
@@ -9,19 +10,22 @@ the real tool answers) and must either call the right tool or answer:
     tool name       the right tool (among the turns that need one)
     arguments       the same arguments (item ids as a set; tools' defaults filled in)
     language        a final answer in the right language (en / fr / ar)
+    router          the agent router's rows: answered the right agent's name
     seconds         time per decision on this machine
 The test wardrobes were never seen in training, and about a third of the
 questions use phrasings held out of the training split.
 
 Usage (from the project root, Ollama running, ~2-5 s per decision):
-    python src/phase4/evaluate_chat.py                                    # both models, 150 conversations
+    python src/phase4/evaluate_chat.py                                    # all models, 150 conversations
     python src/phase4/evaluate_chat.py --models qwen3:4b-instruct --limit 20
 Output: reports/phase4/chat_evaluation.md + reports/phase4/chat_evaluation.json
 """
 
 import argparse
+import inspect
 import json
 import re
+import sys
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -31,7 +35,23 @@ import httpx
 ROOT = Path(__file__).resolve().parents[2]
 TEST = ROOT / "data" / "processed" / "chat_sft" / "test.jsonl"
 REPORT = ROOT / "reports" / "phase4" / "chat_evaluation.md"
-DEFAULTS = {"suggest_outfits": {"season": "", "occasion": "", "n": 1}, "list_wardrobe": {"category": ""}}
+ROUTE_NAMES = ["stylist", "shopping", "analyst", "seller", "explainer"]
+
+
+def tool_defaults():
+    """{tool: {argument: default}} read from every agent's functions, so an argument the
+    model leaves out counts as the default value it really gets."""
+    sys.path.insert(0, str(ROOT / "backend"))
+    from app.agents import AGENTS
+    defaults = {}
+    for agent in AGENTS.values():
+        for name, fn in agent.tools(None, {"_id": None, "profile": {}}).items():
+            defaults[name] = {k: p.default for k, p in inspect.signature(fn).parameters.items()
+                              if p.default is not inspect.Parameter.empty}
+    return defaults
+
+
+DEFAULTS = tool_defaults()
 
 FR_WORDS = {"le", "la", "les", "tu", "ton", "ta", "tes", "et", "avec", "pour", "une", "un", "des",
             "de", "est", "pas", "je", "ça", "dans", "ce", "mais", "ou", "sur", "va", "aux", "du"}
@@ -56,11 +76,12 @@ def normalise(name, arguments):
         except ValueError:
             arguments = {}
     args = {**DEFAULTS.get(name, {}), **(arguments or {})}
-    if "n" in args:
-        try:
-            args["n"] = int(args["n"])
-        except (TypeError, ValueError):
-            pass
+    for key, value in args.items():            # 50 and 50.0 and "50" are the same number
+        if isinstance(value, (int, float, str)) and not isinstance(value, bool):
+            try:
+                args[key] = float(value)
+            except ValueError:
+                pass
     if isinstance(args.get("item_ids"), list):
         args["item_ids"] = sorted(map(str, args["item_ids"]))
     return args
@@ -109,8 +130,12 @@ def evaluate(url, model, rows):
             pred = ask(url, model, msgs[:k], row["tools"])
             seconds = time.time() - started
             calls = pred.get("tool_calls") or []
-            m = per[row["scenario"]]
+            m = per[f"{row.get('agent', '-')} / {row['scenario']}"]
             m["seconds"].append(seconds)
+            if row["scenario"] == "route":       # the router: one word, the agent's name
+                found = [a for a in ROUTE_NAMES if a in pred.get("content", "").lower()]
+                m["route"].append(int(found == [gold["content"]]))
+                continue
             if gold.get("tool_calls"):
                 g = gold["tool_calls"][0]["function"]
                 m["tool_decision"].append(int(bool(calls)))
@@ -136,7 +161,7 @@ def mean(values):
 
 
 def summary(per):
-    metrics = ["tool_decision", "tool_name", "arguments", "language"]
+    metrics = ["tool_decision", "tool_name", "arguments", "language", "route"]
     total = {k: [v for s in per.values() for v in s[k]] for k in metrics + ["seconds"]}
     out = {k: mean(total[k]) for k in metrics}
     out["seconds"] = round(sum(total["seconds"]) / max(len(total["seconds"]), 1), 2)
@@ -150,18 +175,19 @@ def write_report(results, n_conv):
              f"{n_conv} test conversations of `src/phase4/build_chat_dataset.py` (wardrobes never seen in "
              "training, ~1/3 of the questions phrased differently from the training split). Each "
              "assistant turn is one decision; the model sees the real conversation up to that point.", "",
-             "| Model | Tool decision | Tool name | Arguments | Language | s / decision |",
-             "|---|---|---|---|---|---|"]
+             "| Model | Tool decision | Tool name | Arguments | Language | Router | s / decision |",
+             "|---|---|---|---|---|---|---|"]
     for model, r in results.items():
         s = r["summary"]
         lines.append(f"| {model} | {s['tool_decision']}% | {s['tool_name']}% | {s['arguments']}% | "
-                     f"{s['language']}% | {s['seconds']} |")
+                     f"{s['language']}% | {s['route']}% | {s['seconds']} |")
     for model, r in results.items():
         lines += ["", f"## {model} by scenario", "",
-                  "| Scenario | Tool decision | Tool name | Arguments | Language |", "|---|---|---|---|---|"]
+                  "| Agent / scenario | Tool decision | Tool name | Arguments | Language | Router |",
+                  "|---|---|---|---|---|---|"]
         for scen, s in r["summary"]["by_scenario"].items():
             lines.append(f"| {scen} | " + " | ".join(
-                "-" if s[k] is None else f"{s[k]}%" for k in ("tool_decision", "tool_name", "arguments", "language"))
+                "-" if s[k] is None else f"{s[k]}%" for k in ("tool_decision", "tool_name", "arguments", "language", "route"))
                 + " |")
         lines += ["", "Examples (expected / model):", ""]
         for e in r["examples"]:
@@ -174,7 +200,7 @@ def write_report(results, n_conv):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--models", nargs="+", default=["qwen3:4b-instruct", "dressme-chat"])
+    ap.add_argument("--models", nargs="+", default=["qwen3:4b-instruct", "dressme-chat", "dressme-chat-v2"])
     ap.add_argument("--limit", type=int, default=150, help="test conversations to use")
     ap.add_argument("--url", default="http://localhost:11434")
     args = ap.parse_args()

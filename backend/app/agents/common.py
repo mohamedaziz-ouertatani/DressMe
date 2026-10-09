@@ -91,7 +91,7 @@ def list_wardrobe_tool(request, user):
     return list_wardrobe
 
 
-# The rules every agent follows (the same as the original chat prompt, chat.SYSTEM)
+# The rules every agent follows (src/phase4/build_chat_dataset.py trains the local model on them)
 BASE = """You are DressMe, a friendly personal fashion assistant for young people in Tunisia
 who have a limited budget and buy mostly second-hand (friperie) clothes that can rarely be returned.
 Rules:
