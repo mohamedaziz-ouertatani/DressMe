@@ -40,16 +40,22 @@ def load_keywords(path=KEYWORDS_CSV):
 
 
 def by_keywords(message, keywords):
-    """The agent with the most keywords found at the start of a word in the message
-    (ties and no match: the Stylist)."""
+    """The agent with the most keywords found at the start of a word in the message.
+    A tie goes to the agent whose keyword comes first ("Why is my outfit ..." is a why
+    question, not an outfit request); no match: the Stylist."""
     text = normalise(message)
     hits = {name: 0 for name in AGENTS}
+    first = {name: len(text) for name in AGENTS}       # where each agent's first keyword starts
     for agent, keyword in keywords:
-        if re.search(r"(?<!\w)" + re.escape(keyword), text):
+        found = re.search(r"(?<!\w)" + re.escape(keyword), text)
+        if found:
             hits[agent] += 1
+            first[agent] = min(first[agent], found.start())
     best = max(hits.values())
+    if not best:
+        return DEFAULT_AGENT
     winners = [name for name, n in hits.items() if n == best]
-    return winners[0] if best and len(winners) == 1 else DEFAULT_AGENT
+    return min(winners, key=lambda name: first[name])
 
 
 def router_prompt():

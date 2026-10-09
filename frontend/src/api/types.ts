@@ -242,14 +242,15 @@ export interface ChatTurn {
   text: string
   tools_used: string[]
   attachments?: ChatAttachment[]
-  agent?: string            // stylist, shopping, analyst or seller ('' for old messages)
+  agent?: string            // stylist, shopping, analyst, seller or explainer ('' for old messages)
   actions?: ChatAction[]
 }
 
 /** Something the assistant prepared for the user to open (never done for them). */
 export interface ChatAction {
-  kind: 'sell'
-  url: string               // /sell?item=...&price=...: the Sell form, already filled
+  kind: 'sell' | 'explain'
+  url: string               // sell: /sell?item=...&price=... (the Sell form, already filled);
+                            // explain: /wardrobe/<id>?why=1 (the item's "Why these labels?" panel)
 }
 
 export interface ChatAttachment {

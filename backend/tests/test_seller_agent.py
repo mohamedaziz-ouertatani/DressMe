@@ -40,7 +40,7 @@ def seller_tools(client, email="amira@example.com"):
 def test_seller_has_its_tools_and_is_registered():
     assert set(seller.tools(None, None)) == {
         "list_wardrobe", "pieces_to_sell", "price_hint", "my_listings", "prepare_sell"}
-    assert list(AGENTS) == ["stylist", "shopping", "analyst", "seller"]
+    assert list(AGENTS) == ["stylist", "shopping", "analyst", "seller", "explainer"]
 
 
 def test_pieces_to_sell_unmatched_and_twins(client):

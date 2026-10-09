@@ -160,13 +160,11 @@ ASK_LIST_CATEGORY = {
     "arabizi": ["chnowa 3andi men {cat}?", "warini el {cat} mte3i"],
 }
 ASK_SUGGEST = {
-    "en": ["What should I wear today?", "Pick an outfit for me", "Any outfit idea?",
-           "I don't know what to wear, help me"],
-    "fr": ["Je mets quoi aujourd'hui ?", "Choisis-moi une tenue", "Une idée de tenue ?",
-           "Je sais pas quoi mettre, aide-moi"],
-    "ar": ["شنوة نلبس اليوم؟", "اختارلي لبسة", "عندك فكرة لبسة؟", "ما نعرفش شنوة نلبس، عاوني"],
-    "arabizi": ["chnowa nelbes lyoum?", "5tarli lebsa", "3andek fekra lebsa?",
-                "ma na3rech chnowa nelbes, 3awenni"],
+    # "what do I wear TODAY?" is in chat_phrases_agents.ASK_TODAY (weather first)
+    "en": ["Pick an outfit for me", "Any outfit idea?", "I don't know what to wear, help me"],
+    "fr": ["Choisis-moi une tenue", "Une idée de tenue ?", "Je sais pas quoi mettre, aide-moi"],
+    "ar": ["اختارلي لبسة", "عندك فكرة لبسة؟", "ما نعرفش شنوة نلبس، عاوني"],
+    "arabizi": ["5tarli lebsa", "3andek fekra lebsa?", "ma na3rech chnowa nelbes, 3awenni"],
 }
 ASK_SUGGEST_OCCASION = {
     "en": ["What can I wear {occasion}?", "I need an outfit {occasion}", "Outfit idea {occasion}?"],
