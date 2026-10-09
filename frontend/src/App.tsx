@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AdminFormula, AdminLayout, AdminModeration, AdminOverview, AdminQuality, AdminUsers } from './admin/AdminPages'
+import { AdminXai } from './admin/XaiPage'
 import { AdminListings } from './admin/ListingsDashboard'
 import { AuthProvider, useAuth } from './auth'
 import { I18nProvider } from './i18n'
@@ -80,6 +81,7 @@ export default function App() {
               <Route path="quality" element={<AdminQuality />} />
               <Route path="users" element={<AdminUsers />} />
               <Route path="formula" element={<AdminFormula />} />
+              <Route path="xai" element={<AdminXai />} />
               <Route path="listings" element={<AdminListings />} />
               <Route path="sources" element={<Navigate to="/admin/listings" replace />} />
               <Route path="moderation" element={<AdminModeration />} />

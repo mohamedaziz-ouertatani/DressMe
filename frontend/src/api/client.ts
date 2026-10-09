@@ -1,7 +1,7 @@
 // One small fetch wrapper for every API call. The log-in token lives in
 // localStorage; a 401 anywhere logs the user out (see AuthProvider).
 import type {
-  SourceCheck, AdminSource, Job, JobStart, ListingsOverview, AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Insights, Item, ItemPatch,
+  AdminXai, SourceCheck, AdminSource, Job, JobStart, ListingsOverview, AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Insights, Item, ItemPatch,
   Listing, ListingFilters, ListingPage, ListingPatch, ModelQuality, ReviewListing, SellForm, Occasion, Outfit, Season, Similar, Stats, User,
   ChatAttachment, ChatAction, TryOnResult, Weather, Explanation, GuessField, OutfitExplanation,
 } from './types'
@@ -191,6 +191,8 @@ export const api = {
     deleteUser: (id: string) => request<void>(`/admin/users/${id}`, { method: 'DELETE' }),
     formula: () => request<Formula>('/admin/formula'),
     saveFormula: (values: Record<string, number>) => request<Formula>('/admin/formula', json('PUT', { values })),
+    xai: () => request<AdminXai>('/admin/xai'),
+    saveXai: (values: Record<string, number>) => request<AdminXai>('/admin/xai/settings', json('PUT', { values })),
     sources: () => request<{ sources: AdminSource[]; file: string }>('/admin/sources'),
     listingsOverview: () => request<ListingsOverview>('/admin/listings/overview'),
     checkSource: (id: string) => request<SourceCheck & { source_id: string }>(`/admin/sources/${id}/check`, { method: 'POST' }),
