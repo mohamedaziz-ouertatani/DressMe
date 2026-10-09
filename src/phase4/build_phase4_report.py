@@ -3,8 +3,10 @@ Build the Phase 4 PDF report: reports/phase4/phase4_report.pdf
 
 It sums up the full prototype: FashionCLIP embeddings, the EfficientNet
 classifier, the compatibility formula, the FastAPI + MongoDB backend and the
-React frontend, plus the local chat model. Numbers come from the evaluation reports and files in
-reports/ and mappings/ (no data/ needed), so it runs on any checkout.
+React frontend, then what was built on top of them: shop and friperie listings,
+five AI chat agents, the local chat model and the explainability (XAI) layer.
+Numbers come from the evaluation reports and files in reports/ and mappings/
+(no data/ needed), so it runs on any checkout.
 
 Run:   python src/phase4/build_phase4_report.py
 """
@@ -34,9 +36,12 @@ REPORTS = ROOT / "reports" / "phase4"
 FIG = REPORTS / "figures"
 FIG4 = FIG / "summary"
 MAPPINGS = ROOT / "mappings"
+MODEL_NAMES = {"qwen3:4b-instruct": "qwen3:4b-instruct (base)", "dressme-chat": "dressme-chat (v1)",
+               "dressme-chat-v2": "dressme-chat-v2"}
 
 SECTIONS = ["context", "architecture", "embeddings", "classifier", "compatibility",
-            "backend", "frontend", "testing", "local", "chat", "decisions", "limits", "next"]
+            "backend", "listings", "agents", "chat", "xai", "frontend", "testing", "local",
+            "decisions", "limits", "next"]
 
 
 def sec(key):
@@ -70,7 +75,21 @@ def read_settings():
         return {r["name"]: r for r in csv.DictReader(f)}
 
 
+def read_chat_eval():
+    """Results of src/phase4/evaluate_chat.py ({} if it has not been run)."""
+    path = REPORTS / "chat_evaluation.json"
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+
+
 # ------------------------------------------------------------------ charts
+def save(fig_, name):
+    path = FIG4 / name
+    fig_.tight_layout()
+    fig_.savefig(path, dpi=200)
+    plt.close(fig_)
+    return path
+
+
 def chart_models(choice):
     """EfficientNet vs FashionCLIP probe, test accuracy per field."""
     fields = list(choice)
@@ -88,11 +107,7 @@ def chart_models(choice):
     ax.set_ylim(50, 105)
     ax.legend(frameon=False, loc="upper right", fontsize=8)
     ax.set_title("Classifier vs embedding baseline")
-    path = FIG4 / "classifier_vs_probe.png"
-    fig_.tight_layout()
-    fig_.savefig(path, dpi=200)
-    plt.close(fig_)
-    return path
+    return save(fig_, "classifier_vs_probe.png")
 
 
 def chart_training(log):
@@ -106,11 +121,7 @@ def chart_training(log):
     ax.set_xticks(log["epoch"])
     ax.legend(frameon=False, fontsize=8)
     ax.set_title("EfficientNet-B0 training (validation split)")
-    path = FIG4 / "classifier_training.png"
-    fig_.tight_layout()
-    fig_.savefig(path, dpi=200)
-    plt.close(fig_)
-    return path
+    return save(fig_, "classifier_training.png")
 
 
 def chart_compatibility():
@@ -131,20 +142,53 @@ def chart_compatibility():
     ax.set_ylim(40, 90)
     ax.legend(frameon=False, fontsize=8)
     ax.set_title("Compatibility: which part carries the signal")
-    path = FIG4 / "compatibility_auc.png"
-    fig_.tight_layout()
-    fig_.savefig(path, dpi=200)
-    plt.close(fig_)
-    return path
+    return save(fig_, "compatibility_auc.png")
+
+
+def chart_chat(chat_eval):
+    """The chat models on the same test decisions (reports/phase4/chat_evaluation.json)."""
+    metrics = [("tool_decision", "tool\ndecision"), ("tool_name", "tool\nname"),
+               ("arguments", "arguments"), ("language", "language"), ("route", "router")]
+    models = list(chat_eval)
+    palette = [GOLD, DARK, RUST]
+    width = 0.8 / len(models)
+    fig_, ax = plt.subplots(figsize=(6.5, 3))
+    for k, m in enumerate(models):
+        values = [chat_eval[m]["summary"].get(key) or 0 for key, _ in metrics]
+        xs = [i + (k - (len(models) - 1) / 2) * width for i in range(len(metrics))]
+        ax.bar(xs, values, width, label=MODEL_NAMES.get(m, m), color=palette[k % len(palette)])
+    ax.set_xticks(range(len(metrics)), [label for _, label in metrics], fontsize=8)
+    ax.set_ylabel("test accuracy (%)")
+    ax.set_ylim(0, 105)
+    ax.legend(frameon=False, fontsize=7, ncol=len(models), loc="lower center",
+              bbox_to_anchor=(0.5, 1.0))
+    ax.set_title("Chat models on the same test conversations", pad=22)
+    return save(fig_, "chat_models.png")
+
+
+def chart_unsure():
+    """Accuracy of the answers shown as sure vs 'not sure, check'
+    (reports/phase4/explanations_evaluation.md, 29,633 test pictures)."""
+    rows = {"category": (96.9, 49.6), "sub_category": (88.9, 35.5), "pattern": (91.1, 45.9)}
+    names = list(rows)
+    x = range(len(names))
+    fig_, ax = plt.subplots(figsize=(6.5, 2.8))
+    ax.bar([i - 0.2 for i in x], [rows[n][0] for n in names], 0.4, label="shown as sure",
+           color=DARK)
+    ax.bar([i + 0.2 for i in x], [rows[n][1] for n in names], 0.4,
+           label="flagged \"not sure, check\"", color=RUST)
+    for i, n in enumerate(names):
+        ax.text(i - 0.2, rows[n][0] + 1.5, f"{rows[n][0]:.0f}", ha="center", fontsize=8)
+        ax.text(i + 0.2, rows[n][1] + 1.5, f"{rows[n][1]:.0f}", ha="center", fontsize=8)
+    ax.set_xticks(list(x), names)
+    ax.set_ylabel("accuracy (%)")
+    ax.set_ylim(0, 110)
+    ax.legend(frameon=False, fontsize=8, ncol=2, loc="lower center", bbox_to_anchor=(0.5, 1.0))
+    ax.set_title("Is the \"not sure\" flag honest?", pad=22)
+    return save(fig_, "unsure_flag.png")
 
 
 # ------------------------------------------------------------------ report
-def read_chat_eval():
-    """Results of src/phase4/evaluate_chat.py ({} if it has not been run)."""
-    path = REPORTS / "chat_evaluation.json"
-    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
-
-
 def build():
     FIG4.mkdir(parents=True, exist_ok=True)
     choice = json.loads((REPORTS / "classifier_choice.json").read_text())
@@ -157,6 +201,8 @@ def build():
     train_min = log["minutes"].sum()
     n_fast, n_slow = count_tests()
     chat_eval = read_chat_eval()
+    v2 = chat_eval.get("dressme-chat-v2", {}).get("summary")
+    base = chat_eval.get("qwen3:4b-instruct", {}).get("summary")
 
     story = []
 
@@ -169,11 +215,17 @@ def build():
                 f"(team of 6) · Report generated {date.today().isoformat()}"),
               Spacer(1, 1.2 * cm),
               Paragraph("Executive summary", H2)]
+    chat_line = "."
+    if v2 and base:
+        chat_line = (f". On the test chats it picks the right tool {v2['tool_name']}% of the time "
+                     f"with the right arguments {v2['arguments']}% (base model: "
+                     f"{base['tool_name']}% / {base['arguments']}%).")
     story += bullets([
         "Phase 4 turns the Phase 3 dataset (<i>dressme.csv</i>, 3 public sources, unified "
         "schema) into a working app, built as <b>five sub-projects</b>: FashionCLIP embeddings, "
         "an EfficientNet classifier, a compatibility formula, a FastAPI + MongoDB backend and a "
-        "React frontend. All five are done.",
+        "React frontend. All five are done, and four layers were built on top of them: "
+        "listings, AI agents, a local chat model and explainability.",
         "<b>FashionCLIP</b> gives a 512-number vector for 282,135 pictures / crops. A linear "
         f"probe on these vectors reaches {probe['category']:.1f}% category and "
         f"{probe['sub_category']:.1f}% sub_category: the bar the classifier had to beat.",
@@ -183,24 +235,23 @@ def build():
         "The <b>compatibility formula</b> (style + colour + pattern + structure, weights set by "
         "the team) scores outfits 0-100 with reasons. Swap-test AUC: 66.6% PolyVore, 78.7% "
         "Fashionpedia. Style carries almost all the measurable signal.",
-        "The <b>backend</b> exposes wardrobe upload with automatic analysis, \"should I buy "
-        "this?\", outfit suggest / score / complete, look-alikes in the wardrobe and the H&amp;M "
-        "shop catalogue, a chat assistant with function calling (Gemini, or a local model "
-        "with Ollama) and an admin dashboard.",
-        "The <b>frontend</b> (React 19 + Tailwind 4) covers scan, wardrobe, outfit building, "
-        "look-alikes, chat and profile in English, French and Arabic (RTL).",
-        "<b>Real photos:</b> uploads are turned upright (phone EXIF rotation) and their "
-        "background is removed (U2-Net, plus cloth-seg when the item is worn), so they look "
-        "like the white product shots the models were trained on. Outfits never repeat a "
-        "sub_category or exceed a category limit.",
-        f"<b>Demo readiness:</b> {n_fast} backend tests pass; a browser walkthrough of every "
-        "screen and the follow-up work found and fixed three bugs before the jury demo "
-        "(<i>DEMO.md</i>). The pipeline "
-        "for our own test photos is ready (<i>LOCAL_PHOTOS.md</i>); collection is next.",
-        "<b>Local chat model</b> (in progress): the assistant can run on our own machine with "
-        "Ollama (Qwen3-4B, no key, no 20-requests-a-day quota, works offline). A synthetic "
-        "dataset in English, French and Darija and a QLoRA fine-tuning pipeline on Kaggle are "
-        "ready; the base model's baseline is measured, training is next.",
+        "<b>Listings:</b> clothes for sale now, from two Tunisian shops read politely (Exist, "
+        "Hamadi Abid), a frozen snapshot of the Inditex shops (which block automated access) "
+        "and friperie sellers who post in the app after an admin approves them.",
+        "<b>Five AI agents</b> answer in the chat, each with its own prompt and tools on the "
+        "user's real data: Stylist, Shopping advisor, Wardrobe analyst, Seller assistant and "
+        "Explainer. A router picks one per message.",
+        "<b>Local chat model:</b> Qwen3-4B fine-tuned with QLoRA on synthetic chats in French, "
+        "English and Tunisian Darija runs offline with no daily quota" + chat_line,
+        "<b>Explainability (XAI):</b> every label, outfit score and buy verdict can say why "
+        "(heatmaps, confidence and a \"not sure, check\" flag, points per part, the weakest "
+        "piece and its best swap). Sub-projects 1-2 of 4 are done, 3 (similarity + chat traces) "
+        "is in progress.",
+        "<b>Real-life features:</b> background removal on every upload, today's weather to "
+        "choose the season, beach outfits, an Insights page, and a virtual try-on through "
+        "hosted models with a 2D fallback.",
+        f"<b>Quality:</b> {n_fast} backend tests with fakes, plus {n_slow} real-model tests; "
+        "a browser walkthrough of every screen before the jury demo (<i>DEMO.md</i>).",
     ])
     story.append(PageBreak())
 
@@ -214,39 +265,48 @@ def build():
               Spacer(1, 4),
               p("Phase 4 goal: a full prototype that (1) digitises a wardrobe from photos, "
                 "(2) answers buy / think / skip from one photo in the shop, (3) suggests and "
-                "scores outfits filtered by modesty, season and occasion, (4) finds look-alikes, "
-                "and (5) offers a chat assistant that only talks about clothes the user owns."),
+                "scores outfits filtered by modesty, season and occasion, (4) finds look-alikes "
+                "and pieces for sale, (5) offers a chat assistant that only talks about clothes "
+                "the user owns, and (6) can explain each of its answers."),
               Spacer(1, 6),
               table([["Sub-project", "Output", "Status"],
                      ["4.1 Embeddings", "FashionCLIP vectors + similarity index", "done"],
                      ["4.2 Classifier", "EfficientNet-B0: category, sub_category, pattern",
                       "done"],
                      ["4.3 Compatibility", "weighted formula, 0-100 score with reasons", "done"],
-                     ["4.4 Backend", "FastAPI + MongoDB + Gemini chat", "done"],
+                     ["4.4 Backend", "FastAPI + MongoDB, weather, virtual try-on", "done"],
                      ["4.5 Frontend", "React + Tailwind app and admin dashboard", "done"],
-                     ["4.6 Local chat", "Ollama engine + QLoRA fine-tuning (Qwen3-4B)",
-                      "in progress"]],
+                     ["Listings", "Tunisian shops, frozen snapshot, friperie sellers", "done"],
+                     ["AI agents", "five chat agents with tools + a router", "done"],
+                     ["Local chat model", "Qwen3-4B + QLoRA, served by Ollama (v2)", "done"],
+                     ["XAI 1-2", "item labels; outfit scores and buy verdicts", "done"],
+                     ["XAI 3-4", "similarity + chat traces; jury report", "in progress"]],
                     widths=[3.5 * cm, WIDTH - 5.5 * cm, 2 * cm])]
 
     # --- 2. architecture
     story += h1("architecture", "Architecture")
     story += [inline_code("""
   React app (frontend/)  --/api-->  FastAPI (backend/app)  ----->  MongoDB
-                                         |                         users, items, chat, events
-                                         |
+                                         |              users, items, candidates, chat,
+                                         |              listings, events, feedback
             upload: EXIF rotation -> app/background.py (rembg U2-Net + cloth-seg) -> on white
                                          |
                     app/ml.py  Analyzer: EfficientNet + colour model + FashionCLIP
                                Catalog:  SimilarityIndex (PolyVore, Fashion Product, H&M)
                                          |
-                    src/phase4/compatibility.py  (rules + weights in mappings/*.csv)
+                    src/phase4/compatibility.py + explain*.py  (rules in mappings/*.csv)
                                          |
-        Gemini API  or  Ollama (local Qwen3-4B)   (chat, function calling on the wardrobe)
+       /chat: router -> one of 5 agents -> tools on the user's data
+              engine: Gemini API  or  Ollama (local dressme-chat-v2)
+                                         |
+       collect_listings.py (nightly, separate process): connectors -> analysed listings
+       Open-Meteo (weather)    Hugging Face Spaces (virtual try-on)
 """),
-              p("Models train on the local GPU (RTX 2050, 4 GB). The backend reuses the "
-                "<i>src/</i> code directly, so the evaluated models are exactly those the app "
-                "runs. Team-set rules (weights, colour harmony, pattern mixing, outfit "
-                "structure) live in CSV files, never in code.")]
+              p("Models train on the local GPU (RTX 2050, 4 GB), except the chat model "
+                "(free Kaggle T4). The backend reuses the <i>src/</i> code directly, so the "
+                "evaluated models are exactly those the app runs. Team-set rules (weights, colour "
+                "harmony, pattern mixing, outfit structure, weather seasons, XAI cuts, resale "
+                "prices, router keywords) live in CSV files, never in code.")]
 
     # --- 3. embeddings
     story += h1("embeddings", "FashionCLIP embeddings")
@@ -255,7 +315,7 @@ def build():
         "per <i>image_group</i> for product shots and per item crop (≥ 32 px) for Fashionpedia. "
         "282,135 vectors; resumable, one shard per dataset.",
         "<i>src/phase4/similarity.py</i> (<i>SimilarityIndex</i>): nearest-neighbour search, reused by "
-        "the API for look-alikes and for the H&amp;M shop.",
+        "the API for look-alikes, the H&amp;M shop and the listings.",
         "<i>src/phase4/evaluate_embeddings.py</i> → <i>reports/phase4/embeddings_evaluation.md</i>.",
     ])
     story += [Paragraph("Results on the 29,633 test pictures", H3),
@@ -291,7 +351,8 @@ def build():
         "<i>gpu_batch</i> decodes JPEGs and augments on the GPU (no hue change, so colours "
         f"stay true). Training: {len(log)} epochs, ~{train_min / len(log):.0f} min each "
         f"(~{train_min:.0f} min total) at ~200 img/s, resumable.",
-        "<i>predict</i> keeps the sub_category inside the predicted category, as the app shows it.",
+        "<i>predict</i> keeps the sub_category inside the predicted category, and also returns "
+        f"the top 3 answers per field for the explanations (section {sec('xai')}).",
     ])
     story.append(fig(chart_training(log), caption="Validation accuracy per epoch "
                      "(reports/phase4/classifier_training_log.csv); the best epoch is the last one.",
@@ -330,13 +391,20 @@ def build():
                       "(pattern_mixing.csv); predictions under "
                       f"{settings['min_pattern_conf']['value']} confidence ignored"],
                      ["structure", f"{w['structure']:.2f}", "top + bottom or a full piece, plus "
-                      "shoes and per-category limits (outfit_structure.csv)"]],
+                      "shoes, per-category limits (outfit_structure.csv) and the worst "
+                      "sub_category pair, e.g. blazer + track pants (sub_category_pairing.csv)"]],
                     widths=[2.3 * cm, 1.6 * cm, WIDTH - 3.9 * cm]),
               Spacer(1, 6)]
     story += bullets([
         "<b>Functions:</b> <i>filter_items</i> (profile: min_coverage, season, occasion; "
-        "unknown fields pass), <i>suggest_outfits</i>, <i>complete_outfit</i> and "
-        "<i>buy_advice</i>.",
+        "unknown fields pass), <i>suggest_outfits</i>, <i>complete_outfit</i>, <i>buy_advice</i> "
+        "and <i>wardrobe_insights</i> (good outfits, most versatile and unmatched pieces, what "
+        "is missing, near-twins).",
+        "<b>Seasons:</b> an item without its own season gets a default one "
+        "(<i>item_seasons.csv</i>: shorts in summer, coats not in summer), applied softly to "
+        "tops, bottoms and shoes so an outfit is still found. <b>Beach:</b> outfits built "
+        "around a swimsuit, without shoes, always as summer; swimwear is left out of "
+        "everyday outfits.",
         "<b>Hard rule</b> (<i>clashes</i>): an outfit never holds the same sub_category twice "
         "(two pairs of jeans) or more items of a category than <i>outfit_structure.csv</i> "
         "allows. <i>complete_outfit</i> never proposes a clash, and scoring one answers 422.",
@@ -385,74 +453,266 @@ def build():
                      ["/auth/register, /auth/login, /me", "email + password (bcrypt), JWT; "
                       "profile: name, min_coverage, language"],
                      ["/items (POST, GET, PATCH, DELETE), /items/{id}/image",
-                      "upload → analysed (category, sub_category, pattern, colour, vector). "
-                      "PATCH stores user corrections in <i>corrected</i>; the model's guesses "
-                      "stay in <i>predicted</i>"],
-                     ["/analyze", "shop candidate, not saved to the wardrobe, deleted after 24 h"],
-                     ["/buy-advice", "buy / think / skip for the last scan"],
-                     ["/outfits/score, /outfits/suggest, /outfits/complete, /outfits/limits",
-                      "the compatibility formula on the user's wardrobe; 422 on a clash; "
-                      "category limits for the Build page"],
+                      "upload → analysed (category, sub_category, pattern, colour, vector, top-3 "
+                      "answers). PATCH stores user corrections in <i>corrected</i>; the model's "
+                      "guesses stay in <i>predicted</i>"],
+                     ["/analyze, /buy-advice", "shop candidate (not saved, deleted after 24 h) "
+                      "and its buy / think / skip verdict"],
+                     ["/outfits/score, suggest, complete, explain, limits",
+                      "the compatibility formula on the user's wardrobe, with points and "
+                      "explanations; 422 on a clash; beach outfits"],
                      ["/similar, /catalog/{id}/image", "look-alikes in the wardrobe, the public "
-                      "catalogue and the H&amp;M shop (\"buy something like this\")"],
-                     ["/chat, /chat/history", "Gemini or the local model (CHAT_ENGINE) with "
-                      "function calling: list_wardrobe, "
-                      "suggest_outfits, score_outfit, buy_advice_last_scan"],
+                      "catalogue, the H&amp;M shop and the listings in stock"],
+                     ["/insights", "what the wardrobe makes, lacks and holds twice"],
+                     ["/listings, /listings/sell, /listings/mine", "browse listings, sell a "
+                      "piece (admin approval first), manage one's own listings"],
+                     ["/chat, /chat/history", "five agents with tools (section "
+                      f"{sec('agents')}); Gemini or the local model (<i>CHAT_ENGINE</i>)"],
+                     ["/items/{id}/explain, /candidates/{id}/explain", "why these labels "
+                      "(heatmaps, computed on demand, never stored)"],
+                     ["/weather, /tryon", "today's weather and season; a picture of the user "
+                      "wearing the chosen pieces"],
                      ["/admin/*", "usage stats, model quality (how often users correct each "
-                      "field), user management, live editing of the formula"]],
+                      "field), users, live editing of the formula, listing sources, moderation, "
+                      "collector runs"]],
                     widths=[5.6 * cm, WIDTH - 5.6 * cm]),
               Spacer(1, 6)]
     story += bullets([
         "<b>Clean photos before analysis</b> (<i>app/background.py</i>): every upload is "
-        "turned upright with its EXIF rotation tag (phones store portrait photos sideways), "
-        "shrunk to 1024 px, its background removed with rembg (U2-Net) and pasted on white, "
-        "cropped around the item. When the item is worn, U2-Net keeps the whole person, so "
-        "U2-Net cloth-seg cuts it down to the biggest garment. If the mask finds under 3% of "
-        "the photo, the original is kept. ~3-5 s per photo on the CPU; "
-        "<i>REMOVE_BACKGROUND=0</i> / <i>CLOTH_MODEL=</i> switch the steps off.",
+        "turned upright with its EXIF rotation tag, shrunk to 1024 px, its background removed "
+        "with rembg (U2-Net) and pasted on white, cropped around the item. When the item is "
+        "worn, U2-Net cloth-seg cuts it down to the biggest garment. If the mask finds under 3% "
+        "of the photo, the original is kept. ~3-5 s per photo on the CPU.",
+        "<b>Weather</b> (<i>app/weather.py</i>): Open-Meteo (free, no key), cached 30 min per "
+        "place. The season to dress for comes from the day's feels-like temperatures with the "
+        "team's thresholds (<i>weather_seasons.csv</i>, REVIEW). Positions are rounded to ~10 km "
+        "and never stored.",
+        "<b>Virtual try-on</b> (<i>app/tryon.py</i>): the try-on models (CatVTON, Kolors, "
+        "IDM-VTON, OOTDiffusion) need 8-16 GB of GPU, so the picture comes from Hugging Face "
+        "Spaces, tried in order; one garment per call, an outfit is chained (at most 3). The "
+        "person photo goes to the Space (the app says so) and nothing is stored. If no Space "
+        "can dress the garments, the app falls back to a 2D overlay.",
         "<b>Privacy:</b> every query is filtered by <i>user_id</i>; another user's item "
-        "answers 404.",
+        "answers 404. Agent tools are bound to the user, and a seller's contact never reaches "
+        "the language model.",
         "<b>Honest colour:</b> a colour below 0.7 confidence is left empty (the guess is kept "
         "in <i>predicted</i>) and the UI asks the user to confirm it.",
-        "<b>H&amp;M catalogue</b> replaces scraping (team decision 2026-10-03): 63k adult "
-        "articles, pictures shrunk to 320 px in a private Kaggle notebook, embedded with "
-        "FashionCLIP. The Zara / Bershka / Pull&amp;Bear rows already scraped are kept only as "
-        "a frozen demo.",
         f"<b>Tests:</b> <i>python -m pytest</i> in <i>backend/</i> — {n_fast} fast tests "
-        "with fake models and a fake background remover on a <i>dressme_test</i> database, "
-        f"plus {n_slow} real-model tests (<i>DRESSME_SLOW=1</i>).",
+        "with fake models, a fake background remover, fake weather and recorded shop answers on "
+        f"a <i>dressme_test</i> database, plus {n_slow} real-model tests (<i>DRESSME_SLOW=1</i>).",
     ])
 
-    # --- 7. frontend
+    # --- 7. listings
+    story += h1("listings", "Listings: shops and friperie sellers")
+    story += [p("\"Should I buy this?\" is more useful when the app also knows what is for sale. "
+                "<i>mappings/listing_sources.csv</i> (team-owned) lists the sources; "
+                "<i>src/phase4/collect_listings.py</i> runs nightly as a separate process: each "
+                "enabled and approved source's connector reads the products, and every new "
+                "picture is analysed like an upload. Products missing from a complete run become "
+                "<i>gone</i>. Details in <i>LISTINGS.md</i>."),
+              Spacer(1, 4),
+              table([["Source", "How", "Status"],
+                     ["Exist (exist.com.tn)", "sitemap → product pages' schema.org data, "
+                      "through the polite client (robots.txt, delay, stop on 403 / 429)", "running"],
+                     ["Hamadi Abid (ha.com.tn)", "its sitemap, then the JSON call its own pages "
+                      "make (adult sections only)", "running"],
+                     ["Zara, Bershka, Pull&amp;Bear", "Access Denied on the first page (bot "
+                      "protection), again on a polite re-check on 2026-10-07: shown only as a "
+                      "frozen, dated snapshot", "off"],
+                     ["H&amp;M France", "every product page answers 403 (bot protection)", "off"],
+                     ["Zen", "robots.txt forbids its product pages", "off"],
+                     ["Friperie sellers", "photo + price + size + city + contact in the app; "
+                      "pending until an admin approves it", "running"]],
+                    widths=[3.8 * cm, WIDTH - 5.8 * cm, 2 * cm]),
+              Spacer(1, 6)]
+    story += bullets([
+        "<b>We never work around a block:</b> a refusal stops the source, saves nothing and "
+        "shows on Admin > Sources. Before a source is enabled, a read-only check "
+        "(<i>check_shop_source.py</i>, or the Check button) detects its kind and a team member "
+        "reads its terms.",
+        "Products are saved one at a time as they are read, so a stopped or blocked run keeps "
+        "what it saved; only a complete good run marks products gone.",
+        "<b>In the app:</b> Shops (browse, then \"Should I buy this?\" on any listing), Sell "
+        "(post and manage one's listings), an \"In shops now\" row in Similar, and Admin > "
+        "Listings (counts, charts, collector runs started, followed live and stopped).",
+        "Labels on listings are model predictions only; prices in EUR are converted with the "
+        "team's rates (<i>currency_rates.csv</i>, REVIEW).",
+    ])
+
+    # --- 8. agents
+    story += h1("agents", "AI agents in the chat")
+    story += [p("The chat is five agents. Each one is a system prompt (the shared rules: answer "
+                "in the user's language, never invent clothes, respect the modesty level, be "
+                "short) plus its own tools: Python functions bound to the current user, which "
+                "the model calls and the backend runs. Every agent also has "
+                "<i>list_wardrobe</i>. Details in <i>AGENTS.md</i>."),
+              Spacer(1, 4),
+              table([["Agent", "Helps with", "Its own tools"],
+                     ["Stylist", "what to wear today or for an occasion",
+                      "suggest_outfits, score_outfit, complete_outfit, get_weather"],
+                     ["Shopping advisor", "should I buy this, where to find a piece",
+                      "buy_advice_last_scan, search_listings, find_similar"],
+                     ["Wardrobe analyst", "what is missing, unused pieces, duplicates",
+                      "wardrobe_insights, wardrobe_stats, find_near_twins"],
+                     ["Seller assistant", "what to sell and at what price",
+                      "pieces_to_sell, price_hint, my_listings, prepare_sell"],
+                     ["Explainer", "why a score, a label or a verdict",
+                      "explain_outfit, what_if, explain_labels, explain_verdict, "
+                      "how_scoring_works"]],
+                    widths=[3.2 * cm, 5 * cm, WIDTH - 8.2 * cm]),
+              Spacer(1, 6)]
+    story += bullets([
+        "<b>Router</b> (<i>agents/router.py</i>): one short model call picks the agent; if it "
+        "fails, the team's keyword table decides (<i>agent_keywords.csv</i>, REVIEW, Darija "
+        "rows need the native review); else the Stylist. <i>ROUTER=keywords</i> skips the call "
+        "to save Gemini quota.",
+        "<b>Advise, never act:</b> the Seller assistant prepares a filled Sell form as a "
+        "button; the user adds their contact and sends it, and an admin approves it. Prices "
+        "come from look-alike listings (shop prices × the team's resale factor, REVIEW).",
+        "Every answer carries its agent (a badge in the app) and the pictures of the pieces "
+        "its tools returned; the Explainer can open the labels panel of a piece.",
+        "<b>Engine</b> (<i>app/chat_engine.py</i>): Gemini (free key: 20 requests a day, one "
+        "answer costs 2-7) or a local model with Ollama. The backend runs the tool calls (at "
+        "most 6 rounds); a model that repeats the same call is asked to answer without tools, "
+        "and an empty answer becomes a short message in the user's language.",
+    ])
+
+    # --- 9. local chat model
+    story += h1("chat", "Local chat model")
+    story += [p("With <i>CHAT_ENGINE=ollama</i> the agents run on our own machine: no key, no "
+                "daily quota, and the demo works offline. The model is Qwen3-4B-Instruct, "
+                "fine-tuned with QLoRA (Unsloth, rank 16, only the assistant's turns learned) on "
+                "a free Kaggle T4, exported to GGUF and served by Ollama. Details in "
+                "<i>LLM.md</i>."),
+              Spacer(1, 4),
+              table([["Step", "What"],
+                     ["Dataset", "<i>build_chat_dataset.py</i>: 4,000 / 250 / 400 synthetic chats "
+                      "(French 45%, Darija 35% incl. Arabizi, English 20%), each with one agent's "
+                      "real prompt and tools, plus ~5% router rows. The backend's <b>real</b> tools "
+                      "run on random wardrobes and listings in a scratch database, so every score, "
+                      "price and explanation in the answers is real."],
+                     ["What it teaches", "list the wardrobe before any tool that takes ids, check "
+                      "the weather before \"what do I wear today?\", no tool for greetings or "
+                      "off-topic, send a question for another agent to it in one sentence"],
+                     ["Training", "v2: 207 min on the T4, 1 epoch"],
+                     ["Darija", "<i>reports/phase4/darija_review.md</i>: every Darija word and "
+                      "sentence for a native check; the agents' new phrases are not reviewed yet"]],
+                    widths=[3 * cm, WIDTH - 3 * cm]),
+              Spacer(1, 6)]
+    if chat_eval:
+        n_dec = next(iter(chat_eval.values()))["summary"]["decisions"]
+        story += [p(f"Evaluation on 150 test chats ({n_dec} decisions per model: each assistant "
+                    "turn is one decision, the model sees the real conversation up to that "
+                    "point; the test wardrobes and a third of the phrasings were never seen in "
+                    "training):"), Spacer(1, 4),
+                  table([["Model", "Tool decision", "Tool name", "Arguments", "Language",
+                          "Router", "s / decision"]] +
+                        [[MODEL_NAMES.get(m, m), f"{r['summary']['tool_decision']}%", f"{r['summary']['tool_name']}%",
+                          f"{r['summary']['arguments']}%", f"{r['summary']['language']}%",
+                          f"{r['summary'].get('route')}%", f"{r['summary']['seconds']}"]
+                         for m, r in chat_eval.items()],
+                        widths=[3.6 * cm] + [(WIDTH - 3.6 * cm) / 6] * 6),
+                  Spacer(1, 6)]
+        story.append(fig(chart_chat(chat_eval), caption="Base model, v1 (trained before the "
+                         "agents) and v2 (trained on them), same test decisions. The router "
+                         "column rests on only ~10 router decisions.", max_h=7 * cm))
+    story += bullets([
+        "<b>An audit found why v1 failed:</b> it was trained on the original single assistant "
+        "(4 tools) while the app now sends five agents and 20 different tools, and the chat "
+        "template shipped with the base model wrote an empty "
+        "<i>&lt;think&gt;&lt;/think&gt;</i> before every last answer, which the app's template "
+        "never does. v1 learned it, began its answers with stray tags and called tools for "
+        "\"thank you\". Both are fixed in v2, which the app now uses (team rule: the better "
+        "model).",
+        "<b>Weak spots of v2:</b> the Shopping advisor (search arguments 64%, look-alikes 73%) "
+        "and questions about pieces the user does not own (50%, few examples). The test chats "
+        "come from the same generator as the training data: they measure tool use and "
+        "language, not how natural the answers sound with real users.",
+        "<b>Speed</b> on the RTX 2050 with the backend's models loaded: ~21 tokens/s, "
+        "11-18 s per answer that uses tools (Ollama puts 58% of the model on the GPU), plus "
+        "~3 s for the router's call.",
+        "When a tool or an agent's job changes, the dataset is rebuilt and the model retrained: "
+        "it only knows the tools as they were when it was trained.",
+    ])
+
+    # --- 10. XAI
+    story += h1("xai", "Explainability (XAI)")
+    story += [p("Users act on the app's answers with their own money, so every answer can say "
+                "why. The explanations only show how an answer was made; they never change it. "
+                "Built as four sub-projects (specs and plans in <i>docs/superpowers/</i>)."),
+              Spacer(1, 4),
+              table([["Sub-project", "What the user sees", "Status"],
+                     ["1. Item labels", "\"Why these labels?\": where the model looked (Grad-CAM), "
+                      "the colour's pixels, the top 3 answers and a \"not sure, check\" badge",
+                      "done"],
+                     ["2. Outfits and verdicts", "points per part that add up to the score, what "
+                      "works and what does not, the weakest piece and its best swap; the path "
+                      "to a buy / think / skip verdict", "done"],
+                     ["Explainer agent", "the same explanations in the chat, plus \"what if I "
+                      "wear X instead?\"", "done"],
+                     ["3. Similarity + chat", "why two pieces look alike (shared labels, "
+                      "concepts); \"How I answered\" under each chat answer", "in progress"],
+                     ["4. Jury report", "evaluation summary and Admin > Explainability", "next"]],
+                    widths=[3.6 * cm, WIDTH - 5.6 * cm, 2 * cm]),
+              Spacer(1, 6)]
+    story += bullets([
+        "<b>Grad-CAM:</b> the classifier's heads are linear on pooled feature maps, so Grad-CAM "
+        "equals CAM; it shows where the model looked, not the outline of a part (the three "
+        "heads share one body). The colour map shows the item pixels nearest to the colour: a "
+        "visual aid, not the model's reasoning.",
+        "<b>\"Not sure, check\"</b> uses the team's cuts (<i>xai_settings.csv</i>, REVIEW): "
+        "below the field's confidence cut, or barely ahead of the second answer.",
+        "<b>Deletion test</b> (2,000 test pictures): whitening the hottest heatmap pixels lowers "
+        "the model's confidence 2 to 7 times more than whitening a region of the same size in "
+        "the wrong place (sub_category: −0.17 vs −0.05 at 10% of the item's pixels).",
+        "<b>Weakest piece:</b> when one piece of a test outfit is swapped for a random one, the "
+        "swap analysis names that intruder 40.0% of the time on PolyVore (chance 32.6%) and "
+        "31.0% on Fashionpedia (chance 25.3%). It is faithful to the formula, so it is limited "
+        f"by the formula's own signal (section {sec('compatibility')}).",
+    ])
+    story.append(fig(chart_unsure(), caption="Test split, 29,633 pictures. Answers flagged "
+                     "\"not sure\" are right about half the time or less, so the flag points "
+                     "the user at the labels worth checking.", max_h=6 * cm))
+    story.append(fig(FIG / "gradcam_examples.png",
+                     caption="Grad-CAM examples: where the classifier looked to decide.",
+                     max_h=9 * cm))
+
+    # --- 11. frontend
     story += h1("frontend", "Frontend: React + Tailwind")
     story += [p("<i>frontend/</i>: React 19, Vite, TypeScript, Tailwind 4, talking to the API "
                 "through the <i>/api</i> dev proxy."),
               Spacer(1, 4),
               table([["Screen", "What the user does"],
-                     ["Today", "outfit of the day from their wardrobe, filtered by profile"],
-                     ["Scan", "photo in the friperie → analysis + buy / think / skip, with reasons"],
-                     ["Wardrobe", "add items by photo, confirm or correct the predicted labels"],
-                     ["Build", "pieces grouped by category; pick items, get a 0-100 score, or "
-                      "let the app complete the outfit (a clashing piece is swapped out)"],
-                     ["Similar", "\"you already own something like this\" and shop look-alikes"],
-                     ["Chat", "assistant that only talks about clothes the user owns"],
+                     ["Today", "outfit of the day for today's weather (or a chosen season and "
+                      "occasion, incl. Beach), with \"Why this score?\""],
+                     ["Scan", "photo in the friperie → analysis + buy / think / skip, \"Why this "
+                      "verdict?\", try it on"],
+                     ["Wardrobe, Insights", "add items by photo, confirm or correct the labels "
+                      "(\"Why these labels?\"); what the wardrobe makes and lacks"],
+                     ["Build", "pick pieces, get a 0-100 score with its points, apply the best "
+                      "swap, let the app complete the outfit, try it on"],
+                     ["Similar", "\"you already own something like this\", H&amp;M and listings "
+                      "look-alikes"],
+                     ["Shops, Sell", "listings in stock with their verdict; post and manage "
+                      "one's own friperie listings"],
+                     ["Chat", "the five agents, with a badge, item pictures and action buttons"],
                      ["Profile", "name, modesty level (min_coverage), language"],
-                     ["Admin", "stats, model quality, users, formula weights"]],
-                    widths=[3 * cm, WIDTH - 3 * cm]),
+                     ["Admin", "stats, model quality, users, formula weights, listing sources, "
+                      "moderation, collector runs"]],
+                    widths=[3.2 * cm, WIDTH - 3.2 * cm]),
               Spacer(1, 6)]
     story += bullets([
-        "Three languages: English, French and Arabic (right-to-left), with plural rules.",
+        "Three languages: English, French and Arabic (right-to-left), with plural rules; the "
+        "explanation lines are built from codes and translated in the app.",
         "Design rules in <i>DESIGN.md</i>, product brief in <i>PRODUCT.md</i>.",
     ])
 
-    # --- 8. testing
+    # --- 12. testing
     story += h1("testing", "Testing and demo readiness")
     story += [p("Before the jury demo the whole app was run as a user would meet it: the real "
                 "API, MongoDB and the React app in Chromium, at phone and desktop widths, with "
-                "the test fakes standing in for the models and Gemini. Every screen and flow "
-                "worked: scan → verdict → similar → add to wardrobe, item corrections, Build + "
-                "complete, chat with tool calls, Arabic right-to-left, and the four admin pages. "
-                "The walkthrough and the work that followed it found three bugs:"),
+                "the test fakes standing in for the models and Gemini. The walkthrough, the chat "
+                "audit and the work that followed found and fixed these bugs:"),
               Spacer(1, 4),
               table([["Found", "Fix"],
                      ["Build page showed the score panel twice on phones",
@@ -461,16 +721,22 @@ def build():
                       "ignored)", "uploads apply the rotation tag; a test fails without the fix"],
                      ["<i>merge_and_split.py</i> crashed on pandas 3 (allowed by "
                       "<i>requirements.txt</i>)", "one column type fixed; output byte-identical "
-                      "to pandas 2"]],
+                      "to pandas 2"],
+                     ["The local chat engine stopped a normal plan (list tops, list bottoms, "
+                      "score) before scoring, and replaced an empty answer with a made-up "
+                      "English sentence", "only a repeated identical call stops it; an empty "
+                      "answer becomes a short message in the user's language"],
+                     ["The chat model v1 began answers with stray tags (training template)",
+                      "the empty think block is removed from the training texts (v2)"]],
                     widths=[7.5 * cm, WIDTH - 7.5 * cm]),
               Spacer(1, 6),
               p("<i>DEMO.md</i> holds the jury demo script: what to prepare the day before and "
-                "30 minutes before, a 9-step run order with talking points, and fallbacks. "
-                "Everything except the Gemini chat runs offline (the local chat model, section "
-                f"{sec('chat')}, removes that exception). The real models and the chat still "
-                "need a dry run on the demo laptop.")]
+                "30 minutes before, the run order with talking points, and fallbacks. With the "
+                "local chat model everything runs offline except the weather and the virtual "
+                "try-on, which both have fallbacks (calendar season, 2D overlay). The real models "
+                "still need a dry run on the demo laptop.")]
 
-    # --- 9. local photos
+    # --- 13. local photos
     story += h1("local", "Local test photos")
     story += [p("Our own phone photos (wardrobe and friperie) are the only data from the real "
                 "DressMe setting, and the only way to measure traditional wear and swimwear. "
@@ -482,67 +748,15 @@ def build():
         "shop owner's permission), how to shoot (one whole item per photo, plain surface, "
         "JPEG), and how to fill each label column.",
         "<i>src/phase3/map_local.py --init</i> lists new photos in <i>labels.csv</i>; the default run "
-        "checks every label against <i>mappings/</i> (vocabularies, category ↔ sub_category, "
-        "photo size, the same photo saved twice, ids that look like names) and stops with the "
-        "line number, then writes <i>local.csv</i> (ids <i>lc_</i>).",
+        "checks every label against <i>mappings/</i> and stops with the line number, then writes "
+        "<i>local.csv</i> (ids <i>lc_</i>).",
         "<i>merge_and_split.py</i> adds them to <i>dressme.csv</i> with <i>split</i> and "
         "<i>outfit_split</i> forced to test; their colours count as real labels.",
         "Still to do once photos exist: include <i>local</i> in the image cache, the embeddings "
         "and the evaluation scripts.",
     ])
 
-    # --- 10. local chat model
-    story += h1("chat", "Local chat model")
-    story += [p("The free Gemini key allows only 20 requests a day, and one answer that uses "
-                "tools costs 2 to 7: not enough for a demo or a user test. With "
-                "<i>CHAT_ENGINE=ollama</i>, <i>/chat</i> uses a model on our own machine "
-                "(<i>app/chat_engine.py</i>, <i>OllamaEngine</i>) with the same system prompt "
-                "and the same four tools. Ollama answers with tool calls, the backend runs them "
-                "and sends the results back (at most 6 rounds). Details in <i>LLM.md</i>."),
-              Spacer(1, 4),
-              table([["Step", "What", "Status"],
-                     ["Base model", "qwen3:4b-instruct in Ollama: best tool use of its size, no "
-                      "'thinking' mode, knows French and Arabic", "running"],
-                     ["Dataset", "<i>build_chat_dataset.py</i>: 3,000 / 200 / 300 synthetic chats "
-                      "(fr 45%, Darija 35% incl. Arabizi, en 20%) on random wardrobes; the "
-                      "backend's <b>real</b> tools produce the scores and reasons", "built"],
-                     ["Darija check", "<i>reports/phase4/darija_review.md</i>: every Darija word and "
-                      "sentence with transliteration and meaning; initial team corrections are "
-                      "applied, full native review remains",
-                      "in progress"],
-                     ["Fine-tuning", "QLoRA (Unsloth, rank 16, assistant turns only) on a free "
-                      "Kaggle T4, exported to GGUF: <i>dressme-chat</i>", "next"],
-                     ["Evaluation", "<i>evaluate_chat.py</i>: base vs fine-tuned, per turn",
-                      "baseline done"]],
-                    widths=[2.8 * cm, WIDTH - 5.8 * cm, 3 * cm]),
-              Spacer(1, 6)]
-    if chat_eval:
-        n_dec = next(iter(chat_eval.values()))["summary"]["decisions"]
-        story += [p(f"Evaluation on the synthetic test chats ({n_dec} decisions per model; each "
-                    "assistant turn is one decision, the model sees the real conversation up to "
-                    "that point):"), Spacer(1, 4),
-                  table([["Model", "Tool decision", "Tool name", "Arguments", "Language",
-                          "s / decision"]] +
-                        [[m, f"{r['summary']['tool_decision']}%", f"{r['summary']['tool_name']}%",
-                          f"{r['summary']['arguments']}%", f"{r['summary']['language']}%",
-                          f"{r['summary']['seconds']}"] for m, r in chat_eval.items()],
-                        widths=[4 * cm] + [(WIDTH - 4 * cm) / 5] * 5),
-                  Spacer(1, 6)]
-    story += bullets([
-        "<b>Base model:</b> it knows <i>when</i> to use a tool but rarely picks the right one "
-        "with the right item ids (0% arguments on score and suggest). In real chats it scored "
-        "made-up ids without listing the wardrobe first, gave a verdict without scoring, and "
-        "invented reasons. Fine-tuning targets exactly these.",
-        "<b>Speed</b> on the RTX 2050 with the backend's models loaded: ~21 tokens/s, "
-        "11-18 s per answer that uses tools (Ollama puts 58% of the model on the GPU, 42% on "
-        "the CPU), ~35 s for the first answer (model loading).",
-        "<b>Fixes from the first real run:</b> answers are capped at 600 tokens (the base model "
-        "once repeated itself until a 5-minute timeout), and the assistant answers in the "
-        "language the user writes in, not the profile language. Unqualified suggestions "
-        "return one best outfit; an explicit count is preserved.",
-    ])
-
-    # --- 11. decisions
+    # --- 14. decisions
     story += h1("decisions", "Key decisions")
     story += [table([["Decision", "Why"],
                      ["EfficientNet for category, sub_category and pattern",
@@ -554,51 +768,68 @@ def build():
                      ["Team-set compatibility weights", "the data measures them but does not "
                       "set them; style-only would lose readable reasons"],
                      ["One packed image cache", "small-file reads were the training bottleneck"],
-                     ["H&amp;M catalogue instead of scraping", "all three shop sites block "
-                      "scraping; we never try to get around bot protection"],
+                     ["H&amp;M catalogue, then polite Tunisian shops, instead of scraping",
+                      "the Inditex and H&amp;M sites block automated access; we never try to get "
+                      "around bot protection"],
+                     ["Friperie listings approved by an admin", "users see only reviewed "
+                      "listings; the agent prepares a sale but never posts it"],
                      ["Remove the background of uploads", "the models were trained on white "
                       "product shots; a bed, rack or person in the photo confuses them"],
                      ["No repeated sub_category / category over its limit",
                       "a hard rule, not a lower score: two pairs of jeans is never an outfit"],
+                     ["Five agents instead of one assistant", "a short prompt and few tools per "
+                      "agent: easier for a small local model, and each can be tested alone"],
+                     ["Local chat model, fine-tuned on synthetic chats", "no daily quota, works "
+                      "offline; the real tools write the answers, so the model learns our scores "
+                      "and never invents clothes. Team rule: the better model is used (v2)"],
+                     ["Explanations only show how an answer was made", "they reuse the same "
+                      "code as the answer, so they cannot disagree with it"],
                      ["Local photos for test only", "the one honest measure of the real "
                       "setting; never trained on"],
-                     ["Local chat model, fine-tuned on synthetic chats", "no daily quota, "
-                      "works offline; the real tools write the answers, so the model learns our "
-                      "scores and never invented clothes"],
                      ["Predictions are never labels", "<i>predicted_attributes.csv</i> and the "
                       "<i>predicted</i> field stay separate from ground truth / user input"]],
                     widths=[6 * cm, WIDTH - 6 * cm])]
 
-    # --- 12. limits
+    # --- 15. limits
     story += h1("limits", "Limits and risks")
     story += bullets([
         "Traditional (jebba, kaftan) and swimwear are too rare in the public data to learn; "
         "traditional is read as dress. Local photos are needed.",
         "Street photos remain harder than product shots (category 93% vs 98%).",
         "Colour, pattern and structure add no measurable signal in the swap test; the team "
-        "weights cost ~6 AUC points against style alone.",
+        "weights cost ~6 AUC points against style alone. The weakest-piece explanation is "
+        "limited by the same signal.",
         "PolyVore has no pattern labels, so its patterns are predictions.",
         "Background removal costs ~3-5 s per photo on the CPU; cloth-seg often misses items "
-        "lying flat, so it is only used on worn items. Only the cleaned photo is kept, so a "
-        "bad cut-out cannot be redone from the original.",
+        "lying flat, so it is only used on worn items. Only the cleaned photo is kept.",
         "The models have not been measured on real phone photos yet (local test set pending).",
-        "The H&amp;M catalogue has no prices and is not Tunisian stock; the shop demo is frozen.",
-        "The local chat model is slow on the 4 GB GPU (11-18 s per answer), and synthetic "
-        "chats measure tool use and language, not how natural the answers sound. Initial Darija "
-        "corrections are applied, but a complete native-speaker review is still pending.",
+        "Listings depend on shops that may change or block us: only two Tunisian shops run, "
+        "the Inditex rows are a frozen snapshot, and the H&amp;M catalogue has no prices.",
+        "Virtual try-on depends on free Hugging Face Spaces that can be down or busy (the "
+        "default one was broken on 2026-10-04); the 2D overlay is the fallback.",
+        "The chat model is tested on synthetic chats from the same generator as its training "
+        "data; real users will phrase things differently. It is slow on the 4 GB GPU "
+        "(11-18 s per answer). The Darija it learned is only partly reviewed by a native "
+        "speaker.",
+        "Many team rules are still marked REVIEW (weights, XAI cuts, resale factors, router "
+        "keywords, weather thresholds, currency rates).",
         "Datasets are for non-commercial academic use only and are never redistributed.",
     ])
 
-    # --- 13. next
+    # --- 16. next
     story += h1("next", "Next steps")
     story += bullets([
-        "Dry run on the demo laptop with the real models, background removal and Gemini "
-        "(<i>DEMO.md</i>).",
+        "Finish XAI sub-projects 3 (similarity + chat traces) and 4 (jury report, Admin > "
+        "Explainability).",
+        "Native-speaker review of the Darija (<i>darija_review.md</i>, section 7 is new), then "
+        "rebuild the chat dataset and retrain once, together with the Shopping advisor's weak "
+        "spots.",
+        "Try the chat with real users' own phrasing, beyond the synthetic test.",
+        "Dry run on the demo laptop with the real models, background removal, the local chat "
+        "model and the try-on Spaces (<i>DEMO.md</i>).",
         "Collect and label local photos (<i>LOCAL_PHOTOS.md</i>), then evaluate the classifier, "
         "colour model and background removal on them.",
         "Team session to tune the compatibility weights and close the REVIEW rows.",
-        "Local chat: native check of the Darija, fine-tune on Kaggle, then compare base vs "
-        "<i>dressme-chat</i> and keep whichever is better (team rule).",
         "User test with the personas; use the admin \"model quality\" page (correction rates) "
         "to see where the models fail in real use.",
     ])
