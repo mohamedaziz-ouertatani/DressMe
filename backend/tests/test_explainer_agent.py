@@ -147,3 +147,17 @@ def test_explain_similarity_of_two_pieces(client):
     assert "candidates" in t["explain_similarity"](jeans, "t-shirt")  # two t-shirts: ask which
     sign_up(client, "sami@example.com", "Sami")
     assert "error" in tools_for(client, "sami@example.com")["explain_similarity"](first, second)
+
+
+def test_my_two_pieces_are_compared_with_each_other(client):
+    """'Why do my two red t-shirts look alike?': the model often passes 'red t-shirt 1' and
+    'red t-shirt 2'; the same description matching exactly two pieces means those two."""
+    headers = sign_up(client)
+    first = upload(client, headers, RED)["id"]
+    second = upload(client, headers, RED)["id"]
+    t = tools_for(client)
+    answer = t["explain_similarity"]("red t-shirt 1", "red t-shirt 2")
+    assert {p["id"] for p in answer["pieces"]} == {first, second}
+    assert t["explain_similarity"]("first t-shirt", "other t-shirt")["pieces"][0]["id"] in (first, second)
+    upload(client, headers, RED)                                         # now three: ask which
+    assert "candidates" in t["explain_similarity"]("red t-shirt 1", "red t-shirt 2")

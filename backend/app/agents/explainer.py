@@ -61,6 +61,10 @@ def fact(line):
     return FACTS.get(line["code"], line["code"]).format(**p)
 
 
+# words a description may contain that say nothing about the piece
+FILLER = {"my", "the", "a", "an", "and", "with", "one", "first", "second", "other", "another", "two", "both"}
+
+
 def words(text):
     """'Pink_top', 'casual-shoes' -> {'pink', 'top', 'casual', 'shoes'}."""
     return set(re.findall(r"[a-z0-9]+", text.lower()))
@@ -69,7 +73,8 @@ def words(text):
 def matching(ref, docs):
     """The user's pieces whose colour / type / category / pattern contain every word of
     `ref` ("pink top", "casual shoes"). Words the app does not know ("my") are ignored."""
-    want = words(ref) - {"my", "the", "a", "an", "and", "with"}
+    want = words(ref) - FILLER
+    want = {w for w in want if not w.isdigit()}          # "pink jacket 2" -> pink jacket
     if not want:
         return []
     found = []
@@ -238,6 +243,12 @@ def tools(request, user):
         db = request.app.state.db
         docs, by_id = wardrobe(request, user)
         pieces = []
+        # "my two pink jackets": the same description for both, matching exactly two pieces
+        same = (item_id not in by_id and other_id not in by_id and "last_scan" not in (item_id, other_id)
+                and words(item_id) - FILLER - {w for w in words(item_id) if w.isdigit()}
+                == words(other_id) - FILLER - {w for w in words(other_id) if w.isdigit()})
+        if same and len(matching(item_id, docs)) == 2:
+            item_id, other_id = (str(d["_id"]) for d in matching(item_id, docs))
         for ref in (item_id, other_id):
             if ref == "last_scan":
                 doc = db.candidates.find_one({"user_id": user["_id"]}, sort=[("created_at", -1)])
