@@ -18,7 +18,7 @@ const TYPES = [['scan', 'scans'], ['verdict', 'verdicts'], ['upload', 'uploads']
 const pct = (v: number | null) => (v === null ? '-' : `${(v * 100).toFixed(1)}%`)
 
 export function AdminLayout() {
-  const tabs = [['/admin', 'Overview'], ['/admin/quality', 'Model quality'], ['/admin/users', 'Users'], ['/admin/formula', 'Formula'], ['/admin/listings', 'Listings'], ['/admin/moderation', 'Moderation']]
+  const tabs = [['/admin', 'Overview'], ['/admin/quality', 'Model quality'], ['/admin/users', 'Users'], ['/admin/formula', 'Formula'], ['/admin/xai', 'Explainability'], ['/admin/listings', 'Listings'], ['/admin/moderation', 'Moderation']]
   return (
     <div className="min-h-dvh" dir="ltr" lang="en">
       <header className="border-b border-perf/60 bg-stock-deep/60">

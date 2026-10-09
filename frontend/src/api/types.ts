@@ -466,3 +466,39 @@ export interface BuyExplanation {
   to_next_verdict: number | null
   twins: { item: ShortItem; similarity: number }[]
 }
+
+// ---- Admin > Explainability (backend/app/routers/admin_xai.py)
+export interface XaiSetting {
+  name: string
+  value: number
+  note: string
+}
+
+export interface AdminXai {
+  evaluations: {
+    labels: { missing?: true; date?: string; command: string; report?: string
+      flag?: { field: string; sure_accuracy: number; unsure_accuracy: number; unsure_share: number }[]
+      deletion?: { field: string; heatmap: number; shifted_region: number; scattered_pixels: number }[] }
+    outfits: { missing?: true; date?: string; command: string; report?: string
+      rows?: { dataset: string; outfits: number; hit: number; chance: number; points_add_up: string }[] }
+    concepts: { missing?: true; date?: string; command: string; report?: string
+      rows?: { concept: string; label: string; auc: number | null; with_label: number }[]; mean_auc?: number | null }
+  }
+  real_use: {
+    items: number
+    before_xai: number
+    fields: { field: string; items: number; unsure: number; unsure_corrected: number; sure_corrected: number
+      unsure_corrected_rate: number | null; sure_corrected_rate: number | null }[]
+  }
+  traces: {
+    days: number
+    answers: number
+    tools: { tool: string; calls: number; errors: number; agents: string[] }[]
+    explainer_answers: number
+    explainer_without_tools: number
+  }
+  settings: XaiSetting[]
+  concepts: { concept: string; prompt: string; group: string; check: string }[]
+  file: string
+  note?: string
+}
