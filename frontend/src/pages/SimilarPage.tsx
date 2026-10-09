@@ -4,6 +4,7 @@ import { useI18n } from '../i18n'
 import { CATEGORY_LABELS, SUB_LABELS, vocab } from '../i18n/vocab'
 import { Page } from '../shell'
 import { ItemPhoto } from '../ui/ItemPhoto'
+import { SimilarWhy } from '../ui/SimilarWhy'
 import { ErrorNote, Skeleton } from '../ui/states'
 import { useLoad } from '../useLoad'
 import { ListingCard } from '../ui/ListingCard'
@@ -26,7 +27,8 @@ export function SimilarPage() {
       ) : (
         <div className="flex flex-col gap-10">
           <section>
-            <h2 className="mb-3 text-[18px] font-semibold text-carbon">{t('inWardrobe')}</h2>
+            <h2 className="text-[18px] font-semibold text-carbon">{t('inWardrobe')}</h2>
+            <p className="mb-3 mt-1 text-[12px] text-carbon-soft">{t('simNote')}</p>
             {res.data.wardrobe.length === 0 ? (
               <p className="text-[14px] text-carbon-soft">{t('wardrobeEmptyTitle')}</p>
             ) : (
@@ -37,6 +39,7 @@ export function SimilarPage() {
                       <div className="flex justify-center"><ItemPhoto src={it.image_url} alt={label(it.sub_category, it.category)} size={112} /></div>
                       <p className="perf-h mt-2 truncate pt-2 text-[14px] font-medium text-carbon">{label(it.sub_category, it.category)}</p>
                       <p className="font-mono text-[11px] text-ink-soft tabular">{pct(it.similarity)}</p>
+                      <SimilarWhy why={it.why} />
                     </Link>
                   </li>
                 ))}
@@ -49,7 +52,7 @@ export function SimilarPage() {
               <p className="mb-3 mt-1 text-[13px] text-carbon-soft">{t('listingsNote')}</p>
               <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                 {res.data.listings.map((l) => (
-                  <li key={l.id}><ListingCard listing={l} note={pct(l.score)} /></li>
+                  <li key={l.id}><ListingCard listing={l} note={pct(l.score)} /><div className="px-2"><SimilarWhy why={l.why} /></div></li>
                 ))}
               </ul>
             </section>
@@ -65,6 +68,7 @@ export function SimilarPage() {
                     {/* the shop's own product name, as H&M wrote it (not translated) */}
                     <p className="perf-h mt-2 truncate pt-2 text-[14px] font-medium text-carbon" dir="auto" title={s.name}>{s.name}</p>
                     <p className="font-mono text-[11px] text-ink-soft tabular">{s.shop} · {pct(s.score)}</p>
+                    <SimilarWhy why={s.why} />
                   </li>
                 ))}
               </ul>
@@ -79,6 +83,7 @@ export function SimilarPage() {
                   <div className="flex justify-center"><ItemPhoto src={c.image_url} alt={label(c.sub_category, c.category)} size={112} /></div>
                   <p className="perf-h mt-2 truncate pt-2 text-[14px] font-medium text-carbon">{label(c.sub_category, c.category)}</p>
                   <p className="font-mono text-[11px] text-ink-soft tabular">{pct(c.score)}</p>
+                  <SimilarWhy why={c.why} />
                 </li>
               ))}
             </ul>

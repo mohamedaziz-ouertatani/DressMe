@@ -244,6 +244,14 @@ class ListingIndex:
                          if self._docs else np.zeros((0, 512), np.float32))
         self._key = key
 
+    def vector(self, db, listing_id):
+        """The picture vector of one active listing (None if not in the index)."""
+        self._refresh(db)
+        for doc, vec in zip(self._docs, self._vectors):
+            if str(doc["_id"]) == listing_id:
+                return vec
+        return None
+
     def search(self, db, vector, k=6, category=None, exclude_seller=None):
         """The k nearest listings. exclude_seller: leave out that seller's own listings
         (the Seller assistant's price hint must not quote the user's own prices)."""

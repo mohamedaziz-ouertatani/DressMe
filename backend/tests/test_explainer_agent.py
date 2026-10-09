@@ -22,8 +22,8 @@ def outfit(client, headers):
 def test_explainer_is_registered_with_its_tools():
     assert "explainer" in AGENTS
     assert set(explainer.tools(None, None)) == {
-        "list_wardrobe", "explain_outfit", "what_if", "explain_labels", "explain_verdict",
-        "how_scoring_works"}
+        "list_wardrobe", "explain_outfit", "what_if", "explain_labels", "explain_similarity",
+        "explain_verdict", "how_scoring_works"}
 
 
 def test_explain_outfit_matches_the_app_score(client):
@@ -131,3 +131,33 @@ def test_pieces_can_be_named_by_description(client):
     ambiguous = t["explain_outfit"](["red t-shirt", "jeans", "sneakers"])
     assert "error" in ambiguous and len(ambiguous["candidates"]["red t-shirt"]) == 2
     assert "error" in t["explain_outfit"](["blue dress", "jeans"])  # matches nothing
+
+
+def test_explain_similarity_of_two_pieces(client):
+    headers = sign_up(client)
+    first = upload(client, headers, RED)["id"]
+    second = upload(client, headers, RED)["id"]
+    jeans = upload(client, headers, BLUE)["id"]
+    t = tools_for(client)
+    twins = t["explain_similarity"](first, second)
+    assert {"field": "sub_category", "value": "t-shirt"} in twins["shared_labels"]
+    assert 0 <= twins["similarity"] <= 1.0001 and isinstance(twins["near_twin"], bool)
+    apart = t["explain_similarity"](first, "jeans")                  # a description is fine
+    assert {"field": "category", "a": "top", "b": "bottom"} in apart["different_labels"]
+    assert "candidates" in t["explain_similarity"](jeans, "t-shirt")  # two t-shirts: ask which
+    sign_up(client, "sami@example.com", "Sami")
+    assert "error" in tools_for(client, "sami@example.com")["explain_similarity"](first, second)
+
+
+def test_my_two_pieces_are_compared_with_each_other(client):
+    """'Why do my two red t-shirts look alike?': the model often passes 'red t-shirt 1' and
+    'red t-shirt 2'; the same description matching exactly two pieces means those two."""
+    headers = sign_up(client)
+    first = upload(client, headers, RED)["id"]
+    second = upload(client, headers, RED)["id"]
+    t = tools_for(client)
+    answer = t["explain_similarity"]("red t-shirt 1", "red t-shirt 2")
+    assert {p["id"] for p in answer["pieces"]} == {first, second}
+    assert t["explain_similarity"]("first t-shirt", "other t-shirt")["pieces"][0]["id"] in (first, second)
+    upload(client, headers, RED)                                         # now three: ask which
+    assert "candidates" in t["explain_similarity"]("red t-shirt 1", "red t-shirt 2")

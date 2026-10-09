@@ -11,7 +11,7 @@ Code: `backend/app/agents/`.
 | Shopping advisor | should I buy this, where to find one, prices | `list_wardrobe`, `buy_advice_last_scan`, `search_listings`, `find_similar` |
 | Wardrobe analyst | what is missing, unused pieces, near-duplicates | `list_wardrobe`, `wardrobe_insights`, `wardrobe_stats`, `find_near_twins` |
 | Seller assistant | what to sell, at what price, the listing | `list_wardrobe`, `pieces_to_sell`, `price_hint`, `my_listings`, `prepare_sell` |
-| Explainer | why an outfit has its score, what would change it, why a piece got its labels, why a buy verdict, how scoring works | `list_wardrobe`, `explain_outfit`, `what_if`, `explain_labels`, `explain_verdict`, `how_scoring_works` |
+| Explainer | why an outfit has its score, what would change it, why a piece got its labels, why two pieces look alike, why a buy verdict, how scoring works | `list_wardrobe`, `explain_outfit`, `what_if`, `explain_labels`, `explain_similarity`, `explain_verdict`, `how_scoring_works` |
 
 ## How a message is answered
 
@@ -62,6 +62,13 @@ What each tool wraps (no new fashion logic: the team's formula in `src/phase4/co
   "Why these labels?" panel (heatmaps). Nothing is recomputed.
 - `explain_verdict`: the last scan's verdict made visible (`buy_explanation`: thresholds, what it beats,
   owned pieces that do as well, near misses, near twins).
+- `explain_similarity`: why two pieces look alike: picture similarity (+ near twin at the team's
+  `similar_item`), shared / different labels, and the concepts both pictures read as
+  (`src/phase4/explain_similarity.py`, team list `mappings/style_concepts.csv`, above the average
+  picture). "My two pink jackets" (the same description for both, matching exactly two pieces) compares
+  those two; numbers and ordinals in a description are ignored. Not in `dressme-chat-v2`'s training data
+  yet: on 2026-10-09 v2 did not call it and made up a reason; `qwen3:4b-instruct` called it and gave a
+  grounded answer.
 - `how_scoring_works`: the team's current weights and thresholds, read from `mappings/`.
 
 The Explainer's outfit tools take ids or short descriptions ("pink top"): a description is used only
@@ -70,6 +77,14 @@ agent asks which one is meant (by description, never by id). Its prompt: only gi
 tool result, never invent a rule, a number or a cause; labels are guesses with a confidence.
 
 Every tool reads only the logged-in user's data; another user's ids are ignored.
+
+## "How I answered" (trace)
+
+Every tool call of an answer is recorded by the tool wrapper (`common.with_attachments`, `trace`):
+`{"tool", "args", "result"}`, arguments shortened (texts to 60 characters, lists to 6 entries), the
+result as one line (`score 55.4`, `verdict buy`, `error: …`, `18 items`, `failed: ValueError`). It is
+saved with the answer next to `routed_by` (model or keywords) and returned by `/chat` and the history;
+the Chat page shows it under the tool names ("how I answered"). Nothing new is sent to the model.
 
 ## Chat actions
 

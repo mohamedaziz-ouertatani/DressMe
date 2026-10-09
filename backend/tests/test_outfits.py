@@ -242,3 +242,17 @@ def test_chat_tools_keep_the_short_outfit_form():
               "reasons": [], "problems": [], "items": []}
     assert "contributions" not in outfit_out(result, {})
     assert "contributions" in outfit_out(result, {}, explain=True)
+
+
+def test_similar_explains_each_look_alike(client):
+    headers = sign_up(client)
+    first = upload(client, headers, RED)
+    upload(client, headers, RED)                                       # a second red t-shirt
+    sim = client.get(f"/similar?item_id={first['id']}&k=3", headers=headers).json()
+    twin = sim["wardrobe"][0]["why"]
+    assert {"field": "sub_category", "value": "t-shirt"} in twin["shared"]
+    assert {"field": "colour", "value": "red"} in twin["shared"]
+    assert set(twin) == {"shared", "differs", "both", "contrast"}
+    for group in ("catalog", "shop"):
+        assert all("why" in hit for hit in sim[group])
+    assert all(isinstance(c, str) for c in twin["both"])

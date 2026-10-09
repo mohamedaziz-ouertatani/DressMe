@@ -115,11 +115,20 @@ export interface ShopHit extends CatalogHit {
   department: string
 }
 
+/** Why a look-alike came up (src/phase4/explain_similarity.py): shared / different labels
+ *  and the concepts the picture model associates with both pictures. */
+export interface SimilarWhy {
+  shared: { field: 'category' | 'sub_category' | 'colour' | 'pattern'; value: string }[]
+  differs: { field: 'category' | 'sub_category' | 'colour' | 'pattern'; a: string; b: string }[]
+  both: string[]
+  contrast: { a: string; b: string } | null
+}
+
 export interface Similar {
-  wardrobe: (Item & { similarity: number })[]
-  catalog: CatalogHit[]
-  shop?: ShopHit[]   // missing or empty when the server has no shop catalogue
-  listings?: ListingHit[]   // shop listings in stock now (empty until the collector has run)
+  wardrobe: (Item & { similarity: number; why?: SimilarWhy })[]
+  catalog: (CatalogHit & { why?: SimilarWhy })[]
+  shop?: (ShopHit & { why?: SimilarWhy })[]   // missing or empty when the server has no shop catalogue
+  listings?: (ListingHit & { why?: SimilarWhy })[]   // shop listings in stock now (empty until the collector has run)
 }
 
 /** A shop product collected by src/phase4/collect_listings.py (backend/app/listings.py, listing_out).
@@ -244,6 +253,14 @@ export interface ChatTurn {
   attachments?: ChatAttachment[]
   agent?: string            // stylist, shopping, analyst, seller or explainer ('' for old messages)
   actions?: ChatAction[]
+  routed_by?: '' | 'llm' | 'keywords'   // how the agent was chosen
+  trace?: TraceStep[]       // "How I answered": the tool calls behind the answer
+}
+
+export interface TraceStep {
+  tool: string
+  args: Record<string, unknown>   // shortened by the server
+  result: string                  // one line
 }
 
 /** Something the assistant prepared for the user to open (never done for them). */

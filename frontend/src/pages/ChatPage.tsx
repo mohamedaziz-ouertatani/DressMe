@@ -45,6 +45,7 @@ export function ChatPage() {
       const r = await api.chat(message)
         setTurns((tt) => [...tt, {
           role: 'model', text: r.reply, tools_used: r.tools_used, attachments: r.attachments, agent: r.agent, actions: r.actions,
+          routed_by: r.routed_by, trace: r.trace,
         }])
     } catch (err) {
       setError(err)
@@ -114,7 +115,23 @@ export function ChatPage() {
                     ))}
                   </div>
                 )}
-                {m.tools_used.length > 0 && (
+                {m.trace && m.trace.length > 0 ? (
+                  // "How I answered" (XAI): the agent, how it was chosen, and each tool call
+                  <details className="mt-1 font-mono text-[11px] text-ink-soft">
+                    <summary className="cursor-pointer">
+                      {Array.from(new Set(m.tools_used)).map((tool) => t(`tool_${tool}` as StringKey)).join(' · ')}
+                      {' · '}{t('howAnswered')}
+                    </summary>
+                    <div className="mt-1 space-y-1 border-s border-perf ps-2" dir="ltr">
+                      {m.routed_by && <p>{t(m.routed_by === 'llm' ? 'routedByLlm' : 'routedByKeywords')}</p>}
+                      {m.trace.map((s, i) => (
+                        <p key={i} className="break-words">
+                          {i + 1}. {s.tool}({Object.entries(s.args).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(', ')}) → {s.result}
+                        </p>
+                      ))}
+                    </div>
+                  </details>
+                ) : m.tools_used.length > 0 && (
                   <p className="mt-1 font-mono text-[11px] text-ink-soft">
                     {Array.from(new Set(m.tools_used)).map((tool) => t(`tool_${tool}` as StringKey)).join(' · ')}
                   </p>
