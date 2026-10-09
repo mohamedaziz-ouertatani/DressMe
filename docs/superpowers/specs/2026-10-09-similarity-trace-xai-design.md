@@ -1,6 +1,6 @@
 # Similarity + chat trace XAI — design (XAI sub-project 3 of 4)
 
-Date: 2026-10-09. Status: approved in chat. Branch `xai-similarity`, on `xai-agent`
+Date: 2026-10-09. Status: implemented. Branch `xai-similarity`, on `xai-agent`
 (PR #51, which now holds the chat engine v2 of PR #52).
 
 ## Goals
@@ -81,3 +81,14 @@ PolyVore vectors; concepts without a label are listed as not checkable.
 with hand-made vectors; `/similar` hits carry `why` (fakes); the Explainer tool
 (privacy); the trace (arguments cut, one-line results, stored and returned by
 `/chat` with the fake engine).
+
+## Changes while building
+
+- Concepts are ranked above the average picture (`concept_baseline`: dot product of each concept with
+  the dataset's mean vector, `Catalog.mean_vector`). Without it, generic prompts ("trendy") topped
+  nearly every piece on the real data.
+- `explain_similarity` compares "my two X" (same description for both, exactly two matches); numbers and
+  ordinals in descriptions are ignored. Found with `qwen3:4b-instruct`, which passed "pink jacket 1/2".
+- `frontend/vite.config.ts` reads `DRESSME_API` (default `http://127.0.0.1:8000`), to check a second
+  API copy in the browser.
+- No separate plan document: the work followed the existing agent / route patterns, task by task with tests.
