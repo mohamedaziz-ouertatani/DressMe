@@ -280,7 +280,7 @@ def build():
                      ["AI agents", "five chat agents with tools + a router", "done"],
                      ["Local chat model", "Qwen3-4B + QLoRA, served by Ollama (v2)", "done"],
                      ["XAI 1-2", "item labels; outfit scores and buy verdicts", "done"],
-                     ["XAI 3-4", "similarity + chat traces; jury report", "in progress"]],
+                     ["XAI 3-4", "similarity + chat traces; XAI report, Admin > Explainability", "done"]],
                     widths=[3.5 * cm, WIDTH - 5.5 * cm, 2 * cm])]
 
     # --- 2. architecture
@@ -635,47 +635,32 @@ def build():
         "it only knows the tools as they were when it was trained.",
     ])
 
-    # --- 10. XAI
+    # --- 10. XAI (the details are in the XAI report: src/phase4/build_xai_report.py)
     story += h1("xai", "Explainability (XAI)")
     story += [p("Users act on the app's answers with their own money, so every answer can say "
                 "why. The explanations only show how an answer was made; they never change it. "
-                "Built as four sub-projects (specs and plans in <i>docs/superpowers/</i>)."),
+                "Built as four sub-projects (specs and plans in <i>docs/superpowers/</i>); the "
+                "methods, the faithfulness tests, screenshots, limitations and open team decisions "
+                "are in the separate <b>XAI report</b> (<i>reports/phase4/xai_report.pdf</i>)."),
               Spacer(1, 4),
               table([["Sub-project", "What the user sees", "Status"],
                      ["1. Item labels", "\"Why these labels?\": where the model looked (Grad-CAM), "
-                      "the colour's pixels, the top 3 answers and a \"not sure, check\" badge",
-                      "done"],
+                      "the colour's pixels, the top 3 answers and a \"not sure, check\" badge", "done"],
                      ["2. Outfits and verdicts", "points per part that add up to the score, what "
                       "works and what does not, the weakest piece and its best swap; the path "
                       "to a buy / think / skip verdict", "done"],
                      ["Explainer agent", "the same explanations in the chat, plus \"what if I "
-                      "wear X instead?\"", "done"],
+                      "wear X instead?\" and \"why are these two alike?\"", "done"],
                      ["3. Similarity + chat", "why two pieces look alike (shared labels, "
-                      "concepts); \"How I answered\" under each chat answer", "in progress"],
-                     ["4. Jury report", "evaluation summary and Admin > Explainability", "next"]],
+                      "concepts); \"How I answered\" under each chat answer", "done"],
+                     ["4. XAI report + admin", "the jury report and Admin > Explainability "
+                      "(evaluations, real-use flag, chat tool calls, XAI settings)", "done"]],
                     widths=[3.6 * cm, WIDTH - 5.6 * cm, 2 * cm]),
               Spacer(1, 6)]
-    story += bullets([
-        "<b>Grad-CAM:</b> the classifier's heads are linear on pooled feature maps, so Grad-CAM "
-        "equals CAM; it shows where the model looked, not the outline of a part (the three "
-        "heads share one body). The colour map shows the item pixels nearest to the colour: a "
-        "visual aid, not the model's reasoning.",
-        "<b>\"Not sure, check\"</b> uses the team's cuts (<i>xai_settings.csv</i>, REVIEW): "
-        "below the field's confidence cut, or barely ahead of the second answer.",
-        "<b>Deletion test</b> (2,000 test pictures): whitening the hottest heatmap pixels lowers "
-        "the model's confidence 2 to 7 times more than whitening a region of the same size in "
-        "the wrong place (sub_category: −0.17 vs −0.05 at 10% of the item's pixels).",
-        "<b>Weakest piece:</b> when one piece of a test outfit is swapped for a random one, the "
-        "swap analysis names that intruder 40.0% of the time on PolyVore (chance 32.6%) and "
-        "31.0% on Fashionpedia (chance 25.3%). It is faithful to the formula, so it is limited "
-        f"by the formula's own signal (section {sec('compatibility')}).",
-    ])
     story.append(fig(chart_unsure(), caption="Test split, 29,633 pictures. Answers flagged "
                      "\"not sure\" are right about half the time or less, so the flag points "
-                     "the user at the labels worth checking.", max_h=6 * cm))
-    story.append(fig(FIG / "gradcam_examples.png",
-                     caption="Grad-CAM examples: where the classifier looked to decide.",
-                     max_h=9 * cm))
+                     "the user at the labels worth checking. More results in the XAI report.",
+                     max_h=6 * cm))
 
     # --- 11. frontend
     story += h1("frontend", "Frontend: React + Tailwind")
@@ -819,8 +804,8 @@ def build():
     # --- 16. next
     story += h1("next", "Next steps")
     story += bullets([
-        "Finish XAI sub-projects 3 (similarity + chat traces) and 4 (jury report, Admin > "
-        "Explainability).",
+        "Retrain the local chat model with the newest Explainer tools (explain_similarity), "
+        "and calibrate the \"not sure\" cuts on real uploads (Admin > Explainability).",
         "Native-speaker review of the Darija (<i>darija_review.md</i>, section 7 is new), then "
         "rebuild the chat dataset and retrain once, together with the Shopping advisor's weak "
         "spots.",
