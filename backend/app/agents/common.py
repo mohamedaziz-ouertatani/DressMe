@@ -4,6 +4,7 @@ under an answer, the prompt rules every agent follows, the Agent record, and
 the list_wardrobe tool every agent can call.
 """
 
+import inspect
 import re
 from dataclasses import dataclass
 from functools import wraps
@@ -51,17 +52,65 @@ def chat_actions(value):
             yield from chat_actions(child)
 
 
-def with_attachments(functions, attachments, actions=None):
+TRACE_TEXT = 60         # a traced argument keeps at most this many characters
+TRACE_LIST = 6          # ... and a list at most this many entries
+
+
+def short_value(value):
+    """A tool argument as the trace keeps it: long texts cut, long lists shortened."""
+    if isinstance(value, str):
+        return value if len(value) <= TRACE_TEXT else value[:TRACE_TEXT] + "…"
+    if isinstance(value, (list, tuple)):
+        kept = [short_value(v) for v in value[:TRACE_LIST]]
+        return kept + ([f"… {len(value) - TRACE_LIST} more"] if len(value) > TRACE_LIST else [])
+    if isinstance(value, (int, float, bool)) or value is None:
+        return value
+    return "…"
+
+
+def one_line(result):
+    """A tool's result in one short line, for the "How I answered" trace."""
+    if isinstance(result, dict):
+        if result.get("error"):
+            return "error: " + short_value(str(result["error"]))
+        for key, text in (("verdict", "verdict {}"), ("change", "change {:+}"), ("score", "score {}")):
+            if key in result:
+                return text.format(result[key])
+        return ", ".join(list(result)[:5])
+    if isinstance(result, list):
+        return f"{len(result)} items"
+    return short_value(str(result))
+
+
+def with_attachments(functions, attachments, actions=None, trace=None):
     """The tools as {name: function}. With an `attachments` list, every item picture a
     tool returns is also added to it (once), so the app can show it under the answer;
-    with an `actions` list, every allowed chat action too (once)."""
-    if attachments is None and actions is None:
+    with an `actions` list, every allowed chat action too (once); with a `trace` list,
+    every call: {"tool", "args" (shortened), "result" (one line)} ("How I answered")."""
+    if attachments is None and actions is None and trace is None:
         return dict(functions)
 
-    def capture(fn):
+    def capture(name, fn):
+        signature = inspect.signature(fn)
+
         @wraps(fn)
         def wrapped(*args, **kwargs):
-            result = fn(*args, **kwargs)
+            entry = None
+            if trace is not None:
+                try:
+                    bound = signature.bind(*args, **kwargs).arguments
+                except TypeError:          # wrong arguments: the call below will say so
+                    bound = kwargs
+                entry = {"tool": name, "args": {k: short_value(v) for k, v in bound.items()}}
+                trace.append(entry)
+            try:
+                result = fn(*args, **kwargs)
+            except Exception as e:         # the engine sends the error back to the model
+                if entry is not None:
+                    entry["result"] = f"failed: {type(e).__name__}"
+                raise
+            if entry is not None:
+                entry["result"] = one_line(result)
             if attachments is not None:
                 seen = {item["id"] for item in attachments}
                 for item in image_attachments(result):
@@ -75,7 +124,7 @@ def with_attachments(functions, attachments, actions=None):
             return result
         return wrapped
 
-    return {name: capture(fn) for name, fn in functions.items()}
+    return {name: capture(name, fn) for name, fn in functions.items()}
 
 
 def list_wardrobe_tool(request, user):
@@ -132,5 +181,5 @@ class Agent:
     def prompt(self, user):
         return system_prompt(user, self.job)
 
-    def bound_tools(self, request, user, attachments=None, actions=None):
-        return with_attachments(self.tools(request, user), attachments, actions)
+    def bound_tools(self, request, user, attachments=None, actions=None, trace=None):
+        return with_attachments(self.tools(request, user), attachments, actions, trace)
