@@ -51,3 +51,12 @@ def test_explain_pair_without_vectors():
     a = {"category": "top", "colour": "red"}
     out = S.explain_pair(a, dict(a), None, None, CONCEPTS)
     assert out["both"] == [] and out["contrast"] is None and out["shared"]
+
+
+def test_baseline_removes_a_concept_every_picture_matches():
+    concepts = {"trendy": unit([1, 1, 1, 0]), "denim": unit([1, 0, 0, 0]), "lace": unit([0, 0, 0, 1])}
+    va = unit([0.7, 0.6, 0.6, 0.1])                                     # a bit more denim than average
+    assert S.top_concepts(va, concepts, k=1) == ["trendy"]              # generic concept wins raw
+    mean = unit([0.5, 0.5, 0.5, 0.1])                                    # "the average picture"
+    baseline = S.concept_baseline(mean, concepts)
+    assert S.top_concepts(va, concepts, k=1, baseline=baseline) == ["denim"]

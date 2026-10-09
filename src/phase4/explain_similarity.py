@@ -3,7 +3,8 @@ Why two pieces look alike (XAI sub-project 3). DressMe finds look-alikes with
 FashionCLIP picture vectors only; this explains a pair in two ways:
 
     shared_attributes(a, b)      what the stored labels have in common or not
-    concept_overlap(va, vb, cv)  what the picture model associates with each piece,
+    concept_overlap(va, vb, cv)  what the picture model associates with each piece
+                                 (above the average picture: concept_baseline),
                                  from the team's list of short texts
                                  (mappings/style_concepts.csv, REVIEW)
     explain_pair(...)            both, for one look-alike
@@ -42,24 +43,35 @@ def shared_attributes(a, b):
     return {"shared": shared, "differs": differs}
 
 
-def _ranking(vector, concept_vectors):
-    """Concept names, most associated first."""
+def concept_baseline(mean_vector, concept_vectors):
+    """How much the average picture matches each concept. Some prompts ("trendy") match
+    nearly every photo; subtracting this keeps only what is special about a piece. The
+    mean of the dot products over many pictures = the dot product with their mean vector."""
+    if mean_vector is None:
+        return None
+    mean = np.asarray(mean_vector, np.float32)
+    return {c: float(mean @ v) for c, v in concept_vectors.items()}
+
+
+def _ranking(vector, concept_vectors, baseline=None):
+    """Concept names, most associated first (above the average picture, with a baseline)."""
     names = list(concept_vectors)
-    scores = np.array([float(np.asarray(vector, np.float32) @ concept_vectors[n]) for n in names])
+    vec = np.asarray(vector, np.float32)
+    scores = np.array([float(vec @ concept_vectors[n]) - (baseline or {}).get(n, 0.0) for n in names])
     return [names[i] for i in np.argsort(-scores, kind="stable")]
 
 
-def top_concepts(vector, concept_vectors, k=3):
+def top_concepts(vector, concept_vectors, k=3, baseline=None):
     """The k concepts the picture vector is closest to."""
-    return _ranking(vector, concept_vectors)[:k]
+    return _ranking(vector, concept_vectors, baseline)[:k]
 
 
-def concept_overlap(va, vb, concept_vectors, k=3):
+def concept_overlap(va, vb, concept_vectors, k=3, baseline=None):
     """Concepts in both pieces' top k, and a contrast when each piece's top concept
     is in the bottom half of the other's ranking ("this one reads formal, yours sporty")."""
     if va is None or vb is None or not concept_vectors:
         return {"both": [], "contrast": None}
-    ra, rb = _ranking(va, concept_vectors), _ranking(vb, concept_vectors)
+    ra, rb = _ranking(va, concept_vectors, baseline), _ranking(vb, concept_vectors, baseline)
     both = [c for c in ra[:k] if c in rb[:k]]
     half = len(ra) // 2
     contrast = None
@@ -68,6 +80,6 @@ def concept_overlap(va, vb, concept_vectors, k=3):
     return {"both": both, "contrast": contrast}
 
 
-def explain_pair(a, b, va, vb, concept_vectors, k=3):
+def explain_pair(a, b, va, vb, concept_vectors, k=3, baseline=None):
     """Why look-alike `b` came up for piece `a`: shared labels + concepts."""
-    return {**shared_attributes(a, b), **concept_overlap(va, vb, concept_vectors, k)}
+    return {**shared_attributes(a, b), **concept_overlap(va, vb, concept_vectors, k, baseline)}

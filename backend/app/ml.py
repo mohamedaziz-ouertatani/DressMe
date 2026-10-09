@@ -134,6 +134,18 @@ class Catalog:
                  "colour": r.primary_colour, "score": round(float(r.score), 3)}
                 for r in hits.itertuples()]
 
+    def mean_vector(self):
+        """The mean picture vector of the dataset product shots (computed once): the
+        "average picture" the concept probes are compared with (explain_similarity)."""
+        if getattr(self, "_mean", None) is None:
+            import numpy as np
+            vecs = self._index.vectors
+            total = np.zeros(vecs.shape[1], np.float64)
+            for s in range(0, len(vecs), 50_000):         # float16 on disk: add up in chunks
+                total += vecs[s:s + 50_000].astype(np.float32).sum(axis=0)
+            self._mean = (total / len(vecs)).astype(np.float32)
+        return self._mean
+
     def vector(self, item_id):
         """The stored picture vector of a dataset or H&M item (None if unknown)."""
         index = self._shop if item_id.startswith("hm_") else self._index

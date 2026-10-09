@@ -253,7 +253,9 @@ def tools(request, user):
                 return {"error": f"unknown piece {ref!r} (use list_wardrobe, or 'last_scan')"}
             pieces.append(doc)
         (a, b), (va, vb) = pieces, [vector_from_bson(d.get("vector")) for d in pieces]
-        why = similarity_xai.explain_pair(a, b, va, vb, request.app.state.analyzer.concept_vectors())
+        concepts = request.app.state.analyzer.concept_vectors()
+        baseline = similarity_xai.concept_baseline(request.app.state.catalog.mean_vector(), concepts)
+        why = similarity_xai.explain_pair(a, b, va, vb, concepts, baseline=baseline)
         short = lambda d: {"id": str(d["_id"]), "category": d["category"], "sub_category": d["sub_category"],
                            "colour": d["colour"]}
         out = {"pieces": [short(a), short(b)], "shared_labels": why["shared"], "different_labels": why["differs"],

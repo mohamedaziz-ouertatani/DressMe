@@ -91,6 +91,10 @@ class FakeCatalog:
         """The stored picture vector of a dataset / H&M item (a fixed fake)."""
         return fake_vector(sum(map(ord, item_id)))
 
+    def mean_vector(self):
+        """The "average picture" for the concept baseline (a fixed fake)."""
+        return fake_vector(7)
+
 
 class FakeChatEngine:
     """Calls a tool when asked about the wardrobe or outfits, like Gemini would.

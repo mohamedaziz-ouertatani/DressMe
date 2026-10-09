@@ -198,7 +198,9 @@ def similar(request: Request, item_id: str | None = None, candidate_id: str | No
     # why each one looks alike (XAI): shared labels + what the picture model
     # associates with both pictures; the vectors themselves never leave the server
     concepts = request.app.state.analyzer.concept_vectors()
-    explain = lambda hit, vector: explain_similarity.explain_pair(doc, hit, query, vector, concepts)
+    baseline = explain_similarity.concept_baseline(request.app.state.catalog.mean_vector(), concepts)
+    explain = lambda hit, vector: explain_similarity.explain_pair(doc, hit, query, vector, concepts,
+                                                                  baseline=baseline)
     out_mine = [{**item_out(d), "similarity": round(s, 3)} for s, d in mine]
     for hit, (_, d) in zip(out_mine, mine):
         hit["why"] = explain(hit, vector_from_bson(d["vector"]))
