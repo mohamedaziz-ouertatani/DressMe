@@ -1,6 +1,6 @@
 # XAI jury report + Admin > Explainability — design (XAI sub-project 4 of 4)
 
-Date: 2026-10-09. Status: approved in chat. Branch `xai-report` (from main, after #54).
+Date: 2026-10-09. Status: implemented. Branch `xai-report` (from main, after #54).
 
 ## Goals
 
@@ -61,3 +61,12 @@ real-use table, trace table, editable settings (like Formula, with notes and a
 `md_tables` / `results` on the real reports and on a missing file; `/admin/xai`
 blocks on seeded items and chats; settings PUT (validation, file written in the
 temporary mappings copy, notes kept); non-admin → 403.
+
+## Changes while building
+
+- The admin endpoints live in their own router (`routers/admin_xai.py`, same `/admin` prefix and
+  admin guard): `routers/admin.py` was already 400+ lines.
+- The admin page uses its own always-visible table; the shared `TableView` is a collapsed
+  "show as a table" companion for charts.
+- The chat-trace screenshot was retaken at native resolution (820 px viewport) to be readable in the PDF.
+- No separate plan document: the work followed the existing admin / report patterns, task by task with tests.
