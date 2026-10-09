@@ -12,6 +12,7 @@ import { Page } from '../shell'
 import { Button, Chip } from '../ui/controls'
 import { ItemPhoto } from '../ui/ItemPhoto'
 import { OutfitStrip } from '../ui/OutfitStrip'
+import { VerdictWhy } from '../ui/VerdictWhy'
 import { Stamp } from '../ui/Stamp'
 import { Empty, ErrorNote, Skeleton } from '../ui/states'
 import { Ticket } from '../ui/ticket'
@@ -225,6 +226,7 @@ export function ListingPage() {
                     {advice.reasons.map((r) => <li key={r}>{reason(r)}</li>)}
                   </ul>
                 )}
+                {advice.explanation && <VerdictWhy explanation={advice.explanation} />}
                 <Link to={`/similar?candidate=${candidate.id}`} className="mt-5 inline-flex min-h-11 items-center gap-2 border-[1.5px] border-ink bg-paper px-4 text-[15px] font-medium text-ink">
                   <Search className="size-4" aria-hidden /> {t('seeSimilar')}
                 </Link>

@@ -1,4 +1,4 @@
-# Darija review sheet (src/phase4/chat_phrases.py)
+# Darija review sheet (src/phase4/chat_phrases.py, chat_phrases_agents.py)
 
 Every Darija word and sentence the chat dataset uses, for a native speaker to check. The fine-tuned model learns each one **exactly as written**, so a wrong word here becomes a wrong word in the app.
 
@@ -293,3 +293,184 @@ Words inside reasons (REASON_WORDS ar):
 | accessory | أكسسوار | aksesouar | accessory | |
 | traditional | لبسة تقليدية | lebsa ta9lidiya | traditional outfit | |
 | swimwear | مايو | mayo | swimsuit | |
+
+## 7. New phrases for the agents (2026-10-08, NOT reviewed)
+
+Written by Claude for the five agents' new scenarios (`src/phase4/chat_phrases_agents.py`), plus the
+chat's fallback message (`NO_ANSWER` in `backend/app/routers/chat.py`). The model v2 (`dressme-chat-v2`) was
+trained on them as written. **Meaning** is the English version of the same sentence (for FACTS: the English
+fact it translates). No transliteration yet. Fix them in the Correction column, then rebuild the dataset.
+
+| Key | Darija | Meaning | Correction |
+|---|---|---|---|
+| AGENT_NAMES.stylist | الستيليست | the Stylist | |
+| AGENT_NAMES.shopping | مستشار الشراء | the Shopping advisor | |
+| AGENT_NAMES.analyst | محلل الخزانة | the Wardrobe analyst | |
+| AGENT_NAMES.seller | مساعد البيع | the Seller assistant | |
+| AGENT_NAMES.explainer | المفسّر | the Explainer | |
+| ASK_COMPLETE | شنوة يمشي مع {a}؟ | What goes with {a}? | |
+| ASK_COMPLETE | كملي لبسة مع {a} | Complete an outfit around {a} | |
+| ASK_COMPLETE | نحب نلبس {a}، شنوة نزيد؟ | I want to wear {a}, what do I add? | |
+| ASK_HOW_SCORING | كيفاش تعطي نوطة للبسات؟ | How do you score outfits? | |
+| ASK_HOW_SCORING | كيفاش التطبيقة تعرف اللبسة باهية؟ | How does the app decide if an outfit is good? | |
+| ASK_HOW_SCORING (arabizi) | kifech ta3ti note lel lebset? | How do you score outfits? | |
+| ASK_HOW_SCORING (arabizi) | kifech el application ta3ref el lebsa behya? | How does the app decide if an outfit is good? | |
+| ASK_INSIGHTS | شنوة ناقص في الخزانة متاعي؟ | What's missing in my wardrobe? | |
+| ASK_INSIGHTS | شنية الحوايج إلي تنفعني أكثر؟ | Which of my pieces are the most useful? | |
+| ASK_INSIGHTS | شنوة لازمني نزيد للخزانة؟ | What should I add to my wardrobe? | |
+| ASK_INSIGHTS (arabizi) | chnowa na9es fel khzena mte3i? | What's missing in my wardrobe? | |
+| ASK_INSIGHTS (arabizi) | chniya el 7wayej elli tenfa3ni akther? | Which of my pieces are the most useful? | |
+| ASK_INSIGHTS (arabizi) | chnowa lazemni nzid lel khzena? | What should I add to my wardrobe? | |
+| ASK_LABELS | علاش {a} خذا هالليبال؟ | Why is {a} labelled like that? | |
+| ASK_LABELS | قداش التطبيقة متأكدة من {a}؟ | How sure is the app about {a}? | |
+| ASK_MY_LISTINGS | وريني الإعلانات متاعي | Show my listings | |
+| ASK_MY_LISTINGS | شنية أخبار الإعلانات متاعي؟ | How are my listings doing? | |
+| ASK_MY_LISTINGS (arabizi) | warini les annonces mte3i | Show my listings | |
+| ASK_MY_LISTINGS (arabizi) | chniya a5bar les annonces mte3i? | How are my listings doing? | |
+| ASK_PRICE | بقداش نجم نبيع {a}؟ | How much can I sell {a} for? | |
+| ASK_PRICE | قداش نحط سوم {a}؟ | What price for {a}? | |
+| ASK_SEARCH | وين نلقى {piece}؟ | Where can I find {piece}? | |
+| ASK_SEARCH | نلوج على {piece} | I'm looking for {piece} | |
+| ASK_SEARCH | فما {piece} للبيع؟ | Any {piece} for sale? | |
+| ASK_SEARCH_PRICE | نحب {piece} بأقل من {price} دينار | I need {piece} under {price} TND | |
+| ASK_SEARCH_PRICE | لقالي {piece} بأقل من {price} دينار | Find me {piece} for less than {price} TND | |
+| ASK_SELL | عاوني نبيع {a} | Help me sell {a} | |
+| ASK_SELL | نحب نبيع {a} | I want to sell {a} | |
+| ASK_SIMILAR | لقالي حاجة كيف {a} | Find me something like {a} | |
+| ASK_SIMILAR | وين نشري حاجة تشبه ل{a}؟ | Where can I buy something similar to {a}? | |
+| ASK_SIMILAR_SCAN | وين نلقى حاجة كيف إلي صورتها؟ | Where can I find something like the piece I scanned? | |
+| ASK_SIMILAR_SCAN | لقالي حوايج تشبه للسكان الأخير | Find look-alikes of my last scan | |
+| ASK_SIMILAR_SCAN (arabizi) | win nal9a 7aja kif elli sawartha? | Where can I find something like the piece I scanned? | |
+| ASK_SIMILAR_SCAN (arabizi) | la9ali 7wayej tchabah lel scan le5er | Find look-alikes of my last scan | |
+| ASK_STATS | شنوة فيها الخزانة متاعي؟ | What is my wardrobe made of? | |
+| ASK_STATS | قداش عندي من حاجة، وشنية الألوان؟ | How many clothes do I have, and in which colours? | |
+| ASK_STATS (arabizi) | chnowa fiha el khzena mte3i? | What is my wardrobe made of? | |
+| ASK_STATS (arabizi) | 9addech 3andi men 7aja, w chniya el alwen? | How many clothes do I have, and in which colours? | |
+| ASK_TODAY | شنوة نلبس اليوم؟ | What should I wear today? | |
+| ASK_TODAY | شنوة نلبس اليوم مع هالطقس؟ | What do I wear today with this weather? | |
+| ASK_TODAY | لبسني لليوم | Dress me for today | |
+| ASK_TODAY (arabizi) | chnowa nelbes lyoum? | What should I wear today? | |
+| ASK_TODAY (arabizi) | chnowa nelbes lyoum m3a hel ta9s? | What do I wear today with this weather? | |
+| ASK_TODAY (arabizi) | lebesni lel youm | Dress me for today | |
+| ASK_TWINS | عندي حوايج مكررين؟ | Do I own the same thing twice? | |
+| ASK_TWINS | فما حوايج يتشابهو برشا عندي؟ | Any duplicates in my wardrobe? | |
+| ASK_TWINS (arabizi) | 3andi 7wayej mkarrin? | Do I own the same thing twice? | |
+| ASK_TWINS (arabizi) | famma 7wayej yetchabhou barcha 3andi? | Any duplicates in my wardrobe? | |
+| ASK_WEATHER | كيفاش الطقس اليوم؟ | What's the weather like today? | |
+| ASK_WEATHER | باش تصب اليوم؟ | Is it going to rain today? | |
+| ASK_WEATHER (arabizi) | kifech el ta9s lyoum? | What's the weather like today? | |
+| ASK_WEATHER (arabizi) | bech tsob lyoum? | Is it going to rain today? | |
+| ASK_WHAT_IF | وكان نلبس {c} في بلاصة {b} مع {a}؟ | What if I wear {c} instead of {b} with {a}? | |
+| ASK_WHAT_SELL | شنوة لازمني نبيع؟ | What should I sell? | |
+| ASK_WHAT_SELL | شنية الحوايج إلي نجم نبيعهم؟ | Which clothes could I sell? | |
+| ASK_WHAT_SELL (arabizi) | chnowa lazemni nbi3? | What should I sell? | |
+| ASK_WHAT_SELL (arabizi) | chniya el 7wayej elli najem nbi3hom? | Which clothes could I sell? | |
+| ASK_WHY_SCORE | علاش {a} مع {b} خذات هالنوطة؟ | Why does {a} with {b} get that score? | |
+| ASK_WHY_SCORE | فسرلي النوطة متاع {a} مع {b} | Explain the score of {a} with {b} | |
+| ASK_WHY_VERDICT | علاش السكان متاعي خذا هالرأي؟ | Why did my scan get that verdict? | |
+| ASK_WHY_VERDICT | علاش التطبيقة قالت هكا على الحاجة إلي صورتها؟ | Why does the app say that about the piece I scanned? | |
+| ASK_WHY_VERDICT (arabizi) | 3lech el scan mte3i 5dhe hel ra2y? | Why did my scan get that verdict? | |
+| ASK_WHY_VERDICT (arabizi) | 3lech el application 9alet haka 3al 7aja elli sawartha? | Why does the app say that about the piece I scanned? | |
+| CONDITION_WORDS.clear | شمس | sunny | |
+| CONDITION_WORDS.cloudy | مغيّم | cloudy | |
+| CONDITION_WORDS.fog | ضباب | foggy | |
+| CONDITION_WORDS.rain | مطر | rainy | |
+| CONDITION_WORDS.snow | ثلج | snowy | |
+| CONDITION_WORDS.storm | عواصف | stormy | |
+| FACTS | الحوايج عندهم نفس الستيل | the pieces share one style | |
+| FACTS | الحوايج ستيلهم مختلف برشا | the pieces have quite different styles | |
+| FACTS | اللبسة ما تشبهش للستيل متاعك العادي | the outfit is unlike the user's usual style | |
+| FACTS | {0} و{1} يمشيو مع بعضهم | (\w+) and (\w+) go together | |
+| FACTS | قاعدة هادية من {0} ألوان نوترال | a calm base of (\d+) neutral colours | |
+| FACTS | {0} و{1} ما يمشيوش مع بعضهم | (\w+) and (\w+) clash | |
+| FACTS | برشا ألوان قوية ({0}) | too many bold colours \((.+)\) | |
+| FACTS | موتيف قوي واحد ({0}) | one statement pattern \((\w+)\) | |
+| FACTS | حوايج هادية وسادة | calm, plain pieces | |
+| FACTS | زوز موتيفات قويين ({0} + {1}) | two bold patterns \((\w+) \+ (\w+)\) | |
+| FACTS | لبسة كاملة بالصباط | a complete outfit with shoes | |
+| FACTS | ما فماش صباط | no shoes | |
+| FACTS | روبة مع سروال | a full piece and a bottom together | |
+| FACTS | {0} حوايج من نوع {1} | (\d+) pieces of ([\w-]+) | |
+| FACTS | {0} و{1} ما يمشيوش مع بعضهم | ([\w-]+) and ([\w-]+) don't go together | |
+| FACTS | ما فماش حاجة أساسية | no main piece | |
+| FACTS | ناقص توب ولا سروال | missing a top or a bottom | |
+| FIELD_WORDS.category | الصنف | category | |
+| FIELD_WORDS.sub_category | النوع | type | |
+| FIELD_WORDS.pattern | الموتيف | pattern | |
+| FIELD_WORDS.colour | اللون | colour | |
+| MISSING_WORDS.shoes | صباط | shoes | |
+| MISSING_WORDS.top | توب | a top | |
+| MISSING_WORDS.bottom | سروال | a bottom | |
+| MISSING_WORDS.main | توب وسروال، ولا روبة | a top and a bottom, or a dress | |
+| PART_WORDS.style | الستيل | style | |
+| PART_WORDS.colour | الألوان | colours | |
+| PART_WORDS.pattern | الموتيفات | patterns | |
+| PART_WORDS.structure | التركيبة | structure | |
+| SAY_COMPLETE | مع {a}، زيد {added}: اللبسة تاخو {score}/100. | With {a}, add {added}: the outfit scores {score}/100. | |
+| SAY_COMPLETE | أحسن حاجة مع {a}: {added} ({score}/100). | Best match for {a}: {added} ({score}/100). | |
+| SAY_COMPLETE_NONE | حتى حاجة أخرى في الخزانة متاعك ما تمشي مع {a} توا. حاجة تمشي معاها تعاونك. | Nothing else in your wardrobe goes with {a} yet. A piece that matches it would help. | |
+| SAY_COMPLETE_OTHER | زادة تنجم: {others}. | Also good: {others}. | |
+| SAY_CORRECTED | إنت صلحت {fields} بروحك. | You corrected the {fields} yourself. | |
+| SAY_FRIPERIE_IN | فريب في {city} | friperie seller in {city} | |
+| SAY_HANDOFF | هاذا سؤال ل{agent}: اسألو هو ويجاوبك. | That's a question for {agent}: ask it there and it will answer you. | |
+| SAY_HANDOFF | {agent} هو إلي يتلهى بهاذا: اسألو ويعاونك. | {Agent} handles that: ask it and it will help you. | |
+| SAY_HELLO_AGENT.shopping | عسلامة! نجم نقلك إذا الحاجة إلي صورتها تستاهل تشريها، نلقالك حوايج للبيع في الحوانت والفريب، وحوايج تشبه لحوايجك. شنوة تلوج؟ | Hi! I can tell you if a piece you scanned is worth buying, find clothes for sale in shops and friperie, and find look-alikes of your pieces. What are you looking for? | |
+| SAY_HELLO_AGENT.analyst | عسلامة! نجم نقلك شنوة ناقص في الخزانة متاعك، شنية الحوايج إلي تلبسها برشا ولا ما تلبسهاش، شنوة فيها والحوايج إلي عندك منهم زوز. شنوة تحب تعرف؟ | Hi! I can tell you what your wardrobe is missing, which pieces you use most or never, what it is made of and which pieces you own twice. What do you want to know? | |
+| SAY_HELLO_AGENT.seller | عسلامة! نجم نلقالك الحوايج إلي تنجم تبيعهم، نقترحلك سوم فريب معقول ونحضرلك الفورمولار متاع البيع. شنية الحاجة إلي تحب تبيعها؟ | Hi! I can find pieces worth selling, suggest a fair friperie price and prepare the Sell form for you. Which piece do you want to sell? | |
+| SAY_HELLO_AGENT.explainer | عسلامة! نجم نفسرلك علاش لبسة خذات النوطة متاعها، شنوة يبدلها، علاش حاجة خذات الليبال متاعها وعلاش السكان خذا الرأي متاعو. شنوة نفسرلك؟ | Hi! I can explain why an outfit gets its score, what would change it, why a piece got its labels and why a scan got its verdict. What should I explain? | |
+| SAY_HOW_SCORING | كل لبسة تاخو نوطة على 100 من أربعة حاجات: {weights}. اللبسة باهية من {good}/100. الفريق متاع DressMe هو إلي يحط هالأوزان. | Each outfit gets a score out of 100 from four parts: {weights}. An outfit is good from {good}/100. The DressMe team sets these weights. | |
+| SAY_INSIGHTS_OUTFITS | الخزانة متاعك تعمل {good} لبسات باهيين. | Your wardrobe makes {good} good outfits. | |
+| SAY_LABEL | {field}: {value} (متأكد {conf}%) | {field}: {value} ({conf}% sure) | |
+| SAY_LABELS | شنوة خمنت التطبيقة من التصويرة: {labels}. | The app's guesses from the photo: {labels}. | |
+| SAY_LISTING | {title} ب{price} دينار ({where}) | {title} at {price} TND ({where}) | |
+| SAY_MISSING | باش تعمل لبسات أكثر، زيد {missing}. | To make more outfits, add {missing}. | |
+| SAY_MY_LISTING | {title}، {price} دينار: {status} | {title}, {price} TND: {status} | |
+| SAY_MY_LISTINGS | الإعلانات متاعك: {list}. | Your listings: {list}. | |
+| SAY_NEUTRAL | {n} منهم ألوان نوترال يمشيو مع كل شي تقريبا. | {n} of them are neutral colours that go with almost anything. | |
+| SAY_NOTHING_MISSING | ما ناقصك حتى شي أساسي. | Nothing essential is missing. | |
+| SAY_NO_LISTINGS | ما عندك حتى إعلان توا. اسألني شنوة تبيع، ولا استعمل الخانة متاع البيع. | You have no listings yet. Ask me what to sell, or use the Sell tab. | |
+| SAY_NO_RAIN | ما فماش مطر. | No rain expected. | |
+| SAY_NO_SCAN_SIMILAR | ما نشوف حتى حاجة مصورة. صورها في الخانة متاع السكان، ومبعد عاود اسألني. | I don't see a scanned piece. Take a photo in the Scan tab, then ask me again. | |
+| SAY_NO_SWAP | حتى حاجة من الخزانة متاعك ما تحسنها بالحق. | No piece of your wardrobe would clearly improve it. | |
+| SAY_NO_TWINS | ما فماش حوايج مكررة: الكل مختلفين. | No duplicates: all your pieces look different. | |
+| SAY_OPEN_PANEL | حل التفسير باش تشوف وين خزر المودال في التصويرة. | Open the explanation to see where the model looked in the picture. | |
+| SAY_PRICE | ل{a}، الحوايج إلي تشبهلها تقول من {low} ل{high} دينار (الوسط {median} دينار، من {count} حوايج). | For {a}, similar listings suggest {low} to {high} TND (middle: {median} TND, from {count} look-alikes). | |
+| SAY_PRICE_NONE | ما لقيتش حوايج تشبه ل{a} عندها سوم، ما نجمش نقترح سوم معقول. | I can't find similar listings with a price for {a} yet, so I can't suggest a fair price. | |
+| SAY_PROBLEMS | شنوة ينقص النوطة: {facts}. | What lowers it: {facts}. | |
+| SAY_RAIN | ممكن تصب، خوذ فيستة معاك. | Rain is likely, take a jacket. | |
+| SAY_REJECTED_NOTE | ملاحظة الأدمين: "{note}". | The admin's note: "{note}". | |
+| SAY_SEARCH | موجود توا: {list}. | In stock now: {list}. | |
+| SAY_SEARCH_NONE | ما لقيت حتى شي موجود يتطابق توا. جرب بلاش حد السوم ولا لون آخر. | I found nothing in stock matching that right now. Try without the price limit or another colour. | |
+| SAY_SELL_ASK_PRICE | ما لقيتش حوايج تشبه ل{a} عندها سوم. قلي السوم متاعك ونحضرلك الفورمولار. | I can't find similar listings with a price for {a}. Tell me your price and I'll prepare the Sell form. | |
+| SAY_SELL_FORM | حضرتلك الفورمولار متاع البيع: "{title}" ب{price} دينار، الوسط متاع الحوايج إلي تشبهلها. حلّو بالبوطون، زيد المدينة والكونتاكت متاعك وابعثو. أدمين يثبت في كل إعلان قبل ما يشوفوه الناس. | I prepared the Sell form: "{title}" at {price} TND, the middle of similar listings. Open it with the button, add your city and contact and send it. An admin checks each listing before others see it. | |
+| SAY_SELL_NEXT | تحب نقلك بقداش تنجم تبيع وحدة منهم؟ | Want a price for one of them? | |
+| SAY_SELL_NOTHING | الحوايج متاعك الكل ينفعو في اللبسات: ما نبيع حتى شي توا. | Every piece you own is useful in your outfits: I wouldn't sell any for now. | |
+| SAY_SELL_TWINS | عندك زادة حوايج يتشابهو: تنجم تبيع {items}. | You also own near-copies: you could sell {items}. | |
+| SAY_SELL_UNMATCHED | {items} ما يمشيو مع حتى شي في الخزانة متاعك. | {items} go with nothing in your wardrobe. | |
+| SAY_SIMILAR | حوايج تشبهلها في H&M: {shop}. | Look-alikes at H&M: {shop}. | |
+| SAY_SIMILAR_LISTINGS | للبيع توا: {listings}. | For sale now: {listings}. | |
+| SAY_SIMILAR_NONE | ما لقيت حتى حاجة تشبهلها توا. | I found no look-alike for it right now. | |
+| SAY_SNAPSHOT | شوية أسوام جاية من صورة قديمة، ممكن الستوك تبدل. | Some prices come from an old snapshot, so stock may have changed. | |
+| SAY_STATS | عندك {total} حوايج: {categories}. الألوان الأساسية: {colours}. | You have {total} pieces: {categories}. Main colours: {colours}. | |
+| SAY_SWAP | أضعف حاجة: {piece}؛ {swap} في بلاصتها تزيد {gain} نقاط. | Weakest piece: {piece}; {swap} instead would add {gain} points. | |
+| SAY_TO_CONFIRM | {n} حوايج ما عندهمش لون توا: تنجم تختارو في الخانة متاع الخزانة. | {n} pieces still have no colour: you can set it in the Wardrobe tab. | |
+| SAY_TO_NEXT | {n} زايدين يبدلو الرأي. | {n} more would change the verdict. | |
+| SAY_TWINS | هاذوما يتشابهو برشا: {pairs}. | These look almost the same: {pairs}. | |
+| SAY_UNMATCHED | ما يمشي مع حتى شي توا: {items}. | Goes with nothing yet: {items}. | |
+| SAY_UNSURE | موش متأكدة من {fields}: ثبت فيه. | It is not sure about the {fields}: please check it. | |
+| SAY_VERDICT | "{verdict}" خاطر تعمل {good} لبسة باهية فيها خير من حوايجك؛ "اشري" يلزمها {buy_min}. | "{verdict}" because it makes {good} good outfit(s) where it beats what you own; "buy" needs {buy_min}. | |
+| SAY_VERDICT_TWINS | عندك ديجا حاجة تشبهلها برشا: {items}. | You already own something very similar: {items}. | |
+| SAY_VERSATILE | أكثر حوايج تنفع: {items}. | Most useful: {items}. | |
+| SAY_WEATHER | اليوم في {place}: {condition}، من {low} ل{high} درجة. | Today in {place}: {condition}, {low} to {high}°C. | |
+| SAY_WEATHER_DOWN | ما نجمتش نجيب الطقس متاع اليوم، هاذا اختيار عام. | I can't get today's weather right now, so here is a general pick. | |
+| SAY_WHAT_IF | ب{c} في بلاصة {b}: {before} → {after}/100 ({change} نقاط). | With {c} instead of {b}: {before} → {after}/100 ({change} points). | |
+| SAY_WHY_SCORE | {score}/100، من {points}. | {score}/100, from {points}. | |
+| SAY_WORKS | شنوة يمشي: {facts}. | What works: {facts}. | |
+| STATUS_WORDS.pending | تستنى في الأدمين | waiting for an admin | |
+| STATUS_WORDS.active | تبان للناس | visible | |
+| STATUS_WORDS.rejected | مرفوضة | rejected | |
+| STATUS_WORDS.gone | تباعت ولا تنحات | sold or removed | |
+| VERDICT_WORDS.buy | اشري | buy | |
+| VERDICT_WORDS.think | خمم | think about it | |
+| VERDICT_WORDS.skip | خليها | skip | |
+| chat.py NO_ANSWER | سامحني، ما كمّلتش الجواب. تنجم تعاود تسأل بكلام آخر؟ | Sorry, I couldn't finish that answer. Could you ask again in other words? | |

@@ -109,7 +109,7 @@ export function ChatPage() {
                     {m.actions.map((a) => (
                       <Link key={a.url} to={a.url}
                         className="inline-flex min-h-11 items-center bg-ink px-4 text-[15px] font-medium text-paper">
-                        {t('chatOpenSell')}
+                        {t(a.kind === 'explain' ? 'chatOpenExplain' : 'chatOpenSell')}
                       </Link>
                     ))}
                   </div>

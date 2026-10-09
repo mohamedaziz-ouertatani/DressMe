@@ -31,7 +31,7 @@ An item is a dict; only `category` is required:
      "season": {"summer"}, "usage": {"casual"}}
 
 Main functions (used by the API):
-    score_outfit(items)                     -> score, parts, reasons
+    score_outfit(items)                     -> score, parts, reasons, problems
     filter_items(items, profile)            personal filters (modesty, season, occasion)
     suggest_outfits(wardrobe, profile, n)   the best outfits of a wardrobe
     buy_advice(candidate, wardrobe, profile)  "should I buy this?": counts the good
@@ -141,57 +141,85 @@ def outfit_vector(items):
     return value / norm if norm else None
 
 
-def style_part(items, rules, style_profile=None):
+def line(part, sign, code, **params):
+    """One structured explanation line; the app turns `code` into a sentence in
+    en / fr / ar (frontend/src/i18n/explain.ts)."""
+    return {"code": code, "part": part, "sign": sign, "params": params}
+
+
+def rescale_style(sim, rules):
+    """A FashionCLIP similarity on the team's 0-1 style scale (style_low / style_high)."""
+    lo, hi = rules.settings["style_low"], rules.settings["style_high"]
+    return float(np.clip((sim - lo) / (hi - lo), 0, 1))
+
+
+def style_coherence(items, rules):
+    """How alike the pieces look: mean pairwise similarity, rescaled (None if < 2 vectors)."""
     vecs = [np.asarray(i["vector"], np.float32) for i in items if i.get("vector") is not None]
     if len(vecs) < 2:
-        return None, []
-    sims = [float(a @ b) for a, b in combinations(vecs, 2)]
-    lo, hi = rules.settings["style_low"], rules.settings["style_high"]
-    coherence = float(np.clip((np.mean(sims) - lo) / (hi - lo), 0, 1))
-    part = coherence
-    reasons = []
+        return None
+    return rescale_style(float(np.mean([float(a @ b) for a, b in combinations(vecs, 2)])), rules)
+
+
+def clothing_patterns(items, rules):
+    """Patterns that count: clothes only, and predicted patterns only when confident."""
+    return [i["pattern"] for i in items
+            if i.get("pattern") and rules.slot.get(i["category"]) in CLOTHES_SLOTS
+            and i.get("pattern_conf", 1.0) >= rules.settings["min_pattern_conf"]]
+
+
+# Each part returns (value 0-1 or None, English reasons, problems as structured lines).
+def style_part(items, rules, style_profile=None):
+    coherence = style_coherence(items, rules)
+    if coherence is None:
+        return None, [], []
+    part, reasons, problems = coherence, [], []
     if style_profile is not None:
-        user_sims = [float(style_profile @ vector) for vector in vecs]
-        user_fit = float(np.clip((np.mean(user_sims) - lo) / (hi - lo), 0, 1))
+        vecs = [np.asarray(i["vector"], np.float32) for i in items if i.get("vector") is not None]
+        user_fit = rescale_style(float(np.mean([float(style_profile @ v) for v in vecs])), rules)
         personal_weight = rules.settings["style_personal_weight"]
         part = ((1 - personal_weight) * coherence) + (personal_weight * user_fit)
         if user_fit < 0.3:
             reasons.append("the outfit is unlike your usual style")
+            problems.append(line("style", "-", "style_unlike_you"))
     if coherence < 0.3:
         reasons.append("the pieces have quite different styles")
-    return part, reasons
+        problems.append(line("style", "-", "style_mixed"))
+    return part, reasons, problems
 
 
 def colour_part(items, rules):
     colours = [i["colour"] for i in items if i.get("colour")]
     if len(colours) < 2:
-        return None, []
+        return None, [], []
     pairs = [(a, b, rules.colour_score(a, b)) for a, b in combinations(colours, 2)]
     part = float(np.mean([s for _, _, s in pairs]))
-    reasons = []
+    reasons, problems = [], []
     worst = min(pairs, key=lambda p: p[2])
     if worst[2] < 0.5:
         reasons.append(f"{worst[0]} and {worst[1]} clash")
+        problems.append(line("colour", "-", "colour_clash", a=worst[0], b=worst[1]))
     bold = {c for c in colours if rules.group[c] not in ("neutral", "metal")}
     extra = len(bold) - rules.settings["max_bold_colours"]
     if extra > 0:
         part -= extra * rules.settings["bold_colour_penalty"]
         reasons.append(f"many bold colours ({', '.join(sorted(bold))})")
-    return float(max(part, 0)), reasons
+        problems.append(line("colour", "-", "colour_too_bold", colours=sorted(bold)))
+    return float(max(part, 0)), reasons, problems
 
 
 def pattern_part(items, rules):
-    patterns = [i["pattern"] for i in items
-                if i.get("pattern") and rules.slot.get(i["category"]) in CLOTHES_SLOTS
-                and i.get("pattern_conf", 1.0) >= rules.settings["min_pattern_conf"]]
+    patterns = clothing_patterns(items, rules)
     if not patterns:
-        return None, []
+        return None, [], []
     if len(patterns) == 1:
-        return 1.0, []
+        return 1.0, [], []
     pairs = [(a, b, rules.pattern_pairs[(a, b)]) for a, b in combinations(patterns, 2)]
     worst = min(pairs, key=lambda p: p[2])        # one clash is enough to spoil it
-    reasons = [f"two bold patterns ({worst[0]} + {worst[1]})"] if worst[2] < 0.5 else []
-    return worst[2], reasons
+    if worst[2] >= 0.5:
+        return worst[2], [], []
+    return (worst[2], [f"two bold patterns ({worst[0]} + {worst[1]})"],
+            [line("pattern", "-", "pattern_clash", a=worst[0], b=worst[1])])
 
 
 def structure_part(items, rules):
@@ -200,22 +228,27 @@ def structure_part(items, rules):
     full, upper, lower = slots.get("full", 0), slots.get("upper", 0), slots.get("lower", 0)
     core = full >= 1 or (upper >= 1 and lower >= 1)
     swim = full >= 1 and all(i["category"] == SWIMWEAR for i in items if rules.slot[i["category"]] == "full")
-    reasons = []
+    reasons, problems = [], []
     if core and (slots.get("feet", 0) or swim):   # a swimsuit needs no shoes
         part = 1.0
     elif core:
         part = rules.settings["structure_no_shoes"]
         reasons.append("no shoes")
+        problems.append(line("structure", "-", "structure_no_shoes"))
     else:
         part = rules.settings["structure_incomplete"]
+        missing = "top_or_bottom" if upper or lower else "main_piece"
         reasons.append("missing a top or a bottom" if upper or lower else "no main piece")
+        problems.append(line("structure", "-", "structure_incomplete", missing=missing))
     if full and lower:       # e.g. a dress with trousers: unusual
         part *= rules.settings["structure_over_limit"]
         reasons.append("a full piece and a bottom together")
+        problems.append(line("structure", "-", "structure_full_and_bottom"))
     for cat, n in counts.items():
         if n > rules.max_items[cat]:
             part *= rules.settings["structure_over_limit"] ** (n - rules.max_items[cat])
             reasons.append(f"{n} items of {cat}")
+            problems.append(line("structure", "-", "structure_over_limit", category=cat, n=int(n)))
     # do the types of piece go together? the worst pair counts, like for patterns
     subs = [i["sub_category"] for i in items if i.get("sub_category")]
     pairs = [(a, b, rules.sub_pairs[(a, b)]) for a, b in combinations(subs, 2) if (a, b) in rules.sub_pairs]
@@ -224,7 +257,8 @@ def structure_part(items, rules):
         part *= worst[2]
         if worst[2] < 0.5:
             reasons.append(f"{worst[0]} and {worst[1]} don't go together")
-    return part, reasons
+            problems.append(line("structure", "-", "structure_pair", a=worst[0], b=worst[1]))
+    return part, reasons, problems
 
 
 PART_FUNCTIONS = {"style": style_part, "colour": colour_part,
@@ -232,19 +266,21 @@ PART_FUNCTIONS = {"style": style_part, "colour": colour_part,
 
 
 def score_outfit(items, rules=RULES, weights=None, style_profile=None):
-    """Score from 0 to 100, the value of each part (None = not computable), and reasons."""
+    """Score from 0 to 100, the value of each part (None = not computable), the
+    English reasons and the same problems as structured lines (for the app)."""
     weights = weights or rules.weights
-    parts, reasons = {}, []
+    parts, reasons, problems = {}, [], []
     for name, fn in PART_FUNCTIONS.items():
         if name == "style":
-            parts[name], why = fn(items, rules, style_profile)
+            parts[name], why, lines = fn(items, rules, style_profile)
         else:
-            parts[name], why = fn(items, rules)
+            parts[name], why, lines = fn(items, rules)
         reasons += why
+        problems += lines
     used = {p: weights[p] for p, v in parts.items() if v is not None and weights[p] > 0}
     total = sum(used.values())
     score = 100 * sum(weights[p] * parts[p] for p in used) / total if total else 0.0
-    return {"score": round(score, 1), "parts": parts, "reasons": reasons}
+    return {"score": round(score, 1), "parts": parts, "reasons": reasons, "problems": problems}
 
 
 # ------------------------------------------------------------------ hard constraints
@@ -398,35 +434,42 @@ def buy_advice(candidate, wardrobe, profile=None, rules=RULES):
     kept, removed = filter_items([candidate], profile, rules)
     if not kept:
         return {"verdict": "skip", "good_outfits": 0, "best": [],
-                "reasons": [removed[candidate.get("id")]]}
+                "reasons": [removed[candidate.get("id")]], "detail": {"outfits": [], "twins": []}}
     items, _ = filter_items(wardrobe, profile, rules)
     style_profile = (profile or {}).get("style_vector")
     outfits = _outfits(items + [candidate], rules, must=candidate, style_profile=style_profile)
     # an outfit only counts if the new item beats every piece you already own
     # in the same slot (otherwise buying it changes nothing)
     same_cat = [w for w in items if w["category"] == candidate["category"]]
-    good = []
-    for result, outfit in outfits:
-        if result["score"] < rules.settings["good_outfit"]:
-            continue
-        others = [i for i in outfit if i is not candidate]
-        best_owned = max((score_outfit(
-            others + [w], rules, style_profile=style_profile)["score"] for w in same_cat), default=0)
-        if result["score"] > best_owned:
-            good.append((result, outfit))
     s = rules.settings
+    good, rows = [], []
+    for result, outfit in outfits:
+        others = [i for i in outfit if i is not candidate]
+        # the owned pieces are scored from 20 points below "good": the good outfits
+        # need it, and the near misses of the explanation (explain_outfit.py) too
+        owned = [(score_outfit(others + [w], rules, style_profile=style_profile)["score"], w)
+                 for w in same_cat] if result["score"] >= s["good_outfit"] - 20 else []
+        best_score, best_item = max(owned, key=lambda o: o[0], default=(0, None))
+        rows.append({"item_ids": [i["id"] for i in outfit], "score": result["score"],
+                     "owned_id": best_item["id"] if best_item else None, "owned_score": best_score})
+        if result["score"] >= s["good_outfit"] and result["score"] > best_score:
+            good.append((result, outfit))
     verdict = ("buy" if len(good) >= s["buy_min_outfits"]
                else "think" if len(good) >= s["think_min_outfits"] else "skip")
-    reasons = []
+    reasons, twins = [], []
     if candidate.get("vector") is not None:      # friperie items can't be returned
-        twins = [w for w in items if w["category"] == candidate["category"]
-                 and w.get("vector") is not None
-                 and float(np.asarray(w["vector"], np.float32)
-                           @ np.asarray(candidate["vector"], np.float32)) >= s["similar_item"]]
+        for w in items:
+            if w["category"] == candidate["category"] and w.get("vector") is not None:
+                sim = float(np.asarray(w["vector"], np.float32) @ np.asarray(candidate["vector"], np.float32))
+                if sim >= s["similar_item"]:
+                    twins.append({"id": w["id"], "similarity": round(sim, 3)})
         if twins:
             reasons.append(f"you already own {len(twins)} very similar {candidate['category']} item(s)")
+    # detail = every completed outfit with the best owned piece of the same category,
+    # and the near twins: explain_outfit.buy_explanation turns it into the "why"
     return {"verdict": verdict, "good_outfits": len(good), "reasons": reasons,
-            "best": [{**r, "items": o} for r, o in (good or outfits)[:3]]}
+            "best": [{**r, "items": o} for r, o in (good or outfits)[:3]],
+            "detail": {"outfits": rows, "twins": twins}}
 
 
 def complete_outfit(items, candidates, profile=None, k=5, rules=RULES):

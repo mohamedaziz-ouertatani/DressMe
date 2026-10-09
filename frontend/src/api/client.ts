@@ -3,7 +3,7 @@
 import type {
   SourceCheck, AdminSource, Job, JobStart, ListingsOverview, AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Insights, Item, ItemPatch,
   Listing, ListingFilters, ListingPage, ListingPatch, ModelQuality, ReviewListing, SellForm, Occasion, Outfit, Season, Similar, Stats, User,
-  ChatAttachment, ChatAction, TryOnResult, Weather, Explanation, GuessField,
+  ChatAttachment, ChatAction, TryOnResult, Weather, Explanation, GuessField, OutfitExplanation,
 } from './types'
 
 const BASE = '/api'
@@ -128,6 +128,8 @@ export const api = {
     request<Weather>(at ? `/weather?${new URLSearchParams({ lat: String(at.lat), lon: String(at.lon) })}` : '/weather'),
   outfitLimits: () => request<{ max_items: Record<Category, number> }>('/outfits/limits'),
   score: (itemIds: string[]) => request<Outfit>('/outfits/score', json('POST', { item_ids: itemIds })),
+  explainOutfit: (itemIds: string[]) =>
+    request<OutfitExplanation>('/outfits/explain', json('POST', { item_ids: itemIds })),
   feedback: (itemIds: string[], rating: 1 | -1) =>
     request<{ item_ids: string[]; rating: 1 | -1 }>('/outfits/feedback', json('POST', { item_ids: itemIds, rating })),
   complete: (itemIds: string[], k = 5) =>

@@ -59,9 +59,24 @@ def describe(compat_item, docs_by_id):
             "image_url": f"/items/{compat_item['id']}/image"}
 
 
-def outfit_out(result, docs_by_id):
-    """A compatibility result (score, parts, reasons, items) as JSON."""
-    return {"score": result["score"],
-            "parts": {k: (round(v, 3) if v is not None else None) for k, v in result["parts"].items()},
-            "reasons": result["reasons"],
-            "items": [describe(i, docs_by_id) for i in result.get("items", [])]}
+def short_item(doc):
+    """A wardrobe item in a few fields, for explanations (swaps, twins, what it beats)."""
+    return {"id": str(doc["_id"]), "category": doc["category"], "sub_category": doc["sub_category"],
+            "colour": doc["colour"], "image_url": f"/items/{doc['_id']}/image"}
+
+
+def outfit_out(result, docs_by_id, explain=False):
+    """A compatibility result (score, parts, reasons, items) as JSON. explain=True
+    (the app's routes) adds the points per part and the strengths / problems
+    (src/phase4/explain_outfit.py); the chat tools keep the short form."""
+    out = {"score": result["score"],
+           "parts": {k: (round(v, 3) if v is not None else None) for k, v in result["parts"].items()},
+           "reasons": result["reasons"],
+           "items": [describe(i, docs_by_id) for i in result.get("items", [])]}
+    if explain:
+        import compatibility
+        import explain_outfit
+        out["contributions"] = explain_outfit.contributions(result, compatibility.RULES.weights)
+        out["explanations"] = (explain_outfit.strengths(result.get("items", []), result["parts"])
+                               + result.get("problems", []))
+    return out

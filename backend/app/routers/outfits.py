@@ -13,13 +13,14 @@ from fastapi.responses import StreamingResponse
 
 from .. import ml  # noqa: F401  (puts src/ on the import path)
 import compatibility
+import explain_outfit
 
 from ..db import vector_from_bson, vector_to_bson
 from ..events import log_event
 from ..schemas import BuyAdvice, Complete, ItemIds, OutfitFeedback
 from ..security import current_user
 from ..vocab import SEASONS, USAGES
-from ..wardrobe import item_out, outfit_out, to_compat
+from ..wardrobe import item_out, outfit_out, short_item, to_compat
 from .items import apply_update, own_item
 
 router = APIRouter(tags=["outfits"])
@@ -76,7 +77,26 @@ def score(body: ItemIds, request: Request, user=Depends(current_user)):
     all_docs, _ = wardrobe(request, user)
     result = compatibility.score_outfit(
         items, style_profile=user_profile(user, all_docs, request)["style_vector"])
-    return outfit_out({**result, "items": items}, {str(d["_id"]): d for d in docs})
+    return outfit_out({**result, "items": items}, {str(d["_id"]): d for d in docs}, explain=True)
+
+
+@router.post("/outfits/explain")
+def explain_outfit_route(body: ItemIds, request: Request, user=Depends(current_user)):
+    """Why this score, in more depth: the best swap for each piece (from your own
+    wardrobe, same filters as the suggestions) and how every pair of pieces works."""
+    docs = [own_item(request, user, i) for i in body.item_ids]
+    items = [to_compat(d) for d in docs]
+    no_clash(items)
+    all_docs, by_id = wardrobe(request, user)
+    prof = user_profile(user, all_docs, request)
+    pool, _ = compatibility.filter_items([to_compat(d) for d in all_docs], prof)
+    swaps = explain_outfit.swaps(items, pool, style_profile=prof["style_vector"])
+    return {"swaps": [{"item_id": s["item_id"], "gain": s["gain"],
+                       "swap": short_item(by_id[s["best_swap_id"]]) if s["best_swap_id"] else None}
+                      for s in swaps],
+            "weakest": explain_outfit.weakest(
+                swaps, min_gain=explain_outfit.explain.load_settings()["min_swap_gain"]),
+            "pair_map": explain_outfit.pair_map(items)}
 
 
 @router.post("/outfits/feedback")
@@ -109,18 +129,19 @@ def suggest(request: Request, season: Season | None = None, occasion: Occasion |
     prof = user_profile(user, docs, request, season, occasion)
     prof["beach"] = beach
     outfits = compatibility.suggest_outfits([to_compat(d) for d in docs], prof, n=n)
-    return [outfit_out(o, by_id) for o in outfits]
+    return [outfit_out(o, by_id, explain=True) for o in outfits]
 
 
 @router.post("/outfits/complete")
 def complete(body: Complete, request: Request, user=Depends(current_user)):
-    chosen = [own_item(request, user, i) for i in body.item_ids]
-    no_clash([to_compat(d) for d in chosen])
+    chosen = [to_compat(own_item(request, user, i)) for i in body.item_ids]
+    no_clash(chosen)
     docs, by_id = wardrobe(request, user)
     candidates = [to_compat(d) for d in docs if str(d["_id"]) not in body.item_ids]
     ranked = compatibility.complete_outfit(
-        [to_compat(d) for d in chosen], candidates, user_profile(user, docs, request), k=body.k)
-    return [{**outfit_out(r, by_id), "item": item_out(by_id[r["item"]["id"]])} for r in ranked]
+        chosen, candidates, user_profile(user, docs, request), k=body.k)
+    return [{**outfit_out({**r, "items": chosen + [r["item"]]}, by_id, explain=True),
+             "item": item_out(by_id[r["item"]["id"]])} for r in ranked]
 
 
 @router.post("/buy-advice")
@@ -137,9 +158,18 @@ def buy_advice(body: BuyAdvice, request: Request, user=Depends(current_user)):
     advice = compatibility.buy_advice(
         to_compat(cand), [to_compat(d) for d in docs], user_profile(user, docs, request))
     log_event(request.app.state.db, "verdict", user["_id"], verdict=advice["verdict"])
+    # why this verdict: owned ids become short items the app can show with their photo
+    why = explain_outfit.buy_explanation(advice)
+    explanation = {**why,
+                   "beats": [{**b, "owned": short_item(by_id[b["owned_id"]]) if b["owned_id"] else None}
+                             for b in why["beats"]],
+                   "lost_to": [{**l, "owned": short_item(by_id[l["owned_id"]])} for l in why["lost_to"]],
+                   "twins": [{"item": short_item(by_id[t["id"]]), "similarity": t["similarity"]}
+                             for t in why["twins"]]}
     return {"verdict": advice["verdict"], "good_outfits": advice["good_outfits"],
             "reasons": advice["reasons"], "candidate": item_out(cand, kind="candidates"),
-            "best": [outfit_out(o, by_id) for o in advice["best"]]}
+            "best": [outfit_out(o, by_id, explain=True) for o in advice["best"]],
+            "explanation": explanation}
 
 
 @router.get("/similar")

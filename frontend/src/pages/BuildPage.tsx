@@ -65,6 +65,8 @@ export function BuildPage() {
           <OutfitStrip
             outfit={shownOutfit}
             compact
+            explainable
+            onSwap={(from, to) => setPicked((p) => p.map((x) => (x === from ? to : x)))}
             feedback={feedback}
             onFeedback={(rating) => {
               const previous = feedback

@@ -191,3 +191,54 @@ def test_suggest_beach_endpoint(client):
     headers = sign_up(client)
     wardrobe(client, headers)                       # no swimwear: no beach outfit
     assert client.get("/outfits/suggest?beach=true", headers=headers).json() == []
+
+
+def test_outfit_answers_explain_the_score(client):
+    headers = sign_up(client)
+    w = wardrobe(client, headers)
+    body = client.post("/outfits/score", json={"item_ids": [w["top"]["id"], w["jeans"]["id"],
+                                                            w["shoes"]["id"]]}, headers=headers).json()
+    assert round(sum(c["points"] for c in body["contributions"]), 1) == body["score"]
+    assert {c["part"] for c in body["contributions"]} == {"style", "colour", "pattern", "structure"}
+    assert ("+", "structure_complete") in [(e["sign"], e["code"]) for e in body["explanations"]]
+    for o in client.get("/outfits/suggest?n=3", headers=headers).json():
+        assert "contributions" in o and "explanations" in o
+
+
+def test_outfit_explain_endpoint(client):
+    headers = sign_up(client)
+    w = wardrobe(client, headers)
+    ids = [w["top"]["id"], w["jeans"]["id"], w["shoes"]["id"]]
+    r = client.post("/outfits/explain", json={"item_ids": ids}, headers=headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert [s["item_id"] for s in body["swaps"]] == ids
+    assert len(body["pair_map"]) == 3
+    assert body["weakest"] in ids + [None]
+    other = sign_up(client, "other@example.com", "Other")
+    assert client.post("/outfits/explain", json={"item_ids": ids}, headers=other).status_code == 404
+    two_jeans = upload(client, headers, BLUE)
+    clash = client.post("/outfits/explain", json={"item_ids": [w["jeans"]["id"], two_jeans["id"]]}, headers=headers)
+    assert clash.status_code == 422
+
+
+def test_buy_advice_explains_the_verdict(client):
+    headers = sign_up(client)
+    wardrobe(client, headers)
+    cand = client.post("/analyze", files={"photo": photo(RED)}, headers=headers).json()
+    advice = client.post("/buy-advice", json={"candidate_id": cand["id"]}, headers=headers).json()
+    why = advice["explanation"]
+    assert why["path"]["verdict"] == advice["verdict"] and why["path"]["good"] == advice["good_outfits"]
+    for b in why["beats"]:
+        assert b["owned"] is None or b["owned"]["image_url"].startswith("/items/")
+    for t in why["twins"]:
+        assert t["item"]["id"] and 0 <= t["similarity"] <= 1.0001
+    assert all("contributions" in o for o in advice["best"])
+
+
+def test_chat_tools_keep_the_short_outfit_form():
+    from app.wardrobe import outfit_out
+    result = {"score": 50.0, "parts": {"style": 0.5, "colour": None, "pattern": None, "structure": 0.5},
+              "reasons": [], "problems": [], "items": []}
+    assert "contributions" not in outfit_out(result, {})
+    assert "contributions" in outfit_out(result, {}, explain=True)
