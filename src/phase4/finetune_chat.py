@@ -43,12 +43,23 @@ def read_jsonl(path, limit=None):
     return rows[:limit] if limit else rows
 
 
+EMPTY_THINK = "<think>\n\n</think>\n\n"
+
+
 def to_texts(rows, tokenizer, max_seq):
     """Each conversation rendered with the model's own chat template (tools included).
-    Conversations longer than max_seq tokens are dropped, never cut in the middle."""
+    Conversations longer than max_seq tokens are dropped, never cut in the middle.
+
+    The template Unsloth ships with Qwen3-4B-Instruct-2507 is the hybrid "thinking" one: it
+    writes an empty <think></think> before the LAST answer. Ollama's template (the one the
+    app uses) never does, and the first model learned it: its final answers started with
+    stray tags. So the empty block is removed, and any other <think> stops the training."""
     texts, too_long = [], 0
     for r in rows:
         text = tokenizer.apply_chat_template(r["messages"], tools=r["tools"], tokenize=False)
+        text = text.replace(EMPTY_THINK, "")
+        if "<think>" in text or "</think>" in text:
+            raise ValueError(f"conversation {r.get('id')}: <think> left in the training text")
         if len(tokenizer(text, add_special_tokens=False)["input_ids"]) > max_seq:
             too_long += 1
             continue
