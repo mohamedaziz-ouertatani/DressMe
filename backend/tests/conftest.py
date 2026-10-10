@@ -74,11 +74,15 @@ class FakeAnalyzer:
 
 
 class FakeCatalog:
-    def search(self, vector, k=6, category=None):
+    last_genders = "not called"     # what the last search asked for (tests check the filter)
+
+    def search(self, vector, k=6, category=None, genders=None):
+        self.last_genders = genders
         return [{"id": f"pv_{i}", "category": category or "top", "sub_category": "",
                  "colour": "black", "score": 0.9 - i / 100} for i in range(k)]
 
-    def search_shop(self, vector, k=6, category=None):
+    def search_shop(self, vector, k=6, category=None, genders=None):
+        self.last_genders = genders
         return [{"id": f"hm_{i}", "name": f"Product {i}", "shop": "H&M", "department": "Menswear",
                  "category": category or "top", "sub_category": "", "colour": "navy",
                  "score": 0.8 - i / 100} for i in range(k)]

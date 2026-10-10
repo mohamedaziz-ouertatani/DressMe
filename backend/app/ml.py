@@ -119,17 +119,19 @@ class Catalog:
 
     SAME_PICTURE = 0.99    # a hit this close is the query's own photo (demo pieces come from PolyVore)
 
-    def search(self, vector, k=6, category=None):
-        hits = self._index.search(vector, k=k + 3, datasets=self.DATASETS, category=category)
+    def search(self, vector, k=6, category=None, genders=None):
+        """Dataset look-alikes; genders = the item genders to keep (None = all)."""
+        hits = self._index.search(vector, k=k + 3, datasets=self.DATASETS, category=category,
+                                  genders=genders)
         hits = hits[hits["score"] < self.SAME_PICTURE].head(k)
         return [{"id": r.id, "category": r.category, "sub_category": r.sub_category,
                  "colour": r.primary_colour, "score": round(float(r.score), 3)}
                 for r in hits.itertuples()]
 
-    def search_shop(self, vector, k=6, category=None):
+    def search_shop(self, vector, k=6, category=None, genders=None):
         if self._shop is None:
             return []
-        hits = self._shop.search(vector, k=k, category=category)
+        hits = self._shop.search(vector, k=k, category=category, genders=genders)
         return [{"id": r.id, "name": r.name, "shop": "H&M", "department": r.department,
                  "category": r.category, "sub_category": r.sub_category,
                  "colour": r.primary_colour, "score": round(float(r.score), 3)}

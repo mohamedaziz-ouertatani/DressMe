@@ -68,3 +68,17 @@ def test_for_gender_unordered_pair_key():
                       "score": ["0.4", "0.1"], "gender": ["", "men"]})
     out = G.for_gender(t, "men", lambda r: frozenset((r.a, r.b)))
     assert out["score"].tolist() == ["0.1"]
+
+
+def test_similarity_index_filters_by_gender():
+    import numpy as np
+    from similarity import SimilarityIndex
+
+    meta = pd.DataFrame({"id": ["a", "b", "c"], "dataset": ["polyvore"] * 3,
+                         "category": ["top"] * 3, "sub_category": ["top", "tie", "skirt"],
+                         "gender": ["", "", ""], "image_group": ["a", "b", "c"]})
+    vectors = np.eye(3, 512, dtype=np.float16)
+    index = SimilarityIndex(vectors, SimilarityIndex.with_gender(meta))
+    assert index.meta["gender"].tolist() == ["unisex", "men", "women"]
+    hits = index.search(np.ones(512, np.float32), k=3, genders={"men", "unisex"})
+    assert set(hits["id"]) == {"a", "b"}
