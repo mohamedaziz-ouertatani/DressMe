@@ -35,7 +35,7 @@ def test_every_agent_and_scenario_appears(rows):
     assert {r["agent"] for r in rows} == set(AGENTS) | {"router"}
     assert {r["scenario"] for r in rows} >= {"suggest", "today", "complete", "buy", "search", "insights",
                                             "what_sell", "sell", "why_score", "labels", "chit_chat",
-                                            "handoff", "route"}
+                                            "handoff", "route", "why_similar", "not_owned_other"}
 
 
 def test_conversations_use_their_agent_prompt_and_tools(rows):
@@ -78,8 +78,9 @@ def test_ids_always_come_from_list_wardrobe(rows):
                 seen |= {i["id"] for i in json.loads(m["content"])}
             for c in m.get("tool_calls", []):
                 args = c["function"]["arguments"]
-                ids = list(args.get("item_ids", [])) + [args[k] for k in ("item_id", "remove_id", "add_id")
-                                                        if args.get(k)]
+                ids = list(args.get("item_ids", [])) + [args[k] for k in ("item_id", "other_id", "remove_id",
+                                                                          "add_id")
+                                                        if args.get(k) and args[k] != "last_scan"]
                 assert set(ids) <= seen, (r["id"], c)
 
 
@@ -120,3 +121,12 @@ def test_training_text_has_no_empty_think_block():
                                        {"role": "assistant", "content": "Hello!"}]}]
     texts, too_long = F.to_texts(rows, Tokenizer(), max_seq=100)
     assert texts == ["<|im_start|>user\nhi<|im_end|>\n<|im_start|>assistant\nHello!<|im_end|>\n"]
+
+
+def test_a_piece_the_user_does_not_own_is_never_given_an_id(rows):
+    """'What goes with / something like / how much for my X?' without an X: list the wardrobe and
+    say so, never pass another piece's id (v2 did)."""
+    for r in rows:
+        if r["scenario"] in ("not_owned", "not_owned_other"):
+            calls = [c["function"]["name"] for m in r["messages"] for c in m.get("tool_calls", [])]
+            assert calls == ["list_wardrobe"], (r["id"], calls)

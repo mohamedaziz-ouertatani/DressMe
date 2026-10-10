@@ -474,3 +474,42 @@ fact it translates). No transliteration yet. Fix them in the Correction column, 
 | VERDICT_WORDS.think | خمم | think about it | |
 | VERDICT_WORDS.skip | خليها | skip | |
 | chat.py NO_ANSWER | سامحني، ما كمّلتش الجواب. تنجم تعاود تسأل بكلام آخر؟ | Sorry, I couldn't finish that answer. Could you ask again in other words? | |
+
+## 8. New phrases for model v3 (2026-10-09, NOT reviewed)
+
+Look-alike explanations (`explain_similarity`) in `src/phase4/chat_phrases_agents.py` (end of the file). `dressme-chat-v3` was trained on them as written. **Meaning** is the English version.
+
+| Key | Darija | Meaning | Correction |
+|---|---|---|---|
+| CONCEPT_WORDS.streetwear | ستريت وير | streetwear | |
+| CONCEPT_WORDS.formal | رسمي | formal | |
+| CONCEPT_WORDS.sporty | سبور | sporty | |
+| CONCEPT_WORDS.casual | كاجوال | casual | |
+| CONCEPT_WORDS.classic | كلاسيك | classic | |
+| CONCEPT_WORDS.modest | محتشم | modest | |
+| CONCEPT_WORDS.trendy | موضة | trendy | |
+| CONCEPT_WORDS.party | سهرية | party | |
+| CONCEPT_WORDS.denim | دجين | denim | |
+| CONCEPT_WORDS.leather | جلد | leather | |
+| CONCEPT_WORDS.knit | تريكو | knit | |
+| CONCEPT_WORDS.lace | دونتال | lace | |
+| CONCEPT_WORDS.satin | ساتان | satin | |
+| CONCEPT_WORDS.oversized | واسع | oversized | |
+| CONCEPT_WORDS.fitted | لاصق | fitted | |
+| CONCEPT_WORDS.floral | ورود | floral | |
+| CONCEPT_WORDS.striped | مخطط | striped | |
+| CONCEPT_WORDS.checked | كاروه | checked | |
+| CONCEPT_WORDS.vintage | فينتاج | vintage | |
+| CONCEPT_WORDS.traditional | تقليدي | traditional | |
+| ASK_WHY_SIMILAR | علاش {a} و{b} يتشابهو؟ | Why do {a} and {b} look alike? | |
+| ASK_WHY_SIMILAR | {a} و{b} يتشابهو؟ | Are {a} and {b} similar? | |
+| ASK_WHY_SIMILAR | شنوة يجمع {a} و{b}؟ | What do {a} and {b} have in common? | |
+| ASK_WHY_SIMILAR_SCAN | علاش الحاجة إلي صورتها تشبه ل{a}؟ | Why does the piece I scanned look like {a}? | |
+| ASK_WHY_SIMILAR_SCAN | الحاجة إلي صورتها تشبه ل{a}؟ | Is what I scanned like {a}? | |
+| SAY_SIMILARITY | {a} و{b}: يتشابهو {pct}% في التصاور. | {a} and {b}: {pct}% alike in the pictures. | |
+| SAY_NEAR_TWIN | تقريبا كيف كيف. | They are near twins. | |
+| SAY_SHARED | يشتركو في: {labels}. | In common: {labels}. | |
+| SAY_DIFFERS | يختلفو في: {labels}. | Differences: {labels}. | |
+| SAY_BOTH_READ | المودال متاع التصاور يشوف الزوز {concepts}. | The picture model reads both as {concepts}. | |
+| SAY_CONTRAST | المودال متاع التصاور يشوف {a} {ca}، أما {b} {cb}. | The picture model reads {a} as {ca}, but {b} as {cb}. | |
+| SAY_SCAN_PIECE | الحاجة إلي صورتها | the piece you scanned | |

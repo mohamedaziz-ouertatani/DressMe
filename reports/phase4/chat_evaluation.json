@@ -1,19 +1,19 @@
 {
  "qwen3:4b-instruct": {
   "summary": {
-   "tool_decision": 79.5,
-   "tool_name": 46.1,
-   "arguments": 26.7,
-   "language": 78.1,
-   "route": 80.0,
-   "seconds": 10.77,
-   "decisions": 356,
+   "tool_decision": 79.0,
+   "tool_name": 48.7,
+   "arguments": 27.0,
+   "language": 74.2,
+   "route": 33.3,
+   "seconds": 10.94,
+   "decisions": 375,
    "by_scenario": {
     "analyst / chit_chat": {
-     "tool_decision": 80.0,
+     "tool_decision": 100.0,
      "tool_name": null,
      "arguments": null,
-     "language": 25.0,
+     "language": 50.0,
      "route": null
     },
     "analyst / handoff": {
@@ -24,58 +24,65 @@
      "route": null
     },
     "analyst / insights": {
-     "tool_decision": 87.5,
-     "tool_name": 71.4,
-     "arguments": 71.4,
-     "language": 75.0,
+     "tool_decision": 84.2,
+     "tool_name": 62.5,
+     "arguments": 62.5,
+     "language": 70.0,
      "route": null
     },
     "analyst / stats": {
-     "tool_decision": 100.0,
-     "tool_name": 100.0,
-     "arguments": 100.0,
-     "language": 100.0,
-     "route": null
-    },
-    "analyst / twins": {
-     "tool_decision": 83.3,
-     "tool_name": 66.7,
-     "arguments": 66.7,
-     "language": 66.7,
+     "tool_decision": 81.8,
+     "tool_name": 60.0,
+     "arguments": 60.0,
+     "language": 50.0,
      "route": null
     },
     "explainer / chit_chat": {
      "tool_decision": 100.0,
      "tool_name": null,
      "arguments": null,
-     "language": 66.7,
+     "language": 0.0,
      "route": null
     },
     "explainer / how_scoring": {
-     "tool_decision": 100.0,
-     "tool_name": 100.0,
-     "arguments": 100.0,
-     "language": 100.0,
+     "tool_decision": 71.4,
+     "tool_name": 33.3,
+     "arguments": 33.3,
+     "language": 75.0,
      "route": null
     },
     "explainer / labels": {
-     "tool_decision": 54.5,
-     "tool_name": 14.3,
-     "arguments": 14.3,
+     "tool_decision": 100.0,
+     "tool_name": 50.0,
+     "arguments": 50.0,
      "language": 100.0,
      "route": null
     },
+    "explainer / what_if": {
+     "tool_decision": 0.0,
+     "tool_name": 0.0,
+     "arguments": 0.0,
+     "language": null,
+     "route": null
+    },
     "explainer / why_score": {
-     "tool_decision": 94.3,
-     "tool_name": 59.1,
-     "arguments": 40.9,
-     "language": 84.6,
+     "tool_decision": 100.0,
+     "tool_name": 87.5,
+     "arguments": 25.0,
+     "language": 100.0,
+     "route": null
+    },
+    "explainer / why_similar": {
+     "tool_decision": 83.3,
+     "tool_name": 25.0,
+     "arguments": 25.0,
+     "language": 100.0,
      "route": null
     },
     "explainer / why_verdict": {
-     "tool_decision": 80.0,
-     "tool_name": 50.0,
-     "arguments": 50.0,
+     "tool_decision": 75.0,
+     "tool_name": 33.3,
+     "arguments": 33.3,
      "language": 100.0,
      "route": null
     },
@@ -84,125 +91,146 @@
      "tool_name": null,
      "arguments": null,
      "language": null,
-     "route": 80.0
+     "route": 33.3
     },
     "seller / chit_chat": {
      "tool_decision": 100.0,
      "tool_name": null,
      "arguments": null,
-     "language": 50.0,
+     "language": 0.0,
+     "route": null
+    },
+    "seller / handoff": {
+     "tool_decision": 100.0,
+     "tool_name": null,
+     "arguments": null,
+     "language": 100.0,
+     "route": null
+    },
+    "seller / my_listings": {
+     "tool_decision": 100.0,
+     "tool_name": 100.0,
+     "arguments": 100.0,
+     "language": 100.0,
+     "route": null
+    },
+    "seller / not_owned_other": {
+     "tool_decision": 40.0,
+     "tool_name": 0.0,
+     "arguments": 0.0,
+     "language": 0.0,
      "route": null
     },
     "seller / price": {
-     "tool_decision": 80.0,
-     "tool_name": 50.0,
-     "arguments": 30.0,
-     "language": 100.0,
+     "tool_decision": 85.7,
+     "tool_name": 25.0,
+     "arguments": 25.0,
+     "language": 40.0,
      "route": null
     },
     "seller / sell": {
      "tool_decision": 100.0,
-     "tool_name": 40.0,
+     "tool_name": 53.3,
      "arguments": 0.0,
-     "language": 100.0,
+     "language": 87.5,
      "route": null
     },
     "seller / what_sell": {
-     "tool_decision": 75.0,
-     "tool_name": 50.0,
-     "arguments": 50.0,
-     "language": 50.0,
+     "tool_decision": 87.5,
+     "tool_name": 66.7,
+     "arguments": 66.7,
+     "language": 80.0,
      "route": null
     },
     "shopping / buy": {
-     "tool_decision": 85.7,
-     "tool_name": 66.7,
-     "arguments": 66.7,
-     "language": 50.0,
+     "tool_decision": 94.4,
+     "tool_name": 88.9,
+     "arguments": 88.9,
+     "language": 77.8,
      "route": null
     },
     "shopping / chit_chat": {
      "tool_decision": 100.0,
      "tool_name": null,
      "arguments": null,
-     "language": 33.3,
-     "route": null
-    },
-    "shopping / handoff": {
-     "tool_decision": 0.0,
-     "tool_name": null,
-     "arguments": null,
-     "language": null,
+     "language": 0.0,
      "route": null
     },
     "shopping / search": {
-     "tool_decision": 84.6,
-     "tool_name": 63.6,
+     "tool_decision": 82.6,
+     "tool_name": 60.0,
      "arguments": 0.0,
-     "language": 80.0,
+     "language": 76.9,
      "route": null
     },
     "shopping / similar": {
-     "tool_decision": 81.0,
-     "tool_name": 36.4,
-     "arguments": 36.4,
-     "language": 80.0,
+     "tool_decision": 81.8,
+     "tool_name": 53.8,
+     "arguments": 46.2,
+     "language": 66.7,
      "route": null
     },
     "stylist / chit_chat": {
      "tool_decision": 100.0,
      "tool_name": null,
      "arguments": null,
-     "language": 100.0,
+     "language": 66.7,
      "route": null
     },
     "stylist / complete": {
-     "tool_decision": 66.7,
-     "tool_name": 25.0,
+     "tool_decision": 60.0,
+     "tool_name": 16.7,
      "arguments": 0.0,
-     "language": 75.0,
+     "language": 62.5,
      "route": null
     },
     "stylist / follow_up": {
-     "tool_decision": 76.9,
-     "tool_name": 33.3,
+     "tool_decision": 75.0,
+     "tool_name": 50.0,
      "arguments": 0.0,
-     "language": 71.4,
+     "language": 100.0,
+     "route": null
+    },
+    "stylist / handoff": {
+     "tool_decision": 100.0,
+     "tool_name": null,
+     "arguments": null,
+     "language": 100.0,
      "route": null
     },
     "stylist / list": {
-     "tool_decision": 80.6,
-     "tool_name": 57.1,
-     "arguments": 14.3,
-     "language": 70.6,
+     "tool_decision": 86.2,
+     "tool_name": 69.2,
+     "arguments": 15.4,
+     "language": 68.8,
      "route": null
     },
     "stylist / not_owned": {
-     "tool_decision": 50.0,
-     "tool_name": 0.0,
+     "tool_decision": 83.3,
+     "tool_name": 60.0,
      "arguments": 0.0,
      "language": 100.0,
      "route": null
     },
     "stylist / score": {
-     "tool_decision": 44.4,
-     "tool_name": 16.7,
+     "tool_decision": 44.1,
+     "tool_name": 9.1,
      "arguments": 0.0,
      "language": 66.7,
      "route": null
     },
     "stylist / suggest": {
-     "tool_decision": 88.5,
+     "tool_decision": 81.5,
      "tool_name": 53.8,
-     "arguments": 23.1,
-     "language": 76.9,
+     "arguments": 15.4,
+     "language": 71.4,
      "route": null
     },
     "stylist / today": {
-     "tool_decision": 69.0,
+     "tool_decision": 70.6,
      "tool_name": 50.0,
      "arguments": 50.0,
-     "language": 90.9,
+     "language": 78.6,
      "route": null
     },
     "stylist / weather": {
@@ -221,380 +249,165 @@
     "answer": "You're welcome! How can I help you today? 😊"
    },
    {
-    "question": "Je veux mettre ma tunique vert olive, j'ajoute quoi ?",
-    "gold": "Le meilleur avec ta tunique vert olive : tes gants orange (76/100).",
-    "answer": "Avec ta tunique vert olive, tu peux la porter avec des **baskets** ou un **short** (tu en as un ?).  \n\nMais pour compléter ton look, on peut ajouter simplement **des gants orange** (tu en as déjà un !) — c’est un détail qui donne du charme sans coûter cher.  \n\n👉 Si tu veux, je peux t’aider à trouver un short ou des baskets dans ta friperie préférée.  \nTu veux que je t’aide à choisir ? 😊"
+    "question": "J'ai scanné une pièce, ça vaut le coup ?",
+    "gold": "Je passerais mon tour : ce gilet blanc n'ajoute pas de bonne tenue à ta garde-robe. Garde ton budget pour une pièce que tu porteras plus.",
+    "answer": "Non, cette cardigan blanc ne vaut pas le coup. Elle ne s'harmonise pas avec rien de ce que tu as déjà, et tu n'as pas besoin d'ajouter une pièce qui ne s'intègre pas à ton style. Tu peux la laisser de côté."
    },
    {
-    "question": "Can I wear my red shirt with my pink leggings?",
-    "gold": "Together, your red shirt and your pink leggings get 55/100. Not the best match. Note: the pieces have quite different styles and red and pink clash. Add shoes to finish the look.",
-    "answer": "Your red shirt and pink leggings would score 54.6 out of 100 — not a bad match, but the colours clash a bit, and the styles are very different. Also, you don’t have any shoes to complete it!  \n\nTo make it better, try pairing it with:  \n- A pair of grey sneakers (you already have one)  \n- A neutral accessory like a simple bracelet or a watch  \n\nIf you want, I can suggest a full outfit with what you already own. Would you like that? 😊"
+    "question": "What's in my wardrobe?",
+    "gold": "Here is what you own (8 pieces): tops: black t-shirt, t-shirt and black tunic; bottoms: purple jeans and red skirt; dresses: white dress and navy jumpsuit; shoes: white ballet flats.",
+    "answer": "Here’s what’s in your wardrobe:\n\n- **Top**:  \n  - Black t-shirt (solid)  \n  - Solid t-shirt (colour not visible)  \n  - Black checked tunic  \n\n- **Bottom**:  \n  - Purple jeans (solid)  \n  - Red printed skirt  \n\n- **Outerwear**:  \n  - None  \n\n- **Shoes**:  \n  - White flats (solid)  \n\n- **Dresses**:  \n  - White solid dress  \n  - Navy floral jumpsuit  \n\nYou’ve got a great mix of casual and stylish pieces — perfect for everyday wear or light outings! Want a suggestion for today’s outfit? 😊"
    },
    {
-    "question": "علاش التطبيقة قالت هكا على الحاجة إلي صورتها؟",
-    "gold": "\"خليها\" خاطر تعمل 0 لبسة باهية فيها خير من حوايجك؛ \"اشري\" يلزمها 5. 1 زايدين يبدلو الرأي. عندك ديجا حاجة تشبهلها برشا: ليقينغ.",
-    "answer": "التطبيقة قالت \"skip\" لأنها لم تجد أي ملابس جيدة تُستخدم معها (0 ملابس مقبولة)، ورغم أن هناك ملابس مشابهة (مثلاً جينز بسيط) في ملابسك، إلا أن هذه الأحذية لا تُستخدم في أي ملابس مقبولة.  \n\nالسبب: لا توجد ملابس تُستخدم معها لتكوين ملابس مقبولة (أقل من 5 ملابس مقبولة)، ورغم أن هناك ملابس مشابهة، إلا أن هذه الأحذية لا تُستخدم في أي ملابس مقبولة.  \n\nإذا أردت، يمكنني مساعدتك في تغيير ملابسك أو تحسينها! 😊"
+    "question": "السويتر الأكحل يمشي مع الليقينغ الأصفر؟",
+    "gold": "مع بعضهم، سويتر أكحل وليقينغ أصفر ياخذو 88/100. يمشيو مزيان! زيد صباط باش تكمل اللبسة.",
+    "answer": "Oui, ton sweater noir et tes leggings jaunes font un excellent mélange ! 🌟  \nC’est un look élégant et moderne, avec un contraste joli entre le noir et le jaune.  \n\n⚠️ Mais attention : il manque des chaussures !  \n👉 Tu peux ajouter des sandales noires ou des sneakers noires (tu en as déjà dans ton garde-robe).  \n\nScore total : 88/100 ✅  \n→ Style : 81% (très bon)  \n→ Couleur : parfait (noir + jaune = équilibré)  \n→ Motif : parfait (tous solides)  \n→ Structure : 75% (un peu léger, mais ça marche pour un look casual)  \n\nTu veux que je suggère un autre combo avec un autre article ? 😊"
    },
    {
-    "question": "Hi!",
-    "gold": "Hi! I can tell you what your wardrobe is missing, which pieces you use most or never, what it is made of and which pieces you own twice. What do you want to know?",
-    "answer": "Hi there! 😊 How can I help you today with your wardrobe or fashion choices? (In French, English, or Darija!) 🌟"
+    "question": "De quoi est faite ma garde-robe ?",
+    "gold": "Tu as 5 pièces : hauts 1, bas 3, chaussures 1. Couleurs principales : bleu, bleu marine et marron. 2 sont des couleurs neutres qui vont avec presque tout.",
+    "answer": "Ta garde-robe est faite de :\n\n- **1 t-shirt** (blanc, bleu, marron, teal)  \n- **3 bas** (bleu, marron, noir)  \n- **1 chaussure** (marron)  \n\nTu as principalement des **teintes solides**, avec un peu de **motif**.  \nLes couleurs neutres (bleu marine, blanc) sont utiles pour tout type d’occasion.  \nTu as 4 pièces sans couleur définie, 4 sans niveau de couverture, 3 sans saison, et 4 sans usage.  \n\n👉 Tu as besoin de **plus de tops** ou de **chaussures** pour compléter ton look !  \n👉 Tu as déjà un bon équilibre avec des pièces solides, donc pense à les réutiliser plutôt que de les remplacer.  \n\nTu veux que je t’aide à créer un look aujourd’hui ? 😊"
    },
    {
-    "question": "Je m'habille comment aujourd'hui avec ce temps ?",
-    "gold": "Aujourd'hui à Tunis : nuageux, de 24 à 33°C. Pas de pluie prévue. Je partirais sur ton pull crème, ton jean bleu et tes chaussures habillées beiges (94/100). Les couleurs vont bien ensemble.",
-    "answer": "Aujourd’hui, avec un temps ensoleillé et nuageux à Tunis (32°C), voici une suggestion d’habillement à budget :\n\n- **Un sweater crème** (ton sur ton)  \n- **Des blue jeans** (classiques, facile à porter)  \n- **Des chaussures beige** (souple, parfait pour la chaleur)\n\n👉 C’est un look léger, élégant et parfait pour une journée en plein air.  \nTu as déjà tout ce qu’il faut ! 🌤️👖🧣\n\nTu veux un autre style (ex : plus casual ou plus simple) ?"
+    "question": "Write me a poem about the sea",
+    "gold": "Sorry, I can only help with clothes: outfits, your wardrobe and what to buy. Want an outfit idea for today?",
+    "answer": "Sure! Here's a simple and beautiful poem about the sea, in Tunisian Arabic:\n\n**البحر**  \nيا بحر، يا مَنْ تَسْكُنُ في القلبِ  \nتَرْتَحِلُ في المَساءِ، تَسْكُنُ في الصَّبَّارِ  \nتَسْكُنُ في المَدِّ، تَغَيّرُ في المَرَّةِ  \nكُلُّ مَرَّةٍ تَسْكُنُ في القلبِ  \n\nتَرْتَحِلُ بِالضوءِ، تَسْكُنُ في السَّمَاءِ  \nتَسْكُنُ في المَرَّةِ، تَسْكُنُ في الحُزنِ  \nكُلُّ مَرَّةٍ تَسْكُنُ في القلبِ،  \nوَتَسْكُنُ في القلبِ، وَتَسْكُنُ في القلبِ  \n\nيا بحر، يا مَنْ تَسْكُنُ في القلبِ  \nتَرْتَحِلُ في المَساءِ، تَسْكُنُ في الصَّبَّارِ  \n\nI hope you enjoy it! 🌊💙"
    }
   ]
  },
- "dressme-chat": {
+ "dressme-chat-v2": {
   "summary": {
-   "tool_decision": 58.4,
-   "tool_name": 69.4,
-   "arguments": 57.8,
-   "language": 90.9,
-   "route": 70.0,
-   "seconds": 4.86,
-   "decisions": 356,
+   "tool_decision": 95.7,
+   "tool_name": 95.2,
+   "arguments": 89.9,
+   "language": 100.0,
+   "route": 100.0,
+   "seconds": 5.29,
+   "decisions": 375,
    "by_scenario": {
     "analyst / chit_chat": {
-     "tool_decision": 20.0,
+     "tool_decision": 100.0,
      "tool_name": null,
      "arguments": null,
      "language": 100.0,
      "route": null
     },
     "analyst / handoff": {
-     "tool_decision": 0.0,
+     "tool_decision": 100.0,
      "tool_name": null,
      "arguments": null,
-     "language": null,
+     "language": 100.0,
      "route": null
     },
     "analyst / insights": {
-     "tool_decision": 50.0,
+     "tool_decision": 100.0,
      "tool_name": 100.0,
      "arguments": 100.0,
      "language": 100.0,
      "route": null
     },
     "analyst / stats": {
+     "tool_decision": 100.0,
+     "tool_name": 60.0,
+     "arguments": 60.0,
+     "language": 100.0,
+     "route": null
+    },
+    "explainer / chit_chat": {
+     "tool_decision": 100.0,
+     "tool_name": null,
+     "arguments": null,
+     "language": 100.0,
+     "route": null
+    },
+    "explainer / how_scoring": {
+     "tool_decision": 100.0,
+     "tool_name": 100.0,
+     "arguments": 100.0,
+     "language": 100.0,
+     "route": null
+    },
+    "explainer / labels": {
+     "tool_decision": 100.0,
+     "tool_name": 100.0,
+     "arguments": 100.0,
+     "language": 100.0,
+     "route": null
+    },
+    "explainer / what_if": {
+     "tool_decision": 100.0,
+     "tool_name": 100.0,
+     "arguments": 100.0,
+     "language": 100.0,
+     "route": null
+    },
+    "explainer / why_score": {
+     "tool_decision": 100.0,
+     "tool_name": 100.0,
+     "arguments": 100.0,
+     "language": 100.0,
+     "route": null
+    },
+    "explainer / why_similar": {
+     "tool_decision": 100.0,
+     "tool_name": 100.0,
+     "arguments": 100.0,
+     "language": 100.0,
+     "route": null
+    },
+    "explainer / why_verdict": {
+     "tool_decision": 100.0,
+     "tool_name": 100.0,
+     "arguments": 100.0,
+     "language": 100.0,
+     "route": null
+    },
+    "router / route": {
+     "tool_decision": null,
+     "tool_name": null,
+     "arguments": null,
+     "language": null,
+     "route": 100.0
+    },
+    "seller / chit_chat": {
+     "tool_decision": 100.0,
+     "tool_name": null,
+     "arguments": null,
+     "language": 100.0,
+     "route": null
+    },
+    "seller / handoff": {
+     "tool_decision": 0.0,
+     "tool_name": null,
+     "arguments": null,
+     "language": null,
+     "route": null
+    },
+    "seller / my_listings": {
+     "tool_decision": 100.0,
+     "tool_name": 100.0,
+     "arguments": 100.0,
+     "language": 100.0,
+     "route": null
+    },
+    "seller / not_owned_other": {
      "tool_decision": 60.0,
      "tool_name": 100.0,
      "arguments": 100.0,
      "language": 100.0,
      "route": null
     },
-    "analyst / twins": {
-     "tool_decision": 50.0,
-     "tool_name": 66.7,
-     "arguments": 66.7,
-     "language": null,
-     "route": null
-    },
-    "explainer / chit_chat": {
-     "tool_decision": 0.0,
-     "tool_name": null,
-     "arguments": null,
-     "language": null,
-     "route": null
-    },
-    "explainer / how_scoring": {
-     "tool_decision": 50.0,
-     "tool_name": 100.0,
-     "arguments": 100.0,
-     "language": null,
-     "route": null
-    },
-    "explainer / labels": {
-     "tool_decision": 68.2,
-     "tool_name": 42.9,
-     "arguments": 42.9,
-     "language": 100.0,
-     "route": null
-    },
-    "explainer / why_score": {
-     "tool_decision": 65.7,
-     "tool_name": 36.4,
-     "arguments": 36.4,
-     "language": 100.0,
-     "route": null
-    },
-    "explainer / why_verdict": {
-     "tool_decision": 40.0,
-     "tool_name": 100.0,
-     "arguments": 100.0,
-     "language": null,
-     "route": null
-    },
-    "router / route": {
-     "tool_decision": null,
-     "tool_name": null,
-     "arguments": null,
-     "language": null,
-     "route": 70.0
-    },
-    "seller / chit_chat": {
-     "tool_decision": 0.0,
-     "tool_name": null,
-     "arguments": null,
-     "language": null,
-     "route": null
-    },
     "seller / price": {
-     "tool_decision": 66.7,
-     "tool_name": 30.0,
-     "arguments": 30.0,
-     "language": null,
-     "route": null
-    },
-    "seller / sell": {
-     "tool_decision": 77.3,
-     "tool_name": 40.0,
-     "arguments": 13.3,
-     "language": 100.0,
-     "route": null
-    },
-    "seller / what_sell": {
-     "tool_decision": 50.0,
+     "tool_decision": 92.9,
      "tool_name": 100.0,
-     "arguments": 100.0,
-     "language": null,
-     "route": null
-    },
-    "shopping / buy": {
-     "tool_decision": 57.1,
-     "tool_name": 66.7,
-     "arguments": 66.7,
-     "language": 100.0,
-     "route": null
-    },
-    "shopping / chit_chat": {
-     "tool_decision": 0.0,
-     "tool_name": null,
-     "arguments": null,
-     "language": null,
-     "route": null
-    },
-    "shopping / handoff": {
-     "tool_decision": 0.0,
-     "tool_name": null,
-     "arguments": null,
-     "language": null,
-     "route": null
-    },
-    "shopping / search": {
-     "tool_decision": 46.2,
-     "tool_name": 90.9,
-     "arguments": 0.0,
-     "language": 100.0,
-     "route": null
-    },
-    "shopping / similar": {
-     "tool_decision": 66.7,
-     "tool_name": 63.6,
-     "arguments": 54.5,
-     "language": 100.0,
-     "route": null
-    },
-    "stylist / chit_chat": {
-     "tool_decision": 0.0,
-     "tool_name": null,
-     "arguments": null,
-     "language": null,
-     "route": null
-    },
-    "stylist / complete": {
-     "tool_decision": 66.7,
-     "tool_name": 50.0,
-     "arguments": 50.0,
-     "language": null,
-     "route": null
-    },
-    "stylist / follow_up": {
-     "tool_decision": 53.8,
-     "tool_name": 100.0,
-     "arguments": 50.0,
-     "language": 100.0,
-     "route": null
-    },
-    "stylist / list": {
-     "tool_decision": 58.1,
-     "tool_name": 100.0,
-     "arguments": 85.7,
-     "language": 75.0,
-     "route": null
-    },
-    "stylist / not_owned": {
-     "tool_decision": 50.0,
-     "tool_name": 33.3,
-     "arguments": 33.3,
-     "language": null,
-     "route": null
-    },
-    "stylist / score": {
-     "tool_decision": 72.2,
-     "tool_name": 75.0,
-     "arguments": 66.7,
-     "language": 0.0,
-     "route": null
-    },
-    "stylist / suggest": {
-     "tool_decision": 57.7,
-     "tool_name": 100.0,
-     "arguments": 100.0,
-     "language": 100.0,
-     "route": null
-    },
-    "stylist / today": {
-     "tool_decision": 69.0,
-     "tool_name": 94.4,
-     "arguments": 94.4,
-     "language": 100.0,
-     "route": null
-    },
-    "stylist / weather": {
-     "tool_decision": 50.0,
-     "tool_name": 100.0,
-     "arguments": 100.0,
-     "language": null,
-     "route": null
-    }
-   }
-  },
-  "examples": [
-   {
-    "question": "Hi!",
-    "gold": "Hi! I can tell you what your wardrobe is missing, which pieces you use most or never, what it is made of and which pieces you own twice. What do you want to know?",
-    "answer": "Hi! I can pick an outfit from your wardrobe, tell you if two pieces go together, or help you decide if a piece you want to buy works for you. What do you need?"
-   },
-   {
-    "question": "Montre-moi mes vestes",
-    "gold": "Tes vestes et manteaux : gilet beige.",
-    "answer": "</tool_call>\n\n</tool_call>"
-   },
-   {
-    "question": "Une idée de tenue ?",
-    "gold": "Essaie ton t-shirt gris, ton legging kaki et tes sandales bleues : ça fait 92/100. Les couleurs vont bien ensemble. Tu veux une autre idée ?",
-    "answer": "Essaie ton t-shirt gris, ton legging kaki et tes sandales bleues : ça fait 92/100."
-   },
-   {
-    "question": "Choisis-moi une tenue",
-    "gold": "Mon meilleur choix : ton pull marron, ton jean marron et tes baskets beiges (82/100).",
-    "answer": "Mon meilleur choix : ton pull marron, ton jean marron et tes baskets beiges (82/100)."
-   },
-   {
-    "question": "نجم نلبس السويتر البلو مارين مع التيشرت الأكحل؟",
-    "gold": "ما تنجمش تلبس سويتر بلو مارين وتيشرت أكحل في نفس الوقت (2 حوايج من نوع توب (الأقصى 1)): اختار واحد.",
-    "answer": "</tool_call>\n\n</tool_call>"
-   }
-  ]
- },
- "dressme-chat-v2": {
-  "summary": {
-   "tool_decision": 98.0,
-   "tool_name": 97.2,
-   "arguments": 92.8,
-   "language": 98.8,
-   "route": 90.0,
-   "seconds": 5.44,
-   "decisions": 356,
-   "by_scenario": {
-    "analyst / chit_chat": {
-     "tool_decision": 80.0,
-     "tool_name": null,
-     "arguments": null,
-     "language": 100.0,
-     "route": null
-    },
-    "analyst / handoff": {
-     "tool_decision": 100.0,
-     "tool_name": null,
-     "arguments": null,
-     "language": 100.0,
-     "route": null
-    },
-    "analyst / insights": {
-     "tool_decision": 100.0,
-     "tool_name": 100.0,
-     "arguments": 100.0,
-     "language": 100.0,
-     "route": null
-    },
-    "analyst / stats": {
-     "tool_decision": 100.0,
-     "tool_name": 100.0,
-     "arguments": 100.0,
-     "language": 100.0,
-     "route": null
-    },
-    "analyst / twins": {
-     "tool_decision": 100.0,
-     "tool_name": 100.0,
-     "arguments": 100.0,
-     "language": 100.0,
-     "route": null
-    },
-    "explainer / chit_chat": {
-     "tool_decision": 100.0,
-     "tool_name": null,
-     "arguments": null,
-     "language": 100.0,
-     "route": null
-    },
-    "explainer / how_scoring": {
-     "tool_decision": 100.0,
-     "tool_name": 100.0,
-     "arguments": 100.0,
-     "language": 100.0,
-     "route": null
-    },
-    "explainer / labels": {
-     "tool_decision": 100.0,
-     "tool_name": 100.0,
-     "arguments": 100.0,
-     "language": 100.0,
-     "route": null
-    },
-    "explainer / why_score": {
-     "tool_decision": 100.0,
-     "tool_name": 100.0,
-     "arguments": 100.0,
-     "language": 100.0,
-     "route": null
-    },
-    "explainer / why_verdict": {
-     "tool_decision": 100.0,
-     "tool_name": 100.0,
-     "arguments": 100.0,
-     "language": 100.0,
-     "route": null
-    },
-    "router / route": {
-     "tool_decision": null,
-     "tool_name": null,
-     "arguments": null,
-     "language": null,
-     "route": 90.0
-    },
-    "seller / chit_chat": {
-     "tool_decision": 100.0,
-     "tool_name": null,
-     "arguments": null,
-     "language": 100.0,
-     "route": null
-    },
-    "seller / price": {
-     "tool_decision": 100.0,
-     "tool_name": 100.0,
-     "arguments": 90.0,
+     "arguments": 87.5,
      "language": 100.0,
      "route": null
     },
     "seller / sell": {
-     "tool_decision": 100.0,
+     "tool_decision": 95.7,
      "tool_name": 100.0,
-     "arguments": 100.0,
+     "arguments": 93.3,
      "language": 100.0,
      "route": null
     },
@@ -607,8 +420,8 @@
     },
     "shopping / buy": {
      "tool_decision": 100.0,
-     "tool_name": 66.7,
-     "arguments": 66.7,
+     "tool_name": 100.0,
+     "arguments": 100.0,
      "language": 100.0,
      "route": null
     },
@@ -619,25 +432,18 @@
      "language": 100.0,
      "route": null
     },
-    "shopping / handoff": {
-     "tool_decision": 50.0,
-     "tool_name": null,
-     "arguments": null,
-     "language": 100.0,
-     "route": null
-    },
     "shopping / search": {
      "tool_decision": 100.0,
      "tool_name": 100.0,
-     "arguments": 63.6,
-     "language": 93.3,
+     "arguments": 70.0,
+     "language": 100.0,
      "route": null
     },
     "shopping / similar": {
-     "tool_decision": 95.2,
-     "tool_name": 72.7,
-     "arguments": 72.7,
-     "language": 90.0,
+     "tool_decision": 95.5,
+     "tool_name": 69.2,
+     "arguments": 69.2,
+     "language": 100.0,
      "route": null
     },
     "stylist / chit_chat": {
@@ -648,51 +454,58 @@
      "route": null
     },
     "stylist / complete": {
-     "tool_decision": 100.0,
+     "tool_decision": 95.0,
      "tool_name": 100.0,
      "arguments": 100.0,
      "language": 100.0,
      "route": null
     },
     "stylist / follow_up": {
-     "tool_decision": 92.3,
+     "tool_decision": 100.0,
      "tool_name": 100.0,
-     "arguments": 83.3,
+     "arguments": 75.0,
+     "language": 100.0,
+     "route": null
+    },
+    "stylist / handoff": {
+     "tool_decision": 100.0,
+     "tool_name": null,
+     "arguments": null,
      "language": 100.0,
      "route": null
     },
     "stylist / list": {
      "tool_decision": 100.0,
      "tool_name": 100.0,
-     "arguments": 85.7,
+     "arguments": 92.3,
      "language": 100.0,
      "route": null
     },
     "stylist / not_owned": {
-     "tool_decision": 50.0,
+     "tool_decision": 58.3,
      "tool_name": 100.0,
      "arguments": 100.0,
-     "language": null,
+     "language": 100.0,
      "route": null
     },
     "stylist / score": {
-     "tool_decision": 100.0,
-     "tool_name": 100.0,
-     "arguments": 100.0,
+     "tool_decision": 97.1,
+     "tool_name": 95.5,
+     "arguments": 86.4,
      "language": 100.0,
      "route": null
     },
     "stylist / suggest": {
      "tool_decision": 100.0,
-     "tool_name": 92.3,
+     "tool_name": 100.0,
      "arguments": 92.3,
      "language": 100.0,
      "route": null
     },
     "stylist / today": {
-     "tool_decision": 100.0,
-     "tool_name": 100.0,
-     "arguments": 100.0,
+     "tool_decision": 91.2,
+     "tool_name": 90.0,
+     "arguments": 90.0,
      "language": 100.0,
      "route": null
     },
@@ -712,29 +525,305 @@
     "answer": "You're welcome! Have a great day."
    },
    {
-    "question": "Je veux mettre ma tunique vert olive, j'ajoute quoi ?",
-    "gold": "Le meilleur avec ta tunique vert olive : tes gants orange (76/100).",
-    "answer": "Avec ta tunique vert olive, ajoute tes gants orange : la tenue fait 76/100."
+    "question": "J'ai scanné une pièce, ça vaut le coup ?",
+    "gold": "Je passerais mon tour : ce gilet blanc n'ajoute pas de bonne tenue à ta garde-robe. Garde ton budget pour une pièce que tu porteras plus.",
+    "answer": "Je passerais mon tour : ce gilet blanc n'ajoute pas de bonne tenue à ta garde-robe. Garde ton budget pour une pièce que tu porteras plus."
    },
    {
-    "question": "Can I wear my red shirt with my pink leggings?",
-    "gold": "Together, your red shirt and your pink leggings get 55/100. Not the best match. Note: the pieces have quite different styles and red and pink clash. Add shoes to finish the look.",
-    "answer": "Your red shirt and your pink leggings: 55/100. Not the best match. Note: the pieces have quite different styles and red and pink clash. Add shoes to finish the look."
+    "question": "What's in my wardrobe?",
+    "gold": "Here is what you own (8 pieces): tops: black t-shirt, t-shirt and black tunic; bottoms: purple jeans and red skirt; dresses: white dress and navy jumpsuit; shoes: white ballet flats.",
+    "answer": "You have 8 pieces: tops: black t-shirt, t-shirt and black tunic; bottoms: purple jeans and red skirt; dresses: white dress and navy jumpsuit; shoes: white ballet flats."
    },
    {
-    "question": "علاش التطبيقة قالت هكا على الحاجة إلي صورتها؟",
-    "gold": "\"خليها\" خاطر تعمل 0 لبسة باهية فيها خير من حوايجك؛ \"اشري\" يلزمها 5. 1 زايدين يبدلو الرأي. عندك ديجا حاجة تشبهلها برشا: ليقينغ.",
-    "answer": "\"خليها\" خاطر تعمل 0 لبسة باهية فيها؛ \"اشري\" يلزمها 5. 1 أكثر من اللازم للبيع."
+    "question": "السويتر الأكحل يمشي مع الليقينغ الأصفر؟",
+    "gold": "مع بعضهم، سويتر أكحل وليقينغ أصفر ياخذو 88/100. يمشيو مزيان! زيد صباط باش تكمل اللبسة.",
+    "answer": "سويتر أكحل وليقينغ أصفر: 88/100. يمشيو مزيان! زيد صباط باش تكمل اللبسة."
    },
    {
-    "question": "Hi!",
-    "gold": "Hi! I can tell you what your wardrobe is missing, which pieces you use most or never, what it is made of and which pieces you own twice. What do you want to know?",
-    "answer": "Hi! I can tell you what your wardrobe is missing, which pieces you use most or never, and which pieces you own twice. What do you want to know?"
+    "question": "De quoi est faite ma garde-robe ?",
+    "gold": "Tu as 5 pièces : hauts 1, bas 3, chaussures 1. Couleurs principales : bleu, bleu marine et marron. 2 sont des couleurs neutres qui vont avec presque tout.",
+    "answer": "Tu as 5 pièces : hauts 1, bas 3, chaussures 1. Couleurs principales : bleu, bleu marine et marron. 4 sont des couleurs neutres qui vont avec presque tout."
    },
    {
-    "question": "Je m'habille comment aujourd'hui avec ce temps ?",
-    "gold": "Aujourd'hui à Tunis : nuageux, de 24 à 33°C. Pas de pluie prévue. Je partirais sur ton pull crème, ton jean bleu et tes chaussures habillées beiges (94/100). Les couleurs vont bien ensemble.",
-    "answer": "Aujourd'hui à Tunis : nuageux, de 24 à 33°C. Pas de pluie prévue. Mon meilleur choix : ton pull crème, ton jean bleu et tes chaussures habillées beiges (94/100)."
+    "question": "Write me a poem about the sea",
+    "gold": "Sorry, I can only help with clothes: outfits, your wardrobe and what to buy. Want an outfit idea for today?",
+    "answer": "I'm sorry, I can only help with clothes: outfits, your wardrobe and what to sell. Want an outfit idea for today?"
+   }
+  ]
+ },
+ "dressme-chat-v3": {
+  "summary": {
+   "tool_decision": 97.0,
+   "tool_name": 95.2,
+   "arguments": 88.4,
+   "language": 99.4,
+   "route": 66.7,
+   "seconds": 5.17,
+   "decisions": 375,
+   "by_scenario": {
+    "analyst / chit_chat": {
+     "tool_decision": 100.0,
+     "tool_name": null,
+     "arguments": null,
+     "language": 100.0,
+     "route": null
+    },
+    "analyst / handoff": {
+     "tool_decision": 100.0,
+     "tool_name": null,
+     "arguments": null,
+     "language": 100.0,
+     "route": null
+    },
+    "analyst / insights": {
+     "tool_decision": 100.0,
+     "tool_name": 100.0,
+     "arguments": 100.0,
+     "language": 100.0,
+     "route": null
+    },
+    "analyst / stats": {
+     "tool_decision": 100.0,
+     "tool_name": 80.0,
+     "arguments": 80.0,
+     "language": 100.0,
+     "route": null
+    },
+    "explainer / chit_chat": {
+     "tool_decision": 100.0,
+     "tool_name": null,
+     "arguments": null,
+     "language": 50.0,
+     "route": null
+    },
+    "explainer / how_scoring": {
+     "tool_decision": 100.0,
+     "tool_name": 100.0,
+     "arguments": 100.0,
+     "language": 100.0,
+     "route": null
+    },
+    "explainer / labels": {
+     "tool_decision": 100.0,
+     "tool_name": 100.0,
+     "arguments": 100.0,
+     "language": 100.0,
+     "route": null
+    },
+    "explainer / what_if": {
+     "tool_decision": 100.0,
+     "tool_name": 50.0,
+     "arguments": 0.0,
+     "language": 100.0,
+     "route": null
+    },
+    "explainer / why_score": {
+     "tool_decision": 92.9,
+     "tool_name": 87.5,
+     "arguments": 87.5,
+     "language": 100.0,
+     "route": null
+    },
+    "explainer / why_similar": {
+     "tool_decision": 100.0,
+     "tool_name": 100.0,
+     "arguments": 100.0,
+     "language": 100.0,
+     "route": null
+    },
+    "explainer / why_verdict": {
+     "tool_decision": 100.0,
+     "tool_name": 100.0,
+     "arguments": 100.0,
+     "language": 100.0,
+     "route": null
+    },
+    "router / route": {
+     "tool_decision": null,
+     "tool_name": null,
+     "arguments": null,
+     "language": null,
+     "route": 66.7
+    },
+    "seller / chit_chat": {
+     "tool_decision": 100.0,
+     "tool_name": null,
+     "arguments": null,
+     "language": 100.0,
+     "route": null
+    },
+    "seller / handoff": {
+     "tool_decision": 0.0,
+     "tool_name": null,
+     "arguments": null,
+     "language": null,
+     "route": null
+    },
+    "seller / my_listings": {
+     "tool_decision": 100.0,
+     "tool_name": 100.0,
+     "arguments": 100.0,
+     "language": 100.0,
+     "route": null
+    },
+    "seller / not_owned_other": {
+     "tool_decision": 80.0,
+     "tool_name": 100.0,
+     "arguments": 100.0,
+     "language": 100.0,
+     "route": null
+    },
+    "seller / price": {
+     "tool_decision": 100.0,
+     "tool_name": 100.0,
+     "arguments": 100.0,
+     "language": 100.0,
+     "route": null
+    },
+    "seller / sell": {
+     "tool_decision": 95.7,
+     "tool_name": 93.3,
+     "arguments": 86.7,
+     "language": 100.0,
+     "route": null
+    },
+    "seller / what_sell": {
+     "tool_decision": 100.0,
+     "tool_name": 100.0,
+     "arguments": 100.0,
+     "language": 100.0,
+     "route": null
+    },
+    "shopping / buy": {
+     "tool_decision": 100.0,
+     "tool_name": 100.0,
+     "arguments": 100.0,
+     "language": 100.0,
+     "route": null
+    },
+    "shopping / chit_chat": {
+     "tool_decision": 100.0,
+     "tool_name": null,
+     "arguments": null,
+     "language": 100.0,
+     "route": null
+    },
+    "shopping / search": {
+     "tool_decision": 100.0,
+     "tool_name": 100.0,
+     "arguments": 70.0,
+     "language": 100.0,
+     "route": null
+    },
+    "shopping / similar": {
+     "tool_decision": 95.5,
+     "tool_name": 76.9,
+     "arguments": 76.9,
+     "language": 100.0,
+     "route": null
+    },
+    "stylist / chit_chat": {
+     "tool_decision": 100.0,
+     "tool_name": null,
+     "arguments": null,
+     "language": 100.0,
+     "route": null
+    },
+    "stylist / complete": {
+     "tool_decision": 95.0,
+     "tool_name": 100.0,
+     "arguments": 91.7,
+     "language": 100.0,
+     "route": null
+    },
+    "stylist / follow_up": {
+     "tool_decision": 100.0,
+     "tool_name": 100.0,
+     "arguments": 75.0,
+     "language": 100.0,
+     "route": null
+    },
+    "stylist / handoff": {
+     "tool_decision": 100.0,
+     "tool_name": null,
+     "arguments": null,
+     "language": 100.0,
+     "route": null
+    },
+    "stylist / list": {
+     "tool_decision": 100.0,
+     "tool_name": 100.0,
+     "arguments": 84.6,
+     "language": 100.0,
+     "route": null
+    },
+    "stylist / not_owned": {
+     "tool_decision": 83.3,
+     "tool_name": 100.0,
+     "arguments": 80.0,
+     "language": 100.0,
+     "route": null
+    },
+    "stylist / score": {
+     "tool_decision": 100.0,
+     "tool_name": 100.0,
+     "arguments": 90.9,
+     "language": 100.0,
+     "route": null
+    },
+    "stylist / suggest": {
+     "tool_decision": 100.0,
+     "tool_name": 100.0,
+     "arguments": 92.3,
+     "language": 100.0,
+     "route": null
+    },
+    "stylist / today": {
+     "tool_decision": 91.2,
+     "tool_name": 90.0,
+     "arguments": 90.0,
+     "language": 100.0,
+     "route": null
+    },
+    "stylist / weather": {
+     "tool_decision": 100.0,
+     "tool_name": 100.0,
+     "arguments": 100.0,
+     "language": 100.0,
+     "route": null
+    }
+   }
+  },
+  "examples": [
+   {
+    "question": "Thanks!",
+    "gold": "You're welcome! Have a great day.",
+    "answer": "You're welcome! Have a great day."
+   },
+   {
+    "question": "J'ai scanné une pièce, ça vaut le coup ?",
+    "gold": "Je passerais mon tour : ce gilet blanc n'ajoute pas de bonne tenue à ta garde-robe. Garde ton budget pour une pièce que tu porteras plus.",
+    "answer": "Je passerais mon tour : ce gilet blanc n'ajoute pas de bonne tenue à ta garde-robe."
+   },
+   {
+    "question": "What's in my wardrobe?",
+    "gold": "Here is what you own (8 pieces): tops: black t-shirt, t-shirt and black tunic; bottoms: purple jeans and red skirt; dresses: white dress and navy jumpsuit; shoes: white ballet flats.",
+    "answer": "You have 8 pieces: tops: black t-shirt, t-shirt and black tunic; bottoms: purple jeans and red skirt; dresses: white dress and navy jumpsuit; shoes: white ballet flats."
+   },
+   {
+    "question": "السويتر الأكحل يمشي مع الليقينغ الأصفر؟",
+    "gold": "مع بعضهم، سويتر أكحل وليقينغ أصفر ياخذو 88/100. يمشيو مزيان! زيد صباط باش تكمل اللبسة.",
+    "answer": "مع بعضهم، سويتر أكحل وليقينغ أصفر ياخذو 88/100. باهي. زيد صباط باش تكمل اللبسة."
+   },
+   {
+    "question": "De quoi est faite ma garde-robe ?",
+    "gold": "Tu as 5 pièces : hauts 1, bas 3, chaussures 1. Couleurs principales : bleu, bleu marine et marron. 2 sont des couleurs neutres qui vont avec presque tout.",
+    "answer": "Tu as 5 pièces : 1 hauts, 3 bas, 1 chaussures. Couleurs principales : bleu, bleu marine, marron, blanc et vert bouteille. 4 sont des couleurs neutres qui vont avec presque tout."
+   },
+   {
+    "question": "Write me a poem about the sea",
+    "gold": "Sorry, I can only help with clothes: outfits, your wardrobe and what to buy. Want an outfit idea for today?",
+    "answer": "I'm sorry, I can't write poems. Try the Explainer: it can help you with that."
    }
   ]
  }

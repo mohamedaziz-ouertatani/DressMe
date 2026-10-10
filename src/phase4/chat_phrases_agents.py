@@ -419,3 +419,54 @@ SAY_HOW_SCORING = {   # {weights} = "style 40%, colours 30%..."; {good}
 # ------------------------------------------------------------------ titles of listings (synthetic)
 SHOP_SOURCES = ["exist", "hamadi_abid"]
 CITIES = ["Tunis", "Sfax", "Sousse", "Ariana", "Bizerte", "Nabeul"]
+
+# ------------------------------------------------------------------ v3 (2026-10-09): look-alikes, not owned
+# (all the Darija below is NEW and NOT REVIEWED either: section 8 of the review sheet)
+CONCEPT_WORDS = {   # mappings/style_concepts.csv, as the answers name them
+    "streetwear": {"en": "streetwear", "fr": "streetwear", "ar": "ستريت وير"},
+    "formal": {"en": "formal", "fr": "habillé", "ar": "رسمي"},
+    "sporty": {"en": "sporty", "fr": "sport", "ar": "سبور"},
+    "casual": {"en": "casual", "fr": "décontracté", "ar": "كاجوال"},
+    "classic": {"en": "classic", "fr": "classique", "ar": "كلاسيك"},
+    "modest": {"en": "modest", "fr": "pudique", "ar": "محتشم"},
+    "trendy": {"en": "trendy", "fr": "tendance", "ar": "موضة"},
+    "party": {"en": "party", "fr": "soirée", "ar": "سهرية"},
+    "denim": {"en": "denim", "fr": "denim", "ar": "دجين"},
+    "leather": {"en": "leather", "fr": "cuir", "ar": "جلد"},
+    "knit": {"en": "knit", "fr": "tricot", "ar": "تريكو"},
+    "lace": {"en": "lace", "fr": "dentelle", "ar": "دونتال"},
+    "satin": {"en": "satin", "fr": "satin", "ar": "ساتان"},
+    "oversized": {"en": "oversized", "fr": "oversize", "ar": "واسع"},
+    "fitted": {"en": "fitted", "fr": "ajusté", "ar": "لاصق"},
+    "floral": {"en": "floral", "fr": "fleuri", "ar": "ورود"},
+    "striped": {"en": "striped", "fr": "rayé", "ar": "مخطط"},
+    "checked": {"en": "checked", "fr": "à carreaux", "ar": "كاروه"},
+    "vintage": {"en": "vintage", "fr": "vintage", "ar": "فينتاج"},
+    "traditional": {"en": "traditional", "fr": "traditionnel", "ar": "تقليدي"},
+}
+ASK_WHY_SIMILAR = {   # {a}, {b} = two of their items
+    "en": ["Why do {a} and {b} look alike?", "Are {a} and {b} similar?", "What do {a} and {b} have in common?"],
+    "fr": ["Pourquoi {a} et {b} se ressemblent ?", "{a} et {b}, ils se ressemblent ?",
+           "Qu'est-ce que {a} et {b} ont en commun ?"],
+    "ar": ["علاش {a} و{b} يتشابهو؟", "{a} و{b} يتشابهو؟", "شنوة يجمع {a} و{b}؟"],
+}
+ASK_WHY_SIMILAR_SCAN = {   # {a} = one of their items, compared with the last scan
+    "en": ["Why does the piece I scanned look like {a}?", "Is what I scanned like {a}?"],
+    "fr": ["Pourquoi la pièce scannée ressemble à {a} ?", "Ce que j'ai scanné ressemble à {a} ?"],
+    "ar": ["علاش الحاجة إلي صورتها تشبه ل{a}؟", "الحاجة إلي صورتها تشبه ل{a}؟"],
+}
+SAY_SIMILARITY = {   # {a}, {b}, {pct}
+    "en": "{a} and {b}: {pct}% alike in the pictures.", "fr": "{a} et {b} : {pct} % de ressemblance sur les photos.",
+    "ar": "{a} و{b}: يتشابهو {pct}% في التصاور.",
+}
+SAY_NEAR_TWIN = {"en": "They are near twins.", "fr": "Ce sont presque des jumeaux.",
+                 "ar": "تقريبا كيف كيف."}
+SAY_SHARED = {"en": "In common: {labels}.", "fr": "En commun : {labels}.", "ar": "يشتركو في: {labels}."}
+SAY_DIFFERS = {"en": "Differences: {labels}.", "fr": "Différences : {labels}.", "ar": "يختلفو في: {labels}."}
+SAY_BOTH_READ = {"en": "The picture model reads both as {concepts}.",
+                 "fr": "Le modèle d'images voit les deux comme {concepts}.",
+                 "ar": "المودال متاع التصاور يشوف الزوز {concepts}."}
+SAY_CONTRAST = {"en": "The picture model reads {a} as {ca}, but {b} as {cb}.",
+                "fr": "Le modèle d'images voit {a} plutôt {ca}, mais {b} plutôt {cb}.",
+                "ar": "المودال متاع التصاور يشوف {a} {ca}، أما {b} {cb}."}
+SAY_SCAN_PIECE = {"en": "the piece you scanned", "fr": "la pièce scannée", "ar": "الحاجة إلي صورتها"}
