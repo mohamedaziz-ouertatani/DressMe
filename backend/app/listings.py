@@ -7,6 +7,7 @@ from the sources the team approved in mappings/listing_sources.csv (see LISTINGS
     sync_listings(...)          -> saves one successful run of a source in MongoDB
     ListingIndex.search(...)    -> the in-stock listings closest to a FashionCLIP vector
     listing_out(doc)            -> a listing as JSON for the app
+    backfill_gender(db)         -> gives every listing men / women / unisex (run at start-up)
 
 The labels of a listing (category, colour, ...) are our models' predictions on
 its picture, exactly like a wardrobe upload: the shop's own words are not
@@ -19,6 +20,9 @@ from datetime import date, datetime, timezone
 
 import numpy as np
 from bson import ObjectId
+
+from . import ml  # noqa: F401  (puts src/ on the import path)
+import genders
 
 from .db import vector_from_bson, vector_to_bson
 
@@ -127,7 +131,7 @@ def save_listing(db, source_id, raw, label, storage_dir, now, counts):
                                {"_id": 1, "image_url": 1})
     doc = {"source_id": source_id, "external_id": raw.external_id, "url": raw.url,
            "title": raw.title, "brand": raw.brand, "shop_colour": raw.shop_colour,
-           "gender": raw.gender, "price_tnd": raw.price_tnd, "sizes": raw.sizes,
+           "gender": genders.normalise(raw.gender), "price_tnd": raw.price_tnd, "sizes": raw.sizes,
            "sizes_in_stock": raw.sizes_in_stock, "in_stock": raw.in_stock,
            "availability_level": raw.availability_level, "image_url": raw.image_url,
            "checked_at": raw.checked_at or None, "snapshot": raw.snapshot,
@@ -145,6 +149,8 @@ def save_listing(db, source_id, raw, label, storage_dir, now, counts):
             labels["thumbnail"].save(thumbnail_path(storage_dir, listing_id), quality=85)
             doc.update(labels["fields"], predicted=labels["predicted"],
                        vector=vector_to_bson(labels["vector"]))
+            if not doc["gender"]:     # the shop did not say: decided by the team's table
+                doc["gender"] = genders.item_gender({"sub_category": doc.get("sub_category", "")})
             if old is None:
                 doc.update(_id=listing_id, created_at=now)
                 db.listings.insert_one(doc)
@@ -153,6 +159,17 @@ def save_listing(db, source_id, raw, label, storage_dir, now, counts):
             counts["relabelled"] += 1
     db.listings.update_one({"_id": old["_id"]}, {"$set": doc})
     counts["updated"] += 1
+
+
+def backfill_gender(db):
+    """Give every listing men / women / unisex (older listings, or a shop's own spelling
+    such as "Men"), so the app can filter with a plain $in. Safe to run at every start."""
+    table, changed = genders.load_table(), 0
+    for doc in db.listings.find({"gender": {"$nin": list(genders.VALUES)}},
+                                {"gender": 1, "sub_category": 1}):
+        value = genders.item_gender(doc, table)
+        changed += db.listings.update_one({"_id": doc["_id"]}, {"$set": {"gender": value}}).modified_count
+    return changed
 
 
 def mark_missing_gone(db, source_id, now, keep_ids=None):
@@ -179,9 +196,10 @@ def last_run(db, source_id, result=None):
 
 # ------------------------------------------------------------------ app answers
 def listing_query(category=None, sub_category=None, colour=None, size=None, source=None,
-                  max_price=None, in_stock=True):
+                  max_price=None, in_stock=True, genders=None):
     """The MongoDB filter for listings people can see: active only (pending or rejected
-    seller listings and gone products never show), in stock unless in_stock=False."""
+    seller listings and gone products never show), in stock unless in_stock=False.
+    genders: the item genders to show (e.g. {"men", "unisex"}), None = all."""
     query = {"status": "active"}
     for key, value in (("category", category), ("sub_category", sub_category),
                        ("colour", colour), ("source_id", source), ("sizes", size)):
@@ -191,6 +209,8 @@ def listing_query(category=None, sub_category=None, colour=None, size=None, sour
         query["price_tnd"] = {"$lte": max_price}
     if in_stock:
         query["in_stock"] = True
+    if genders:
+        query["gender"] = {"$in": sorted(genders)}
     return query
 
 
@@ -199,6 +219,7 @@ def listing_out(doc):
     return {
         "id": lid, "source_id": doc["source_id"], "brand": doc.get("brand", ""),
         "title": doc.get("title", ""), "shop_colour": doc.get("shop_colour", ""),
+        "gender": doc.get("gender", ""),
         "url": doc.get("url", ""), "price_tnd": doc.get("price_tnd"),
         "sizes": doc.get("sizes", []), "sizes_in_stock": doc.get("sizes_in_stock", []),
         "in_stock": doc.get("in_stock"), "availability_level": doc.get("availability_level", ""),
@@ -252,9 +273,10 @@ class ListingIndex:
                 return vec
         return None
 
-    def search(self, db, vector, k=6, category=None, exclude_seller=None):
+    def search(self, db, vector, k=6, category=None, exclude_seller=None, genders=None):
         """The k nearest listings. exclude_seller: leave out that seller's own listings
-        (the Seller assistant's price hint must not quote the user's own prices)."""
+        (the Seller assistant's price hint must not quote the user's own prices).
+        genders: keep only these item genders (None = all)."""
         self._refresh(db)
         if not self._docs:
             return []
@@ -265,6 +287,8 @@ class ListingIndex:
             if category and doc.get("category") != category:
                 continue
             if exclude_seller is not None and doc.get("seller_id") == exclude_seller:
+                continue
+            if genders and doc.get("gender") not in genders:
                 continue
             hits.append({**listing_out(doc), "score": round(float(scores[i]), 3)})
             if len(hits) == k:

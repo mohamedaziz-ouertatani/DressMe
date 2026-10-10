@@ -19,8 +19,9 @@ from .chat_engine import make_engine
 from .config import Settings
 from .db import connect
 from .jobs import JobRunner
-from .listings import ListingIndex
-from .routers import admin, admin_xai, auth, chat, explain, insights, items, listings, outfits, tryon, weather
+from .listings import ListingIndex, backfill_gender
+from .routers import (admin, admin_xai, auth, chat, explain, insights, items, listings, outfits, tryon,
+                      vocab, weather)
 from .tryon import make_tryon
 from .weather import make_weather
 
@@ -45,6 +46,7 @@ def create_app(settings=None, analyzer=None, catalog=None, chat_engine=None, rem
         app.state.tryon = tryon_engine or make_tryon(settings)   # None = switched off
         app.state.weather = weather_engine or make_weather(settings)   # None = switched off
         app.state.listing_index = ListingIndex()
+        backfill_gender(app.state.db)      # older listings get men / women / unisex
         app.state.jobs = JobRunner(app.state.db, settings.storage_dir)   # collector runs (admin)
         yield
 
@@ -52,7 +54,7 @@ def create_app(settings=None, analyzer=None, catalog=None, chat_engine=None, rem
     app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins,
                        allow_methods=["*"], allow_headers=["*"])
     for r in (auth.router, items.router, explain.router, outfits.router, insights.router, chat.router,
-              listings.router, tryon.router, weather.router, admin.router, admin_xai.router):
+              listings.router, tryon.router, weather.router, vocab.router, admin.router, admin_xai.router):
         app.include_router(r)
 
     @app.get("/health")

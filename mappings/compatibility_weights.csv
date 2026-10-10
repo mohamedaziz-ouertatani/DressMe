@@ -1,20 +1,20 @@
-name,value,note
-weight_style,0.35,REVIEW: how much each part counts (rescaled to sum 1 over the parts that can be computed)
-weight_colour,0.30,REVIEW
-weight_pattern,0.15,REVIEW
-weight_structure,0.20,REVIEW
-style_low,0.20,FashionCLIP similarity that counts as 0. Measured: real PolyVore outfits average 0.35 (5th percentile) to 0.55 (95th); the scale is kept wider so scores do not pile up at 0 or 100 (ties); see reports/phase4/compatibility_evaluation.md
-style_high,0.80,FashionCLIP similarity that counts as 1
-max_bold_colours,3,more non-neutral colours than this costs colour points
-bold_colour_penalty,0.15,colour points lost per extra non-neutral colour
-min_pattern_conf,0.6,predicted patterns below this confidence are ignored
-structure_no_shoes,0.75,structure score of a wearable outfit without shoes
-structure_incomplete,0.3,structure score when the main pieces are missing (e.g. a top without a bottom)
-structure_over_limit,0.5,structure score is multiplied by this for each item over its category limit
-good_outfit,60,score (0-100) from which an outfit counts as good
-buy_min_outfits,5,"should I buy": at least this many good outfits where the new item beats what you own = buy
-think_min_outfits,1,"should I buy": at least this many = think about it; fewer = skip
-same_colour,0.9,colour score of two items in the same bold colour (monochrome); same neutral = 1
-similar_item,0.9,"should I buy": FashionCLIP similarity from which a wardrobe item counts as a near twin
-style_personal_weight,0.25,share of the style score based on the user's wardrobe taste
-style_profile_min_items,3,minimum number of vectorized wardrobe items needed for personalization
+name,value,note,gender
+weight_style,0.35,REVIEW: how much each part counts (rescaled to sum 1 over the parts that can be computed),
+weight_colour,0.30,REVIEW,
+weight_pattern,0.15,REVIEW,
+weight_structure,0.20,REVIEW,
+style_low,0.20,FashionCLIP similarity that counts as 0. Measured: real PolyVore outfits average 0.35 (5th percentile) to 0.55 (95th); the scale is kept wider so scores do not pile up at 0 or 100 (ties); see reports/phase4/compatibility_evaluation.md,
+style_high,0.80,FashionCLIP similarity that counts as 1,
+max_bold_colours,3,more non-neutral colours than this costs colour points,
+bold_colour_penalty,0.15,colour points lost per extra non-neutral colour,
+min_pattern_conf,0.6,predicted patterns below this confidence are ignored,
+structure_no_shoes,0.75,structure score of a wearable outfit without shoes,
+structure_incomplete,0.3,structure score when the main pieces are missing (e.g. a top without a bottom),
+structure_over_limit,0.5,structure score is multiplied by this for each item over its category limit,
+good_outfit,60,score (0-100) from which an outfit counts as good,
+buy_min_outfits,5,should I buy: at least this many good outfits where the new item beats what you own = buy,
+think_min_outfits,1,should I buy: at least this many = think about it; fewer = skip,
+same_colour,0.9,colour score of two items in the same bold colour (monochrome); same neutral = 1,
+similar_item,0.9,should I buy: FashionCLIP similarity from which a wardrobe item counts as a near twin,
+style_personal_weight,0.25,share of the style score based on the user's wardrobe taste,
+style_profile_min_items,3,minimum number of vectorized wardrobe items needed for personalization,

@@ -6,6 +6,7 @@ import type { BuyAdvice, Category, Item, Listing, ListingFilters } from '../api/
 import { useI18n } from '../i18n'
 import { plural } from '../i18n/plurals'
 import { CATEGORY_LABELS, SUB_LABELS, vocab } from '../i18n/vocab'
+import { ScopeLine } from '../ui/GenderChoice'
 import { ListingCard, StockLine } from '../ui/ListingCard'
 import { brandName, useListingFormat } from '../ui/listingText'
 import { Page } from '../shell'
@@ -66,6 +67,7 @@ export function ShopPage() {
       </div>
 
       <div className="mb-5 flex flex-col gap-3">
+        <ScopeLine all={filters.gender === 'all'} onToggle={() => set({ gender: filters.gender === 'all' ? undefined : 'all' })} />
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           <Chip selected={!filters.category} onClick={() => set({ category: undefined })}>{t('allCategories')}</Chip>
           {CATEGORIES.map((c) => (

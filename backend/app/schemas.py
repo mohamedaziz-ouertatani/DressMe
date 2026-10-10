@@ -7,10 +7,14 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 from .vocab import CATEGORIES, COLOURS, LANGUAGES, PATTERNS, SEASONS, SUB_PARENT, USAGES
 
 
+Gender = Literal["men", "women"]
+
+
 class Register(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     name: str = Field(min_length=1, max_length=60)
+    gender: Gender                       # required: shops, look-alikes and rules follow it
 
 
 class Login(BaseModel):
@@ -22,6 +26,7 @@ class ProfileUpdate(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=60)
     min_coverage: int | None = Field(None, ge=1, le=5)   # modesty level, 1-5
     language: str | None = None
+    gender: Gender | None = None
 
     @field_validator("language")
     @classmethod

@@ -19,6 +19,7 @@ import { TodayPage } from './pages/TodayPage'
 import { TryOnPage } from './pages/TryOnPage'
 import { ItemPage, WardrobePage } from './pages/WardrobePage'
 import { AppShell, Wordmark } from './shell'
+import { GenderAsk } from './ui/GenderChoice'
 import { ErrorNote } from './ui/states'
 import { ApiError } from './api/client'
 
@@ -33,6 +34,7 @@ function Gate({ children, admin = false }: { children: ReactNode; admin?: boolea
     )
   }
   if (!user) return <Navigate to="/welcome" replace />
+  if (user.needs_gender) return <GenderAsk />
   if (admin && user.role !== 'admin') return <Navigate to="/" replace />
   return <>{children}</>
 }

@@ -19,12 +19,13 @@ Needs data/processed/embeddings/ from src/phase4/embed_fashionclip.py.
 import numpy as np
 import pandas as pd
 
+import genders
 from item_images import DATA
 
 EMB_DIR = DATA / "processed" / "embeddings"
 CHUNK = 50_000
 META_COLS = ["id", "dataset", "image_path", "bbox_x", "bbox_y", "bbox_w", "bbox_h",
-             "category", "sub_category", "primary_colour", "image_group", "split"]
+             "category", "sub_category", "primary_colour", "image_group", "split", "gender"]
 
 
 class SimilarityIndex:
@@ -40,7 +41,7 @@ class SimilarityIndex:
         meta = pd.read_csv(DATA / "processed" / "dressme.csv", dtype=str,
                            keep_default_na=False, usecols=META_COLS)
         meta = ids.merge(meta, on="id", how="left")   # keeps the .npy row order
-        return cls(vectors, meta)
+        return cls(vectors, cls.with_gender(meta))
 
     @classmethod
     def load_shop(cls, emb_dir=EMB_DIR):
@@ -49,21 +50,31 @@ class SimilarityIndex:
         # open file cannot be replaced, which would block re-running embed_hm.py)
         vectors = np.load(emb_dir / "hm_fashionclip.npy")
         ids = pd.read_csv(emb_dir / "hm_fashionclip_ids.csv", dtype=str)
+        # a callable keeps an hm.csv written before the gender column loading
+        wanted = {"id", "dataset", "image_path", "category", "sub_category", "primary_colour",
+                  "name", "department", "product_code", "gender"}
         meta = pd.read_csv(DATA / "processed" / "hm.csv", dtype=str, keep_default_na=False,
-                           usecols=["id", "dataset", "image_path", "category", "sub_category",
-                                    "primary_colour", "name", "department", "product_code"])
+                           usecols=lambda c: c in wanted)
         meta = ids.merge(meta, on="id", how="left")
         # search() keeps one hit per image_group: grouping by product shows each
         # product once, not the same tee in five colours
         meta["image_group"] = meta["product_code"]
-        return cls(vectors, meta)
+        return cls(vectors, cls.with_gender(meta))
+
+    @staticmethod
+    def with_gender(meta):
+        """Every row gets men / women / unisex: its own label (Fashion Product, H&M), else
+        the team table mappings/gender_sub_categories.csv (src/phase4/genders.py)."""
+        labels = meta["gender"] if "gender" in meta.columns else pd.Series("", index=meta.index)
+        return meta.assign(gender=genders.item_genders(labels, meta["sub_category"]))
 
     def vector(self, item_id):
         """The stored vector of one item."""
         return np.asarray(self.vectors[self.row_of[item_id]], dtype=np.float32)
 
-    def search(self, query, k=5, datasets=None, category=None, exclude_ids=()):
+    def search(self, query, k=5, datasets=None, category=None, exclude_ids=(), genders=None):
         """The k items closest to `query` (a 512 vector), optionally filtered.
+        genders: keep only these item genders (e.g. {"men", "unisex"}); None = all.
 
         Copies of the query picture (same image_group) are left out when the
         query is one of our items, so we never return the item itself.
@@ -78,6 +89,8 @@ class SimilarityIndex:
             keep &= self.meta["dataset"].isin(datasets).to_numpy()
         if category is not None:
             keep &= (self.meta["category"] == category).to_numpy()
+        if genders is not None:
+            keep &= self.meta["gender"].isin(genders).to_numpy()
         if len(exclude_ids):
             groups = self.meta.loc[self.meta["id"].isin(exclude_ids), "image_group"]
             keep &= ~self.meta["id"].isin(exclude_ids).to_numpy()

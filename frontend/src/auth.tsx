@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { ApiError, api, getToken, setToken, setUnauthorizedHandler } from './api/client'
-import type { User } from './api/types'
+import type { Gender, User } from './api/types'
 import { useI18n } from './i18n'
 
 interface Auth {
@@ -9,9 +9,9 @@ interface Auth {
   unreachable: boolean                 // the server could not be reached (token kept)
   retry: () => void
   login: (email: string, password: string) => Promise<void>
-  register: (email: string, password: string, name: string) => Promise<void>
+  register: (email: string, password: string, name: string, gender: Gender) => Promise<void>
   logout: () => void
-  updateProfile: (patch: Partial<Pick<User, 'name' | 'min_coverage' | 'language'>>) => Promise<void>
+  updateProfile: (patch: Partial<Pick<User, 'name' | 'min_coverage' | 'language' | 'gender'>>) => Promise<void>
 }
 
 const Ctx = createContext<Auth | null>(null)
@@ -53,15 +53,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signedIn(r.user)
   }, [signedIn])
 
-  const register = useCallback(async (email: string, password: string, name: string) => {
-    const r = await api.register(email, password, name)
+  const register = useCallback(async (email: string, password: string, name: string, gender: Gender) => {
+    const r = await api.register(email, password, name, gender)
     setToken(r.token)
     // a new account starts in the language chosen before signing up
     const lang = document.documentElement.lang as User['language']
     signedIn(lang && lang !== r.user.language ? await api.updateMe({ language: lang }) : r.user)
   }, [signedIn])
 
-  const updateProfile = useCallback(async (patch: Partial<Pick<User, 'name' | 'min_coverage' | 'language'>>) => {
+  const updateProfile = useCallback(async (patch: Partial<Pick<User, 'name' | 'min_coverage' | 'language' | 'gender'>>) => {
     signedIn(await api.updateMe(patch))
   }, [signedIn])
 

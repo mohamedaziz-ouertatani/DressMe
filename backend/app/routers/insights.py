@@ -12,10 +12,10 @@ from fastapi import APIRouter, Depends, Request
 from .. import ml  # noqa: F401  (puts src/ on the import path)
 import compatibility
 
-from ..security import current_user
+from ..security import gendered_user
 from ..vocab import CATEGORIES, PATTERNS
 from ..wardrobe import describe, to_compat
-from .outfits import user_profile, wardrobe
+from .outfits import rules_of, user_profile, wardrobe
 
 router = APIRouter(tags=["outfits"])
 
@@ -47,17 +47,18 @@ def wardrobe_counts(docs):
 
 
 @router.get("/insights")
-def insights(request: Request, user=Depends(current_user)):
+def insights(request: Request, user=Depends(gendered_user)):
+    rules = rules_of(user)
     docs, by_id = wardrobe(request, user)
     items = [to_compat(d) for d in docs]
-    facts = compatibility.wardrobe_insights(items, user_profile(user, docs, request))
+    facts = compatibility.wardrobe_insights(items, user_profile(user, docs, request), rules)
     piece = lambda i: describe(i, by_id)
     use = facts["outfit_use"]
 
     return {
         **wardrobe_counts(docs),
         "outfits": {"good": facts["good_outfits"], "complete": facts["complete"],
-                    "good_score": int(compatibility.RULES.settings["good_outfit"])},
+                    "good_score": int(rules.settings["good_outfit"])},
         "versatile": [{**piece(i), "outfits": use[i["id"]]} for i in facts["versatile"][:TOP_VERSATILE]],
         "unmatched": [piece(i) for i in facts["unmatched"]],
         "filtered": len(facts["filtered"]),

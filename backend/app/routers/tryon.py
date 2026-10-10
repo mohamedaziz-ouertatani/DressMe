@@ -19,7 +19,7 @@ from .. import ml  # noqa: F401  (puts src/ on the import path)
 import compatibility
 
 from ..events import log_event
-from ..security import current_user
+from ..security import gendered_user
 from ..tryon import KIND, TryOnBusy, TryOnUnavailable, describe, plan
 from ..wardrobe import to_compat
 from .items import open_photo, own_item
@@ -47,7 +47,7 @@ def as_data_url(img):
 @router.post("/tryon")
 async def try_on(request: Request, photo: UploadFile = File(...),
                  item_ids: list[str] = Form(default=[]), candidate_id: str | None = Form(default=None),
-                 user=Depends(current_user)):
+                 user=Depends(gendered_user)):
     """Dress the person in `photo` with the given wardrobe items and/or scanned
     candidate. Shoes, bags and accessories are skipped (the model can't draw
     them). A garment no Space could put on is listed in `failed` and the
@@ -61,7 +61,8 @@ async def try_on(request: Request, photo: UploadFile = File(...),
         docs.append(own_item(request, user, candidate_id, collection="candidates"))
     if not docs:
         raise HTTPException(422, "Pick at least one piece to try on")
-    why = compatibility.clashes([to_compat(d) for d in docs])
+    from .outfits import rules_of
+    why = compatibility.clashes([to_compat(d) for d in docs], rules_of(user))
     if why:
         raise HTTPException(422, "These pieces can't be worn together: " + "; ".join(why))
     garments, skipped = plan(docs)

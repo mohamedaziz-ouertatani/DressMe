@@ -15,11 +15,12 @@ from .. import ml  # noqa: F401  (puts src/ on the import path)
 import compatibility
 import explain_outfit
 import explain_similarity
+import genders
 
 from ..db import vector_from_bson, vector_to_bson
 from ..events import log_event
 from ..schemas import BuyAdvice, Complete, ItemIds, OutfitFeedback
-from ..security import current_user
+from ..security import current_user, gendered_user, user_gender
 from ..vocab import SEASONS, USAGES
 from ..wardrobe import item_out, outfit_out, short_item, to_compat
 from .items import apply_update, own_item
@@ -38,6 +39,11 @@ def profile(user, season=None, occasion=None, style_vector=None):
             "occasion": occasion, "style_vector": style_vector}
 
 
+def rules_of(user):
+    """The team's rules for this user's gender (src/phase4/compatibility.rules_for)."""
+    return compatibility.rules_for(user_gender(user))
+
+
 def user_profile(user, docs, request=None, season=None, occasion=None):
     """Build the request-scoped profile, including implicit style preferences."""
     items = [to_compat(d) for d in docs]
@@ -50,61 +56,65 @@ def user_profile(user, docs, request=None, season=None, occasion=None):
         entry["vector"] = vector_from_bson(entry.get("vector"))
         if entry.get("rating") == -1:
             disliked_outfits.add(entry["outfit_key"])
-    result = profile(user, season, occasion, compatibility.user_style_profile(items, feedback))
+    result = profile(user, season, occasion,
+                     compatibility.user_style_profile(items, feedback, rules_of(user)))
     result["disliked_outfits"] = disliked_outfits
     return result
 
 
-def no_clash(items):
+def no_clash(items, rules):
     """Hard rule: no sub_category twice, no category over its limit (else 422)."""
-    why = compatibility.clashes(items)
+    why = compatibility.clashes(items, rules)
     if why:
         raise HTTPException(422, "These pieces can't be worn together: " + "; ".join(why))
 
 
 @router.get("/outfits/limits")
-def limits(user=Depends(current_user)):
+def limits(user=Depends(gendered_user)):
     """Max pieces per category (mappings/outfit_structure.csv); a sub_category is
     always at most one. The Build page uses this to swap pieces instead of stacking them."""
-    return {"max_items": {c: int(n) for c, n in compatibility.RULES.max_items.items()},
+    return {"max_items": {c: int(n) for c, n in rules_of(user).max_items.items()},
             "max_per_sub_category": 1}
 
 
 @router.post("/outfits/score")
-def score(body: ItemIds, request: Request, user=Depends(current_user)):
+def score(body: ItemIds, request: Request, user=Depends(gendered_user)):
+    rules = rules_of(user)
     docs = [own_item(request, user, i) for i in body.item_ids]
     items = [to_compat(d) for d in docs]
-    no_clash(items)
+    no_clash(items, rules)
     all_docs, _ = wardrobe(request, user)
     result = compatibility.score_outfit(
-        items, style_profile=user_profile(user, all_docs, request)["style_vector"])
-    return outfit_out({**result, "items": items}, {str(d["_id"]): d for d in docs}, explain=True)
+        items, rules, style_profile=user_profile(user, all_docs, request)["style_vector"])
+    return outfit_out({**result, "items": items}, {str(d["_id"]): d for d in docs}, explain=True,
+                      rules=rules)
 
 
 @router.post("/outfits/explain")
-def explain_outfit_route(body: ItemIds, request: Request, user=Depends(current_user)):
+def explain_outfit_route(body: ItemIds, request: Request, user=Depends(gendered_user)):
     """Why this score, in more depth: the best swap for each piece (from your own
     wardrobe, same filters as the suggestions) and how every pair of pieces works."""
+    rules = rules_of(user)
     docs = [own_item(request, user, i) for i in body.item_ids]
     items = [to_compat(d) for d in docs]
-    no_clash(items)
+    no_clash(items, rules)
     all_docs, by_id = wardrobe(request, user)
     prof = user_profile(user, all_docs, request)
-    pool, _ = compatibility.filter_items([to_compat(d) for d in all_docs], prof)
-    swaps = explain_outfit.swaps(items, pool, style_profile=prof["style_vector"])
+    pool, _ = compatibility.filter_items([to_compat(d) for d in all_docs], prof, rules)
+    swaps = explain_outfit.swaps(items, pool, rules, style_profile=prof["style_vector"])
     return {"swaps": [{"item_id": s["item_id"], "gain": s["gain"],
                        "swap": short_item(by_id[s["best_swap_id"]]) if s["best_swap_id"] else None}
                       for s in swaps],
             "weakest": explain_outfit.weakest(
                 swaps, min_gain=explain_outfit.explain.load_settings()["min_swap_gain"]),
-            "pair_map": explain_outfit.pair_map(items)}
+            "pair_map": explain_outfit.pair_map(items, rules)}
 
 
 @router.post("/outfits/feedback")
-def feedback(body: OutfitFeedback, request: Request, user=Depends(current_user)):
+def feedback(body: OutfitFeedback, request: Request, user=Depends(gendered_user)):
     docs = [own_item(request, user, item_id) for item_id in body.item_ids]
     items = [to_compat(d) for d in docs]
-    no_clash(items)
+    no_clash(items, rules_of(user))
     vector = compatibility.outfit_vector(items)
     if vector is None:
         raise HTTPException(422, "At least one outfit item needs a style vector")
@@ -124,29 +134,31 @@ Occasion = Literal[tuple(USAGES)]
 
 @router.get("/outfits/suggest")
 def suggest(request: Request, season: Season | None = None, occasion: Occasion | None = None,
-            n: int = Query(5, ge=1, le=20), beach: bool = False, user=Depends(current_user)):
+            n: int = Query(5, ge=1, le=20), beach: bool = False, user=Depends(gendered_user)):
     """beach=true: beach / pool outfits around a swimsuit (swimwear is left out otherwise)."""
     docs, by_id = wardrobe(request, user)
     prof = user_profile(user, docs, request, season, occasion)
     prof["beach"] = beach
-    outfits = compatibility.suggest_outfits([to_compat(d) for d in docs], prof, n=n)
-    return [outfit_out(o, by_id, explain=True) for o in outfits]
+    rules = rules_of(user)
+    outfits = compatibility.suggest_outfits([to_compat(d) for d in docs], prof, n=n, rules=rules)
+    return [outfit_out(o, by_id, explain=True, rules=rules) for o in outfits]
 
 
 @router.post("/outfits/complete")
-def complete(body: Complete, request: Request, user=Depends(current_user)):
+def complete(body: Complete, request: Request, user=Depends(gendered_user)):
+    rules = rules_of(user)
     chosen = [to_compat(own_item(request, user, i)) for i in body.item_ids]
-    no_clash(chosen)
+    no_clash(chosen, rules)
     docs, by_id = wardrobe(request, user)
     candidates = [to_compat(d) for d in docs if str(d["_id"]) not in body.item_ids]
     ranked = compatibility.complete_outfit(
-        chosen, candidates, user_profile(user, docs, request), k=body.k)
-    return [{**outfit_out({**r, "items": chosen + [r["item"]]}, by_id, explain=True),
+        chosen, candidates, user_profile(user, docs, request), k=body.k, rules=rules)
+    return [{**outfit_out({**r, "items": chosen + [r["item"]]}, by_id, explain=True, rules=rules),
              "item": item_out(by_id[r["item"]["id"]])} for r in ranked]
 
 
 @router.post("/buy-advice")
-def buy_advice(body: BuyAdvice, request: Request, user=Depends(current_user)):
+def buy_advice(body: BuyAdvice, request: Request, user=Depends(gendered_user)):
     """A candidate from /analyze (optionally corrected) vs the wardrobe."""
     cand = own_item(request, user, body.candidate_id, collection="candidates")
     if body.corrections:
@@ -156,11 +168,12 @@ def buy_advice(body: BuyAdvice, request: Request, user=Depends(current_user)):
         cand = {**cand, **changes}
     docs, by_id = wardrobe(request, user)
     by_id[str(cand["_id"])] = cand
+    rules = rules_of(user)
     advice = compatibility.buy_advice(
-        to_compat(cand), [to_compat(d) for d in docs], user_profile(user, docs, request))
+        to_compat(cand), [to_compat(d) for d in docs], user_profile(user, docs, request), rules)
     log_event(request.app.state.db, "verdict", user["_id"], verdict=advice["verdict"])
     # why this verdict: owned ids become short items the app can show with their photo
-    why = explain_outfit.buy_explanation(advice)
+    why = explain_outfit.buy_explanation(advice, rules)
     explanation = {**why,
                    "beats": [{**b, "owned": short_item(by_id[b["owned_id"]]) if b["owned_id"] else None}
                              for b in why["beats"]],
@@ -169,14 +182,16 @@ def buy_advice(body: BuyAdvice, request: Request, user=Depends(current_user)):
                              for t in why["twins"]]}
     return {"verdict": advice["verdict"], "good_outfits": advice["good_outfits"],
             "reasons": advice["reasons"], "candidate": item_out(cand, kind="candidates"),
-            "best": [outfit_out(o, by_id, explain=True) for o in advice["best"]],
+            "best": [outfit_out(o, by_id, explain=True, rules=rules) for o in advice["best"]],
             "explanation": explanation}
 
 
 @router.get("/similar")
 def similar(request: Request, item_id: str | None = None, candidate_id: str | None = None,
-            k: int = Query(6, ge=1, le=20), user=Depends(current_user)):
-    """Look-alikes in your wardrobe ('you already have this'), dataset inspiration,
+            k: int = Query(6, ge=1, le=20), gender: Literal["mine", "all"] = "mine",
+            user=Depends(gendered_user)):
+    """gender=all: also the other gender's pieces (default: the user's gender + unisex).
+    Look-alikes in your wardrobe ('you already have this'), dataset inspiration,
     H&M products ('shop', no price or stock) and shop listings in stock now ('listings')."""
     if bool(item_id) == bool(candidate_id):
         raise HTTPException(422, "Give exactly one of item_id or candidate_id")
@@ -186,18 +201,19 @@ def similar(request: Request, item_id: str | None = None, candidate_id: str | No
     docs, _ = wardrobe(request, user)
     mine = sorted(((float(vector_from_bson(d["vector"]) @ query), d) for d in docs
                    if d["_id"] != doc["_id"] and d.get("vector")), key=lambda x: -x[0])[:k]
-    catalog = request.app.state.catalog.search(query, k=k, category=doc["category"])
-    shop = request.app.state.catalog.search_shop(query, k=k, category=doc["category"])
+    shown = None if gender == "all" else genders.shown(user_gender(user))
+    catalog = request.app.state.catalog.search(query, k=k, category=doc["category"], genders=shown)
+    shop = request.app.state.catalog.search_shop(query, k=k, category=doc["category"], genders=shown)
     for c in catalog + shop:
         c["image_url"] = f"/catalog/{c['id']}/image"
     listings = request.app.state.listing_index.search(
-        request.app.state.db, query, k=k + 1, category=doc["category"])
+        request.app.state.db, query, k=k + 1, category=doc["category"], genders=shown)
     # a candidate made from a listing: leave the listing itself out
     listings = [x for x in listings if x["id"] != str(doc.get("listing_id"))][:k]
 
     # why each one looks alike (XAI): shared labels + what the picture model
     # associates with both pictures; the vectors themselves never leave the server
-    concepts = request.app.state.analyzer.concept_vectors()
+    concepts = request.app.state.analyzer.concept_vectors(user_gender(user))
     baseline = explain_similarity.concept_baseline(request.app.state.catalog.mean_vector(), concepts)
     explain = lambda hit, vector: explain_similarity.explain_pair(doc, hit, query, vector, concepts,
                                                                   baseline=baseline)

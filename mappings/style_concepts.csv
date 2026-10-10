@@ -1,21 +1,25 @@
-concept,prompt,group,check,note
-streetwear,a photo of streetwear clothing,style,,REVIEW: what the picture model associates; not a label
-formal,a photo of formal elegant clothing,style,usage=formal,REVIEW
-sporty,a photo of sportswear,style,usage=sport,REVIEW
-casual,a photo of casual everyday clothing,style,usage=casual,REVIEW
-classic,a photo of classic timeless clothing,style,,REVIEW
-modest,a photo of modest loose clothing that covers the body,style,,REVIEW
-trendy,a photo of trendy fashionable clothing,style,,REVIEW
-party,a photo of party evening wear,style,,REVIEW
-denim,a photo of denim clothing,material,sub_category=jeans,REVIEW
-leather,a photo of leather clothing,material,,REVIEW
-knit,a photo of knitted wool clothing,material,sub_category=sweater,REVIEW
-lace,a photo of lace clothing,material,,REVIEW
-satin,a photo of shiny satin clothing,material,,REVIEW
-oversized,a photo of oversized loose-fit clothing,fit,,REVIEW
-fitted,a photo of tight fitted clothing,fit,,REVIEW
-floral,a photo of clothing with a floral print,pattern,pattern=floral,REVIEW: also a label; kept to check the probes
-striped,a photo of striped clothing,pattern,pattern=striped,REVIEW: also a label; kept to check the probes
-checked,a photo of checked plaid clothing,pattern,pattern=checked,REVIEW: also a label; kept to check the probes
-vintage,a photo of vintage retro clothing,other,,REVIEW
-traditional,a photo of traditional Tunisian clothing,other,category=traditional,REVIEW
+concept,prompt,group,check,note,gender
+streetwear,a photo of streetwear clothing,style,,REVIEW: what the picture model associates; not a label,
+formal,a photo of formal elegant clothing,style,usage=formal,REVIEW,
+sporty,a photo of sportswear,style,usage=sport,REVIEW,
+casual,a photo of casual everyday clothing,style,usage=casual,REVIEW,
+classic,a photo of classic timeless clothing,style,,REVIEW,
+modest,a photo of modest loose clothing that covers the body,style,,REVIEW,
+trendy,a photo of trendy fashionable clothing,style,,REVIEW,
+party,a photo of party evening wear,style,,REVIEW,
+denim,a photo of denim clothing,material,sub_category=jeans,REVIEW,
+leather,a photo of leather clothing,material,,REVIEW,
+knit,a photo of knitted wool clothing,material,sub_category=sweater,REVIEW,
+lace,a photo of lace clothing,material,,REVIEW,
+satin,a photo of shiny satin clothing,material,,REVIEW,
+oversized,a photo of oversized loose-fit clothing,fit,,REVIEW,
+fitted,a photo of tight fitted clothing,fit,,REVIEW,
+floral,a photo of clothing with a floral print,pattern,pattern=floral,REVIEW: also a label; kept to check the probes,
+striped,a photo of striped clothing,pattern,pattern=striped,REVIEW: also a label; kept to check the probes,
+checked,a photo of checked plaid clothing,pattern,pattern=checked,REVIEW: also a label; kept to check the probes,
+vintage,a photo of vintage retro clothing,other,,REVIEW,
+traditional,a photo of traditional Tunisian clothing,other,category=traditional,REVIEW,
+formal,a photo of formal elegant menswear,style,usage=formal,REVIEW: men's wording of the neutral row,men
+formal,a photo of formal elegant womenswear,style,usage=formal,REVIEW: women's wording of the neutral row,women
+modest,a photo of modest loose menswear that covers the body,style,,REVIEW: men's wording of the neutral row,men
+modest,a photo of modest loose womenswear that covers the body,style,,REVIEW: women's wording of the neutral row,women

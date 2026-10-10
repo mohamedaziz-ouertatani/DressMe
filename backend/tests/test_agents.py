@@ -100,7 +100,7 @@ def add_listing(client, **fields):
     doc = {"source_id": "exist", "external_id": f"p{db.listings.count_documents({})}", "title": "Shirt", "brand": "Exist", "status": "active",
            "in_stock": True, "category": "top", "sub_category": "shirt", "pattern": "solid",
            "colour": "black", "price_tnd": 49.0, "created_at": datetime.now(timezone.utc),
-           "vector": vector_to_bson(fake_vector(1)), **fields}
+           "gender": "unisex", "vector": vector_to_bson(fake_vector(1)), **fields}
     return str(db.listings.insert_one(doc).inserted_id)
 
 

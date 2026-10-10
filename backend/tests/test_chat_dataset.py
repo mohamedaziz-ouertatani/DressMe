@@ -130,3 +130,10 @@ def test_a_piece_the_user_does_not_own_is_never_given_an_id(rows):
         if r["scenario"] in ("not_owned", "not_owned_other"):
             calls = [c["function"]["name"] for m in r["messages"] for c in m.get("tool_calls", [])]
             assert calls == ["list_wardrobe"], (r["id"], calls)
+
+
+def test_builder_user_gender_agrees_with_the_wardrobe():
+    import genders
+    rng = random.Random(0)
+    assert {B.user_gender(rng, True) for _ in range(20)} == {"women"}
+    assert {B.user_gender(rng, False) for _ in range(50)} == set(genders.GENDERS)

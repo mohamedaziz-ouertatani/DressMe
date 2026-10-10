@@ -138,6 +138,7 @@ A new `listings` collection (to document in `backend/app/db.py`):
 | `seen_at`, `created_at` | dates |
 | `status` | `active`, `gone`, `pending` (seller upload waiting), `rejected` |
 | `seller_id`, `city`, `contact` | seller uploads only |
+| `gender` | `men` / `women` / `unisex`: the shop's own label normalised (`genders.normalise`), else the team table `mappings/gender_sub_categories.csv` from the predicted sub_category; seller listings take the seller's gender (REVIEW). Older listings get it at API start-up (`backfill_gender`). Users see their gender + unisex; `/listings?gender=all` shows everything. |
 
 The thumbnail (≤ 320 px) is stored under `STORAGE_DIR/listings/`. The full picture is never kept.
 
@@ -187,6 +188,7 @@ The thumbnail (≤ 320 px) is stored under `STORAGE_DIR/listings/`. The full pic
 3. Which `source` value shop and seller items get (already open in `HANDOFF.md`).
 4. Moderation rules for seller listings. (~~Which contact details sellers may show~~: one free-text handle, 2026-10-04.)
 5. How long a `gone` listing is kept before it is deleted.
+6. Whether a seller's listing should always take the seller's gender (current rule) or the piece's own (from the team table).
 
 ## Seller assistant
 

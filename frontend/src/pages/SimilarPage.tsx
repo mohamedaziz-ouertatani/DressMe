@@ -1,9 +1,11 @@
+import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
 import { useI18n } from '../i18n'
 import { CATEGORY_LABELS, SUB_LABELS, vocab } from '../i18n/vocab'
 import { Page } from '../shell'
 import { ItemPhoto } from '../ui/ItemPhoto'
+import { ScopeLine } from '../ui/GenderChoice'
 import { SimilarWhy } from '../ui/SimilarWhy'
 import { ErrorNote, Skeleton } from '../ui/states'
 import { useLoad } from '../useLoad'
@@ -14,7 +16,8 @@ export function SimilarPage() {
   const [params] = useSearchParams()
   const itemId = params.get('item') ?? undefined
   const candidateId = params.get('candidate') ?? undefined
-  const res = useLoad(() => api.similar({ itemId, candidateId }, 6), [itemId, candidateId])
+  const [all, setAll] = useState(false)      // also the other gender's pieces
+  const res = useLoad(() => api.similar({ itemId, candidateId }, 6, all), [itemId, candidateId, all])
   const label = (sub: string, cat: string) => vocab(SUB_LABELS, sub, lang) || vocab(CATEGORY_LABELS, cat, lang)
   const pct = (s: number) => t('match', { p: Math.round(Math.max(0, s) * 100) })
 
@@ -26,6 +29,7 @@ export function SimilarPage() {
         <Skeleton className="h-64" />
       ) : (
         <div className="flex flex-col gap-10">
+          <ScopeLine all={all} onToggle={() => setAll(!all)} />
           <section>
             <h2 className="text-[18px] font-semibold text-carbon">{t('inWardrobe')}</h2>
             <p className="mb-3 mt-1 text-[12px] text-carbon-soft">{t('simNote')}</p>
