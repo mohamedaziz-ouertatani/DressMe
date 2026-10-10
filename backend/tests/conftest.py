@@ -44,11 +44,11 @@ class FakeAnalyzer:
                 "colour": {"value": colour, "conf": 0.9},
                 "vector": fake_vector(sum(rgb))}
 
-    def concept_vectors(self):
+    def concept_vectors(self, gender=None):
         """{concept: vector} for the team's concepts (fixed fakes, like the real text vectors)."""
         import explain_similarity
         return {r["concept"]: fake_vector(1000 + i)
-                for i, r in enumerate(explain_similarity.load_concepts())}
+                for i, r in enumerate(explain_similarity.load_concepts(gender=gender))}
 
     def explain(self, img, head=None, value=None):
         """Like the real one: fixed small pictures, alternatives from analyze()."""

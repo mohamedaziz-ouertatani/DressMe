@@ -46,6 +46,7 @@ from itertools import combinations
 import numpy as np
 import pandas as pd
 
+import genders
 from item_images import ROOT
 
 MAP_DIR = ROOT / "mappings"
@@ -56,23 +57,26 @@ SWIMWEAR = "swimwear"   # the category of beach / pool outfits: worn without sho
 
 # ------------------------------------------------------------------ rules
 class Rules:
-    """All team-editable settings, read from the CSV files in mappings/."""
+    """All team-editable settings, read from the CSV files in mappings/. gender = men / women
+    keeps the neutral rows plus that gender's rows (a gendered row wins); None = neutral only."""
 
-    def __init__(self, map_dir=MAP_DIR):
+    def __init__(self, map_dir=MAP_DIR, gender=None):
+        self.gender = gender or None
         read = lambda name: pd.read_csv(map_dir / name, dtype=str, keep_default_na=False)
-        w = read("compatibility_weights.csv").set_index("name")["value"].astype(float)
+        mine = lambda name, key: genders.for_gender(read(name), self.gender, key)
+        w = mine("compatibility_weights.csv", lambda r: r.name).set_index("name")["value"].astype(float)
         self.settings = w.to_dict()
         self.weights = {p: self.settings[f"weight_{p}"] for p in PARTS}
         self.group = read("colour_groups.csv").set_index("colour")["group"].to_dict()
         self.colour_pairs = self._pairs(read("colour_harmony.csv"))
         self.pattern_pairs = self._pairs(read("pattern_mixing.csv"))
-        s = read("outfit_structure.csv")
+        s = mine("outfit_structure.csv", lambda r: r.category)
         self.slot = dict(zip(s["category"], s["slot"]))
         self.max_items = dict(zip(s["category"], s["max_items"].astype(int)))
         # default seasons, e.g. shorts -> summer; a sub_category rule beats a category rule
         # sub_category pairs that do not go together (pairs not listed count as 1)
-        self.sub_pairs = self._pairs(read("sub_category_pairing.csv"))
-        seasons = read("item_seasons.csv")
+        self.sub_pairs = self._pairs(mine("sub_category_pairing.csv", lambda r: frozenset((r.a, r.b))))
+        seasons = mine("item_seasons.csv", lambda r: (r.kind, r.value))
         self.seasons = {(r.kind, r.value): set(r.season.split("|")) for r in seasons.itertuples()}
 
     def default_seasons(self, item):
@@ -98,12 +102,23 @@ class Rules:
 
 
 RULES = Rules()
+_BY_GENDER = {None: RULES}
+
+
+def rules_for(gender):
+    """The rules for a user's gender (men / women), or the neutral RULES (None / "").
+    One object per gender, so reload_rules can refresh them in place."""
+    gender = gender or None
+    if gender not in _BY_GENDER:
+        _BY_GENDER[gender] = Rules(MAP_DIR, gender)
+    return _BY_GENDER[gender]
 
 
 def reload_rules(map_dir=MAP_DIR):
-    """Re-read the CSV files into the SAME Rules object (the functions below use it
+    """Re-read the CSV files into the SAME Rules objects (the functions below use RULES
     as their default), e.g. after an admin edits the weights in the app."""
-    RULES.__init__(map_dir)
+    for gender, rules in _BY_GENDER.items():
+        rules.__init__(map_dir, gender)
 
 
 # ------------------------------------------------------------------ the four parts

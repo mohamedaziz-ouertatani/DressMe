@@ -169,7 +169,7 @@ def get_formula(request: Request):
     folder = request.app.state.settings.mappings_dir
     return {
         "settings": [{"name": r["name"], "value": float(r["value"]), "note": r["note"]}
-                     for r in read_csv(folder / WEIGHTS_FILE)],
+                     for r in read_csv(folder / WEIGHTS_FILE) if not r.get("gender")],
         "colour_harmony": read_csv(folder / "colour_harmony.csv"),
         "pattern_mixing": read_csv(folder / "pattern_mixing.csv"),
         "file": f"mappings/{WEIGHTS_FILE}",
@@ -186,7 +186,8 @@ def put_formula(body: FormulaUpdate, request: Request):
     then reload the formula so the app uses them at once."""
     path = request.app.state.settings.mappings_dir / WEIGHTS_FILE
     rows = read_csv(path)
-    current = {r["name"]: float(r["value"]) for r in rows}
+    neutral = [r for r in rows if not r.get("gender")]      # gendered rows are edited in the CSV
+    current = {r["name"]: float(r["value"]) for r in neutral}
     unknown = sorted(set(body.values) - set(current))
     if unknown:
         raise HTTPException(422, f"Unknown settings: {unknown}")
@@ -197,11 +198,11 @@ def put_formula(body: FormulaUpdate, request: Request):
         raise HTTPException(422, "At least one weight must be above 0")
     if new["style_low"] >= new["style_high"]:
         raise HTTPException(422, "style_low must be below style_high")
-    for r in rows:
+    for r in neutral:
         v = new[r["name"]]
         r["value"] = str(int(v)) if v.is_integer() and r["value"].isdigit() else f"{v:g}"
     with open(path, "w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=["name", "value", "note"], lineterminator="\n")
+        writer = csv.DictWriter(f, fieldnames=list(rows[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
     compatibility.reload_rules(request.app.state.settings.mappings_dir)
