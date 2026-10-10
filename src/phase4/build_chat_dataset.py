@@ -70,30 +70,34 @@ from app.weather import OpenMeteo                          # noqa: E402
 
 OUT_DIR = ROOT / "data" / "processed" / "chat_sft"
 BUILD_DB = "dressme_chat_build"     # scratch database, dropped after each split
-SIZES = {"train": 4000, "val": 250, "test": 400}
+SIZES = {"train": 4500, "val": 250, "test": 400}
 SEEDS = {"train": 1, "val": 2, "test": 3}
 KAGGLE_DATASET = "mohameddazizz/dressme-chat-sft"
 
 # scenario -> (agent that answers it, weight). None: any agent.
 SCENARIOS = {
     "list": ("stylist", 6), "suggest": ("stylist", 10), "today": ("stylist", 6),
-    "weather": ("stylist", 2), "score": ("stylist", 8), "not_owned": ("stylist", 3),
+    "weather": ("stylist", 2), "score": ("stylist", 8), "not_owned": ("stylist", 5),
     "follow_up": ("stylist", 3), "complete": ("stylist", 5),
-    "buy": ("shopping", 6), "search": ("shopping", 5), "similar": ("shopping", 4),
+    "buy": ("shopping", 7), "search": ("shopping", 10), "similar": ("shopping", 6),
+    "not_owned_other": (None, 4),        # complete / look-alike / price of a piece they don't own
     "insights": ("analyst", 4), "stats": ("analyst", 3), "twins": ("analyst", 2),
     "what_sell": ("seller", 3), "price": ("seller", 3), "sell": ("seller", 3),
     "my_listings": ("seller", 2),
     "why_score": ("explainer", 4), "what_if": ("explainer", 3), "labels": ("explainer", 3),
     "why_verdict": ("explainer", 2), "how_scoring": ("explainer", 1),
-    "chit_chat": (None, 9), "handoff": (None, 3), "route": (None, 5),
+    "why_similar": ("explainer", 4),
+    "chit_chat": (None, 9), "handoff": (None, 5), "route": (None, 5),
 }
+SCENARIO_AGENTS = {"not_owned_other": ["stylist", "shopping", "seller"]}   # for the None rows above
 LANGUAGE_WEIGHTS = {"fr": 45, "ar": 35, "en": 20}          # the app's profile language
 OTHER_LANGUAGE = 0.12      # the user writes in another language than their profile
 ARABIZI = 0.5              # Darija questions typed in Latin letters
 EARLIER_EXCHANGE = 0.25    # a greeting exchange before the question
 WEATHER_DOWN = 0.1         # get_weather answers an error
 NO_ID_WITHOUT_LIST = {"score_outfit", "complete_outfit", "find_similar", "price_hint", "prepare_sell",
-                      "explain_outfit", "what_if", "explain_labels"}
+                      "explain_outfit", "what_if", "explain_labels", "explain_similarity"}
+ID_ARGS = ("item_id", "other_id", "remove_id", "add_id")
 
 CATEGORY_WEIGHTS = {"top": 4, "bottom": 3, "shoes": 2.2, "outerwear": 1.5, "dress": 1.2,
                     "bag": 1, "accessory": 1.2, "traditional": 0.2, "swimwear": 0.2}
@@ -212,6 +216,7 @@ class FakeCatalog:
     """A small made-up H&M catalogue with the same answer as app.ml.Catalog.search_shop."""
 
     def __init__(self, maker, rng):
+        self.maker = maker
         self.rows = []
         for k in range(HM_PRODUCTS):
             category, sub, colour, _ = maker.piece(rng.random() < 0.5)
@@ -221,11 +226,31 @@ class FakeCatalog:
                               "category": category, "sub_category": sub, "colour": colour,
                               "vector": maker.vector(rng.randrange(N_STYLES)).astype(np.float32)})
 
+    def mean_vector(self):
+        """The "average picture" the concept probes are compared with (app.ml.Catalog)."""
+        return self.maker.common.astype(np.float32)
+
     def search_shop(self, vector, k=6, category=None):
         rows = [r for r in self.rows if not category or r["category"] == category]
         rows.sort(key=lambda r: -float(r["vector"] @ vector))
         return [{**{key: v for key, v in r.items() if key != "vector"},
                  "score": round(float(r["vector"] @ vector), 3)} for r in rows[:k]]
+
+
+class FakeAnalyzer:
+    """Only what the Explainer's explain_similarity reads: the team's concepts as vectors in the
+    same made-up space as the pictures. Each concept leans to one style, so pieces of the same
+    style share concepts, like FashionCLIP's text side would give."""
+
+    def __init__(self, maker, rng):
+        import explain_similarity
+        self.concepts = {}
+        for k, row in enumerate(explain_similarity.load_concepts()):
+            v = 0.5 * maker.common + 0.8 * maker.styles[k % N_STYLES]                 + maker.nprng.normal(size=VECTOR_DIM) * 0.6 / np.sqrt(VECTOR_DIM)
+            self.concepts[row["concept"]] = (v / np.linalg.norm(v)).astype(np.float32)
+
+    def concept_vectors(self):
+        return self.concepts
 
 
 class FakeWeather(OpenMeteo):
@@ -286,6 +311,7 @@ class World:
         self.listings = make_listings(db, self.maker, rng)
         self.state = SimpleNamespace(
             db=db, catalog=FakeCatalog(self.maker, rng), listing_index=ListingIndex(), weather=None,
+            analyzer=FakeAnalyzer(self.maker, rng),
             settings=SimpleNamespace(weather_lat=36.8, weather_lon=10.2, weather_place="Tunis"))
 
     def request(self):
@@ -454,7 +480,7 @@ class Conversation:
         """The assistant calls a tool; the real backend function answers."""
         if name in NO_ID_WITHOUT_LIST and not any(
                 c["function"]["name"] == "list_wardrobe" for m in self.messages for c in m.get("tool_calls", [])):
-            if args.get("item_ids") or args.get("item_id"):
+            if args.get("item_ids") or any(args.get(k) not in (None, "", "last_scan") for k in ID_ARGS):
                 raise AssertionError(f"{name} with ids before list_wardrobe")
         result = self.tools[name](**args)
         self.messages.append({"role": "assistant", "content": "", "tool_calls": [
@@ -652,16 +678,31 @@ class Conversation:
             text.append(P.SAY_ADD_SHOES[lang])
         self.say(" ".join(text))
 
-    @scenario
-    def scenario_not_owned(self):
-        """The user names a piece they don't have: never pretend it exists."""
+    def made_up_piece(self, cat):
+        """A piece of this category the user does NOT own (None if none can be made)."""
         owned = {(d["sub_category"], d["colour"]) for d in self.docs}
-        cat = self.rng.choice(["top", "bottom", "shoes", "outerwear"])
         for _ in range(50):
             fake = self.maker.item(self.user["_id"], self.dress_wearer, cat)
             if fake["colour"] and (fake["sub_category"], fake["colour"]) not in owned:
-                break
-        else:
+                return fake
+        return None
+
+    def say_not_owned(self, items, fake):
+        """'I can't find X. Your <category>: ...' after list_wardrobe."""
+        lang, cat = self.lang, fake["category"]
+        same = [i for i in items if i["category"] == cat]
+        words = P.CATEGORY_WORDS[cat][lang]
+        alternatives = (P.SAY_ALTERNATIVES[lang].format(cat=words, items=join(
+            [item_text(i, lang) for i in same], lang)) if same
+            else P.SAY_NO_ALTERNATIVE[lang].format(cat=words))
+        self.say(P.SAY_NOT_OWNED[lang].format(missing=indefinite(fake, lang), alternatives=alternatives))
+
+    @scenario
+    def scenario_not_owned(self):
+        """The user names a piece they don't have: never pretend it exists."""
+        cat = self.rng.choice(["top", "bottom", "shoes", "outerwear"])
+        fake = self.made_up_piece(cat)
+        if fake is None:
             return self.scenario_list()
         real = self.unique_items()
         other = self.rng.choice(real) if real else None
@@ -670,14 +711,21 @@ class Conversation:
         self.no_arabizi()
         pair = [fake, other] if self.rng.random() < 0.5 else [other, fake]
         self.ask(P.ASK_SCORE, a=self.name_for_question(pair[0]), b=self.name_for_question(pair[1]))
-        items = self.call("list_wardrobe")
-        lang = self.lang
-        same = [i for i in items if i["category"] == cat]
-        words = P.CATEGORY_WORDS[cat][lang]
-        alternatives = (P.SAY_ALTERNATIVES[lang].format(cat=words, items=join(
-            [item_text(i, lang) for i in same], lang)) if same
-            else P.SAY_NO_ALTERNATIVE[lang].format(cat=words))
-        self.say(P.SAY_NOT_OWNED[lang].format(missing=indefinite(fake, lang), alternatives=alternatives))
+        self.say_not_owned(self.call("list_wardrobe"), fake)
+
+    # the question each agent gets about a piece the user does not own
+    NOT_OWNED_ASK = {"stylist": PA.ASK_COMPLETE, "shopping": PA.ASK_SIMILAR, "seller": PA.ASK_PRICE}
+
+    @scenario
+    def scenario_not_owned_other(self):
+        """'What goes with / something like / how much for my X?' when there is no X: list the
+        wardrobe, then say so (v2 sent another piece's id instead)."""
+        fake = self.made_up_piece(self.rng.choice(["top", "bottom", "shoes", "outerwear"]))
+        if fake is None:
+            return self.scenario_chit_chat()
+        self.no_arabizi()
+        self.ask(self.NOT_OWNED_ASK[self.agent], a=self.name_for_question(fake))
+        self.say_not_owned(self.call("list_wardrobe"), fake)
 
     @scenario
     def scenario_follow_up(self):
@@ -746,12 +794,14 @@ class Conversation:
     @scenario
     def scenario_search(self):
         """'I'm looking for black jeans (under 50 TND)': search_listings with the app's values."""
-        if self.rng.random() < 0.75:
+        if self.rng.random() < 0.5:                      # something in stock
             row = self.rng.choice(self.world.listings)
             want = {"category": row["category"], "sub_category": row["sub_category"], "colour": row["colour"]}
-        else:
-            category, sub, colour, _ = self.maker.piece(self.dress_wearer)
-            want = {"category": category, "sub_category": sub, "colour": colour}
+        else:   # any type and colour of the app's vocabulary, evenly: v2 used words that are not
+            sub = self.rng.choice(sorted(SUB_PARENT))    # app values (slacks, violet, earring)
+            colours = [c for c in COLOUR_WEIGHTS if c != "multicolour"] + (
+                ["gold", "silver"] if SUB_PARENT[sub] in METAL_FOR else [])
+            want = {"category": SUB_PARENT[sub], "sub_category": sub, "colour": self.rng.choice(colours)}
         self.no_arabizi()
         piece = indefinite(want, self.ask_lang)
         args = {"sub_category": want["sub_category"], "colour": want["colour"]}
@@ -1045,6 +1095,53 @@ class Conversation:
                        lang)
         self.say(PA.SAY_HOW_SCORING[lang].format(weights=weights, good=round(out["good_outfit"])))
 
+    @scenario
+    def scenario_why_similar(self):
+        """'Why do my X and my Y look alike?' (or the last scan and my X): explain_similarity."""
+        pieces = self.unique_items()
+        if len(pieces) < 2:
+            return self.scenario_how_scoring()
+        lang = self.lang
+        by_cat = {}
+        for d in pieces:
+            by_cat.setdefault(d["category"], []).append(d)
+        same = [c for c, ds in by_cat.items() if len(ds) >= 2]
+        self.no_arabizi()
+        if self.rng.random() < 0.25:                     # the last scan against one of their pieces
+            piece = self.rng.choice(pieces)
+            self.add_scan(piece if self.rng.random() < 0.5 else None)
+            self.ask(PA.ASK_WHY_SIMILAR_SCAN, a=self.name_for_question(piece))
+            self.call("list_wardrobe")
+            out = self.call("explain_similarity", item_id="last_scan", other_id=str(piece["_id"]))
+            names = [PA.SAY_SCAN_PIECE[lang], self.your(piece)]
+        else:
+            pair = (self.rng.sample(by_cat[self.rng.choice(same)], 2) if same and self.rng.random() < 0.8
+                    else self.rng.sample(pieces, 2))
+            self.ask(PA.ASK_WHY_SIMILAR, a=self.name_for_question(pair[0]), b=self.name_for_question(pair[1]))
+            self.call("list_wardrobe")
+            out = self.call("explain_similarity", item_id=str(pair[0]["_id"]), other_id=str(pair[1]["_id"]))
+            names = [self.your(pair[0]), self.your(pair[1])]
+        text = []
+        if "similarity" in out:
+            text.append(PA.SAY_SIMILARITY[lang].format(a=capital(names[0]), b=names[1],
+                                                       pct=round(100 * out["similarity"])))
+            if out.get("near_twin"):
+                text.append(PA.SAY_NEAR_TWIN[lang])
+        shared = [PA.FIELD_WORDS[x["field"]][lang] for x in out["shared_labels"] if x["field"] != "category"]
+        if shared:
+            text.append(PA.SAY_SHARED[lang].format(labels=join(shared, lang)))
+        differs = [PA.FIELD_WORDS[x["field"]][lang] for x in out["different_labels"]]
+        if differs:
+            text.append(PA.SAY_DIFFERS[lang].format(labels=join(differs, lang)))
+        if out["both_read_as"]:
+            text.append(PA.SAY_BOTH_READ[lang].format(
+                concepts=join([PA.CONCEPT_WORDS[c][lang] for c in out["both_read_as"]], lang)))
+        elif out["contrast"]:
+            c = out["contrast"]
+            text.append(PA.SAY_CONTRAST[lang].format(a=names[0], b=names[1], ca=PA.CONCEPT_WORDS[c["a"]][lang],
+                                                     cb=PA.CONCEPT_WORDS[c["b"]][lang]))
+        self.say(" ".join(text))
+
     # -------------------------------------------------------------- any agent
     @scenario
     def scenario_chit_chat(self):
@@ -1111,7 +1208,7 @@ def build_split(split, n, db):
         if name == "route":
             rows.append(route_row(rng, world, split, k))
             continue
-        agent = SCENARIOS[name][0] or rng.choice(list(AGENTS))
+        agent = SCENARIOS[name][0] or rng.choice(SCENARIO_AGENTS.get(name, list(AGENTS)))
         conv = Conversation(rng, world, split, agent)
         messages = conv.build(name)
         rows.append({"id": f"{split}_{k:05d}", "scenario": conv.kind, "agent": agent, "language": conv.lang,

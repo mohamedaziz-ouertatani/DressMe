@@ -66,9 +66,9 @@ What each tool wraps (no new fashion logic: the team's formula in `src/phase4/co
   `similar_item`), shared / different labels, and the concepts both pictures read as
   (`src/phase4/explain_similarity.py`, team list `mappings/style_concepts.csv`, above the average
   picture). "My two pink jackets" (the same description for both, matching exactly two pieces) compares
-  those two; numbers and ordinals in a description are ignored. Not in `dressme-chat-v2`'s training data
-  yet: on 2026-10-09 v2 did not call it and made up a reason; `qwen3:4b-instruct` called it and gave a
-  grounded answer.
+  those two; numbers and ordinals in a description are ignored. `dressme-chat-v3` is trained on it
+  (2026-10-10; end to end it answers 8 / 8 look-alike questions with this tool). v2 predates it: on
+  2026-10-09 it did not call it in a live chat and made up a reason.
 - `how_scoring_works`: the team's current weights and thresholds, read from `mappings/`.
 
 The Explainer's outfit tools take ids or short descriptions ("pink top"): a description is used only

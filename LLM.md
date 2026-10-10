@@ -37,7 +37,8 @@ Goal: the base model already chats; fine-tuning teaches it **our** job: call the
 python src/phase4/build_chat_dataset.py --show 5
 ```
 
-→ `data/processed/chat_sft/{train,val,test}.jsonl` (4000 / 250 / 400 conversations). Each conversation talks to **one of the five agents** (`backend/app/agents/`) with that agent's real system prompt and tools, imported from the backend, so training and the app always match; ~5% of the rows teach the agent router instead (its prompt, a question, the agent's name). Each conversation has a random wardrobe, saved with a pool of shop and friperie listings in a scratch MongoDB database (`dressme_chat_build`, dropped at the end), and the backend's **real** tool functions run on it: scores, verdicts, prices, insights and explanations come from `compatibility.py`, `explain_outfit.py` and `app/resale.py` with the team's settings. Only the H&M catalogue and the weather are small fakes. The data teaches: list_wardrobe before any tool that takes item ids, get_weather before "what do I wear today?", no tool for greetings / thanks / off-topic, and one sentence pointing to the right agent when a question reaches the wrong one. The sentences are in `src/phase4/chat_phrases.py` and `chat_phrases_agents.py` (the agents' new scenarios). A suggestion without an explicit count returns one best outfit; requests such as “give me four” still exercise the requested count. The first dataset (v1, the original four tools) is kept in `data/processed/chat_sft_v1/`.
+→ `data/processed/chat_sft/{train,val,test}.jsonl` (4500 / 250 / 400 conversations for v3).
+ Each conversation talks to **one of the five agents** (`backend/app/agents/`) with that agent's real system prompt and tools, imported from the backend, so training and the app always match; ~5% of the rows teach the agent router instead (its prompt, a question, the agent's name). Each conversation has a random wardrobe, saved with a pool of shop and friperie listings in a scratch MongoDB database (`dressme_chat_build`, dropped at the end), and the backend's **real** tool functions run on it: scores, verdicts, prices, insights and explanations come from `compatibility.py`, `explain_outfit.py` and `app/resale.py` with the team's settings. Only the H&M catalogue and the weather are small fakes. The data teaches: list_wardrobe before any tool that takes item ids, get_weather before "what do I wear today?", no tool for greetings / thanks / off-topic, and one sentence pointing to the right agent when a question reaches the wrong one. The sentences are in `src/phase4/chat_phrases.py` and `chat_phrases_agents.py` (the agents' new scenarios). A suggestion without an explicit count returns one best outfit; requests such as “give me four” still exercise the requested count. The first dataset (v1, the original four tools) is kept in `data/processed/chat_sft_v1/`.
 
 > **Team: please complete the native-speaker review of the Darija in `src/phase4/chat_phrases.py` and `chat_phrases_agents.py`** (nouns, colours and answers; all of the second file is new and unreviewed, section 7 of the sheet). The first team corrections are already applied to the phrase table and dataset review sheet; the model still learns every word exactly as written. Then rebuild the dataset after any further corrections. The review sheet is [reports/phase4/darija_review.md](reports/phase4/darija_review.md): every Darija word and sentence with transliteration, meaning, open questions and a Correction column.
 
@@ -77,12 +78,25 @@ This writes a Modelfile next to the GGUF's model folder (`models/llm/dressme-cha
 ### 2.4 Evaluate (team rule: the app uses whichever is better)
 
 ```
-python src/phase4/evaluate_chat.py            # qwen3:4b-instruct vs dressme-chat vs dressme-chat-v2, 150 test conversations
+python src/phase4/evaluate_chat.py --models qwen3:4b-instruct dressme-chat-v2 dressme-chat-v3   # 150 test conversations
+python src/phase4/evaluate_chat_e2e.py --models dressme-chat-v2 dressme-chat-v3                # whole chats, no help
 ```
 
 Baseline before fine-tuning (`qwen3:4b-instruct`, `--limit 30`, 75 decisions, 2026-10-04, old language rule): tool decision 76.0%, tool name 33.3%, **arguments 13.9%** (0% on score and suggest), language 94.9%, 8.6 s per decision. It knows *when* to use a tool, but rarely picks the right one with the right ids, and it invents reasons (e.g. "two tops is too revealing" for the max-1-top rule). The language check only looks for Arabic script, so MSA counts as Darija. Until 2026-10-04 the language check compared every answer with the language of the conversation's *last* question, but the language can change between questions, so even the expected answers scored only 93.9% (now 100%; `answer_languages` in the dataset gives one language per answer). The baseline language figure above used the old check; rebuild the dataset before re-running.
 
-**Results (2026-10-09, `reports/phase4/chat_evaluation.md`, 150 test conversations of the v2 dataset, five agents + router):**
+**v3 (2026-10-10).** v2 was trained before the Explainer's `explain_similarity` tool, and the evaluation showed weak spots. v3's data adds that tool, gives search the app's own words (v2 wrote `slacks`, `violet`, `earring`), and teaches what to do when the user names a piece they don't own: list the wardrobe, then say so (v2 sent another piece's id to `score_outfit` / `complete_outfit` / `price_hint`). 4,500 training chats, 256 min on the T4.
+
+Two evaluations, because the first one is lenient: `evaluate_chat.py` scores each decision with the correct conversation in front of the model, so once the right `list_wardrobe` answer is there, the next tool is easy (v2 scored 100% on look-alike explanations that way, but made one up in a live chat). `evaluate_chat_e2e.py` runs **whole chats** through the app's engine and real tools with no help, like in the app.
+
+| v3 test set (2026-10-10) | Tool decision | Tool name | Arguments | Language | Router | End to end (`chat_e2e_evaluation.md`) |
+|---|---|---|---|---|---|---|
+| qwen3:4b-instruct | 79.0% | 48.7% | 27.0% | 74.2% | 33.3% | - |
+| dressme-chat-v2 | 95.7% | 95.2% | 89.9% | 100.0% | 100.0% | 61 / 77 (79.2%) |
+| **dressme-chat-v3** | **97.0%** | **95.2%** | 88.4% | 99.4% | 66.7% | **70 / 77 (90.9%)** |
+
+The router column rests on ~6 decisions. End to end, v3 fixes the pieces the user doesn't own (scoring 5 / 5 vs 0 / 5; complete / look-alike / price 5 / 8 vs 0 / 8) and look-alikes (7 / 8 vs 6 / 8); both answer every look-alike explanation, search, buy and chit-chat right. **v3 is the app's model** (`OLLAMA_MODEL=dressme-chat-v3`). Watch: v3 once said it could not find a piece it had just listed (it learned "not owned" a little too eagerly), it still answers a complete / look-alike / price question about a piece the user doesn't own with another piece 3 times in 8, and "show my listings" asked of the Shopping advisor lists the wardrobe instead of pointing to the Seller assistant.
+
+**v2 results (2026-10-09, `reports/phase4/chat_evaluation.md` of that day, 150 test conversations of the v2 dataset, five agents + router):**
 
 | Model | Tool decision | Tool name | Arguments | Language | Router | s / decision |
 |---|---|---|---|---|---|---|
@@ -90,7 +104,7 @@ Baseline before fine-tuning (`qwen3:4b-instruct`, `--limit 30`, 75 decisions, 20
 | dressme-chat (v1) | 58.4% | 69.4% | 57.8% | 90.9% | 70.0% | 4.9 |
 | **dressme-chat-v2** | **98.0%** | **97.2%** | **92.8%** | **98.8%** | **90.0%** | 5.4 |
 
-v2 is the app's model (`OLLAMA_MODEL=dressme-chat-v2`). Weakest spots: the Shopping advisor (search arguments 64%, look-alikes 73%; it once sent a made-up id to `find_similar` instead of calling `list_wardrobe`), "not owned" questions and hand-offs from the Shopping advisor (50%, few examples). The test is synthetic, from the same generator as the training data: it measures tool use and language, not how natural the answers sound with real users.
+v2 was the app's model until v3. Weakest spots: the Shopping advisor (search arguments 64%, look-alikes 73%; it once sent a made-up id to `find_similar` instead of calling `list_wardrobe`), "not owned" questions and hand-offs from the Shopping advisor (50%, few examples). The test is synthetic, from the same generator as the training data: it measures tool use and language, not how natural the answers sound with real users.
 
 Answers are capped at 600 tokens (`num_predict`, backend and evaluation; our longest training answer is ~150): at temperature 0 the base model once repeated itself until Ollama's 5-minute timeout.
 

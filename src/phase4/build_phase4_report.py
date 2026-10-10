@@ -37,7 +37,7 @@ FIG = REPORTS / "figures"
 FIG4 = FIG / "summary"
 MAPPINGS = ROOT / "mappings"
 MODEL_NAMES = {"qwen3:4b-instruct": "qwen3:4b-instruct (base)", "dressme-chat": "dressme-chat (v1)",
-               "dressme-chat-v2": "dressme-chat-v2"}
+               "dressme-chat-v2": "dressme-chat-v2", "dressme-chat-v3": "dressme-chat-v3"}
 
 SECTIONS = ["context", "architecture", "embeddings", "classifier", "compatibility",
             "backend", "listings", "agents", "chat", "xai", "frontend", "testing", "local",
@@ -201,7 +201,9 @@ def build():
     train_min = log["minutes"].sum()
     n_fast, n_slow = count_tests()
     chat_eval = read_chat_eval()
-    v2 = chat_eval.get("dressme-chat-v2", {}).get("summary")
+    # the app's model: the newest fine-tuned one in the evaluation
+    served = next((m for m in ("dressme-chat-v3", "dressme-chat-v2") if m in chat_eval), None)
+    v2 = chat_eval[served]["summary"] if served else None
     base = chat_eval.get("qwen3:4b-instruct", {}).get("summary")
 
     story = []
@@ -278,7 +280,7 @@ def build():
                      ["4.5 Frontend", "React + Tailwind app and admin dashboard", "done"],
                      ["Listings", "Tunisian shops, frozen snapshot, friperie sellers", "done"],
                      ["AI agents", "five chat agents with tools + a router", "done"],
-                     ["Local chat model", "Qwen3-4B + QLoRA, served by Ollama (v2)", "done"],
+                     ["Local chat model", "Qwen3-4B + QLoRA, served by Ollama (v3)", "done"],
                      ["XAI 1-2", "item labels; outfit scores and buy verdicts", "done"],
                      ["XAI 3-4", "similarity + chat traces; XAI report, Admin > Explainability", "done"]],
                     widths=[3.5 * cm, WIDTH - 5.5 * cm, 2 * cm])]
@@ -297,7 +299,7 @@ def build():
                     src/phase4/compatibility.py + explain*.py  (rules in mappings/*.csv)
                                          |
        /chat: router -> one of 5 agents -> tools on the user's data
-              engine: Gemini API  or  Ollama (local dressme-chat-v2)
+              engine: Gemini API  or  Ollama (local dressme-chat-v3)
                                          |
        collect_listings.py (nightly, separate process): connectors -> analysed listings
        Open-Meteo (weather)    Hugging Face Spaces (virtual try-on)
@@ -586,15 +588,16 @@ def build():
                 "<i>LLM.md</i>."),
               Spacer(1, 4),
               table([["Step", "What"],
-                     ["Dataset", "<i>build_chat_dataset.py</i>: 4,000 / 250 / 400 synthetic chats "
+                     ["Dataset", "<i>build_chat_dataset.py</i>: 4,500 / 250 / 400 synthetic chats "
                       "(French 45%, Darija 35% incl. Arabizi, English 20%), each with one agent's "
                       "real prompt and tools, plus ~5% router rows. The backend's <b>real</b> tools "
                       "run on random wardrobes and listings in a scratch database, so every score, "
                       "price and explanation in the answers is real."],
                      ["What it teaches", "list the wardrobe before any tool that takes ids, check "
                       "the weather before \"what do I wear today?\", no tool for greetings or "
-                      "off-topic, send a question for another agent to it in one sentence"],
-                     ["Training", "v2: 207 min on the T4, 1 epoch"],
+                      "off-topic, send a question for another agent to it in one sentence, and "
+                      "say so when the user names a piece they do not own"],
+                     ["Training", "v3: 256 min on the T4, 1 epoch"],
                      ["Darija", "<i>reports/phase4/darija_review.md</i>: every Darija word and "
                       "sentence for a native check; the agents' new phrases are not reviewed yet"]],
                     widths=[3 * cm, WIDTH - 3 * cm]),
@@ -613,21 +616,38 @@ def build():
                          for m, r in chat_eval.items()],
                         widths=[3.6 * cm] + [(WIDTH - 3.6 * cm) / 6] * 6),
                   Spacer(1, 6)]
-        story.append(fig(chart_chat(chat_eval), caption="Base model, v1 (trained before the "
-                         "agents) and v2 (trained on them), same test decisions. The router "
-                         "column rests on only ~10 router decisions.", max_h=7 * cm))
+        story.append(fig(chart_chat(chat_eval), caption="Same test decisions for every model. "
+                         "v2 was trained before the Explainer's look-alike tool, v3 after it. The "
+                         "router column rests on only ~6 router decisions.", max_h=7 * cm))
+        story += [p("This evaluation is lenient: the model sees the <b>correct</b> conversation up to "
+                    "each decision, so once the right wardrobe list is there the next tool is easy. "
+                    "<i>evaluate_chat_e2e.py</i> runs <b>whole chats</b> through the app's engine and "
+                    "real tools with no help (<i>reports/phase4/chat_e2e_evaluation.md</i>):"),
+                  Spacer(1, 4),
+                  table([["Whole chats, no help", "dressme-chat-v2", "dressme-chat-v3"],
+                         ["piece the user does not own (scoring)", "0 / 5", "<b>5 / 5</b>"],
+                         ["piece not owned (complete, look-alike, price)", "0 / 8", "<b>5 / 8</b>"],
+                         ["look-alikes", "6 / 8", "7 / 8"],
+                         ["look-alike explanations, search, buy, chit-chat", "32 / 32", "32 / 32"],
+                         ["scoring, today, hand-offs", "23 / 24", "21 / 24"],
+                         ["<b>all</b>", "61 / 77 (79.2%)", "<b>70 / 77 (90.9%)</b>"]],
+                        widths=[7.6 * cm] + [(WIDTH - 7.6 * cm) / 2] * 2),
+                  Spacer(1, 6)]
     story += bullets([
         "<b>An audit found why v1 failed:</b> it was trained on the original single assistant "
         "(4 tools) while the app now sends five agents and 20 different tools, and the chat "
         "template shipped with the base model wrote an empty "
         "<i>&lt;think&gt;&lt;/think&gt;</i> before every last answer, which the app's template "
         "never does. v1 learned it, began its answers with stray tags and called tools for "
-        "\"thank you\". Both are fixed in v2, which the app now uses (team rule: the better "
-        "model).",
-        "<b>Weak spots of v2:</b> the Shopping advisor (search arguments 64%, look-alikes 73%) "
-        "and questions about pieces the user does not own (50%, few examples). The test chats "
-        "come from the same generator as the training data: they measure tool use and "
-        "language, not how natural the answers sound with real users.",
+        "\"thank you\". Both are fixed since v2.",
+        "<b>v3</b> (the app's model, team rule: the better one) adds the Explainer's look-alike "
+        "tool, which v2 never saw (v2 made up a reason in a live chat), the app's own words in "
+        "search (v2 wrote <i>slacks</i>, <i>violet</i>) and what to do with a piece the user does "
+        "not own (v2 sent another piece's id). <b>Still weak:</b> a complete / look-alike / price "
+        "question about a piece the user does not own (3 in 8 still use another piece), and v3 "
+        "once said it could not find a piece it had just listed. The test chats come from the "
+        "same generator as the training data: they measure tool use and language, not how "
+        "natural the answers sound with real users.",
         "<b>Speed</b> on the RTX 2050 with the backend's models loaded: ~21 tokens/s, "
         "11-18 s per answer that uses tools (Ollama puts 58% of the model on the GPU), plus "
         "~3 s for the router's call.",
@@ -766,7 +786,7 @@ def build():
                       "agent: easier for a small local model, and each can be tested alone"],
                      ["Local chat model, fine-tuned on synthetic chats", "no daily quota, works "
                       "offline; the real tools write the answers, so the model learns our scores "
-                      "and never invents clothes. Team rule: the better model is used (v2)"],
+                      "and never invents clothes. Team rule: the better model is used (v3)"],
                      ["Explanations only show how an answer was made", "they reuse the same "
                       "code as the answer, so they cannot disagree with it"],
                      ["Local photos for test only", "the one honest measure of the real "
