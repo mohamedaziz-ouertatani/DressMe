@@ -11,7 +11,7 @@ Status (2026-10-04, after the first real run):
 
 | Part | File |
 |---|---|
-| Sources the team approved | `mappings/listing_sources.csv` |
+| Sources the team approved | `mappings/listing_sources.csv` (`brand` = slug used by the connectors, `shop_name` = what users see) |
 | Collector job (nightly) | `src/phase4/collect_listings.py` |
 | Connectors | `src/phase4/connectors/`: `shopify.py`, `woocommerce.py` (through the polite client `http.py`), `snapshot.py`, `inditex.py` (runs `src/phase3/scrape_shops.py`; off) |
 | Check a shop before adding it | `src/phase4/check_shop_source.py` |
