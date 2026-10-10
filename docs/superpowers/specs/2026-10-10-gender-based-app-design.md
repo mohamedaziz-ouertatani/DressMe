@@ -1,6 +1,6 @@
 # Gender-based app (men / women) — design
 
-Date: 2026-10-10. Status: approved design, not implemented. Branch `feature/gender-based` (from main, after #56).
+Date: 2026-10-10. Status: implemented. Branch `feature/gender-based` (from main, after #56).
 
 ## Goal
 

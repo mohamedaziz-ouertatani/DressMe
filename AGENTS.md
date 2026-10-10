@@ -37,6 +37,10 @@ the right one.
 
 What each tool wraps (no new fashion logic: the team's formula in `src/phase4/compatibility.py`):
 
+The tools apply the user's gender on the server (CLAUDE.md, Phase 4 item 8): the team's rules for that
+gender (`rules_of`), and shops, listings and look-alikes limited to that gender + unisex. Prompts and tool
+signatures did not change.
+
 - `list_wardrobe`: the user's items (every agent has it, to know item ids).
 - `suggest_outfits`, `score_outfit`, `complete_outfit`: the compatibility formula.
 - `get_weather`: Open-Meteo for the default city (WEATHER_LAT / WEATHER_LON); no user position reaches the model.
