@@ -82,16 +82,17 @@ class Analyzer:
             out[f] = entry
         return out
 
-    def concept_vectors(self):
+    def concept_vectors(self, gender=None):
         """{concept: unit text vector} for the team's concepts (mappings/style_concepts.csv),
-        computed once with FashionCLIP's text side (XAI: why two pieces look alike)."""
-        if getattr(self, "_concepts", None) is None:
+        computed once per gender with FashionCLIP's text side (XAI: why two pieces look alike)."""
+        cache = self.__dict__.setdefault("_concepts", {})
+        if gender not in cache:
             import explain_similarity
             fashionclip = self._modules[1]
-            rows = explain_similarity.load_concepts()
+            rows = explain_similarity.load_concepts(gender=gender)
             vecs = fashionclip.embed_texts([r["prompt"] for r in rows], self._clip, self._processor, self.device)
-            self._concepts = {r["concept"]: v.astype("float32") for r, v in zip(rows, vecs)}
-        return self._concepts
+            cache[gender] = {r["concept"]: v.astype("float32") for r, v in zip(rows, vecs)}
+        return cache[gender]
 
     def classify_for_mask(self, img):
         """Small category-only hook used before background removal."""
@@ -118,17 +119,19 @@ class Catalog:
 
     SAME_PICTURE = 0.99    # a hit this close is the query's own photo (demo pieces come from PolyVore)
 
-    def search(self, vector, k=6, category=None):
-        hits = self._index.search(vector, k=k + 3, datasets=self.DATASETS, category=category)
+    def search(self, vector, k=6, category=None, genders=None):
+        """Dataset look-alikes; genders = the item genders to keep (None = all)."""
+        hits = self._index.search(vector, k=k + 3, datasets=self.DATASETS, category=category,
+                                  genders=genders)
         hits = hits[hits["score"] < self.SAME_PICTURE].head(k)
         return [{"id": r.id, "category": r.category, "sub_category": r.sub_category,
                  "colour": r.primary_colour, "score": round(float(r.score), 3)}
                 for r in hits.itertuples()]
 
-    def search_shop(self, vector, k=6, category=None):
+    def search_shop(self, vector, k=6, category=None, genders=None):
         if self._shop is None:
             return []
-        hits = self._shop.search(vector, k=k, category=category)
+        hits = self._shop.search(vector, k=k, category=category, genders=genders)
         return [{"id": r.id, "name": r.name, "shop": "H&M", "department": r.department,
                  "category": r.category, "sub_category": r.sub_category,
                  "colour": r.primary_colour, "score": round(float(r.score), 3)}

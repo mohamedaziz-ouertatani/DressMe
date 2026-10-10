@@ -1,4 +1,4 @@
-"""Sign-up, log-in and the user's profile (name, modesty level, language)."""
+"""Sign-up, log-in and the user's profile (name, gender, modesty level, language)."""
 
 from datetime import datetime, timezone
 
@@ -12,15 +12,18 @@ router = APIRouter(tags=["auth"])
 
 
 def profile_out(user):
+    profile = {"gender": None, **user["profile"]}
     return {"id": str(user["_id"]), "email": user["email"], "role": user.get("role", "user"),
-            "demo": bool(user.get("demo")), **user["profile"]}
+            "demo": bool(user.get("demo")), **profile,
+            "needs_gender": profile["gender"] is None}   # accounts from before: asked once
 
 
 @router.post("/auth/register", status_code=201)
 def register(body: Register, request: Request):
     db, settings = request.app.state.db, request.app.state.settings
     user = {"email": body.email.lower(), "password_hash": hash_password(body.password),
-            "profile": {"name": body.name, "min_coverage": None, "language": "en"},
+            "profile": {"name": body.name, "gender": body.gender, "min_coverage": None,
+                        "language": "en"},
             "role": "user", "disabled": False,
             "created_at": datetime.now(timezone.utc)}
     try:

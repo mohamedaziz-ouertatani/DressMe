@@ -44,11 +44,11 @@ class FakeAnalyzer:
                 "colour": {"value": colour, "conf": 0.9},
                 "vector": fake_vector(sum(rgb))}
 
-    def concept_vectors(self):
+    def concept_vectors(self, gender=None):
         """{concept: vector} for the team's concepts (fixed fakes, like the real text vectors)."""
         import explain_similarity
         return {r["concept"]: fake_vector(1000 + i)
-                for i, r in enumerate(explain_similarity.load_concepts())}
+                for i, r in enumerate(explain_similarity.load_concepts(gender=gender))}
 
     def explain(self, img, head=None, value=None):
         """Like the real one: fixed small pictures, alternatives from analyze()."""
@@ -74,11 +74,15 @@ class FakeAnalyzer:
 
 
 class FakeCatalog:
-    def search(self, vector, k=6, category=None):
+    last_genders = "not called"     # what the last search asked for (tests check the filter)
+
+    def search(self, vector, k=6, category=None, genders=None):
+        self.last_genders = genders
         return [{"id": f"pv_{i}", "category": category or "top", "sub_category": "",
                  "colour": "black", "score": 0.9 - i / 100} for i in range(k)]
 
-    def search_shop(self, vector, k=6, category=None):
+    def search_shop(self, vector, k=6, category=None, genders=None):
+        self.last_genders = genders
         return [{"id": f"hm_{i}", "name": f"Product {i}", "shop": "H&M", "department": "Menswear",
                  "category": category or "top", "sub_category": "", "colour": "navy",
                  "score": 0.8 - i / 100} for i in range(k)]
@@ -223,8 +227,9 @@ def client(make_client):
     return make_client()
 
 
-def sign_up(client, email="amira@example.com", name="Amira"):
-    r = client.post("/auth/register", json={"email": email, "password": "secret-pass", "name": name})
+def sign_up(client, email="amira@example.com", name="Amira", gender="women"):
+    r = client.post("/auth/register", json={"email": email, "password": "secret-pass", "name": name,
+                                            "gender": gender})
     assert r.status_code == 201, r.text
     return {"Authorization": f"Bearer {r.json()['token']}"}
 

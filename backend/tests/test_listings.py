@@ -11,7 +11,7 @@ from PIL import Image
 
 from app.listings import RawListing, SourceBlocked, sync_listings, usable
 from connectors import inditex
-from tests.conftest import BLACK, BLUE, RED, fake_vector, sign_up, upload
+from tests.conftest import BLACK, BLUE, RED, fake_vector, photo, sign_up, upload
 
 FIELDS = {RED: ("top", "t-shirt", "red"), BLUE: ("bottom", "jeans", "blue"),
           BLACK: ("shoes", "sneakers", "black")}
@@ -121,7 +121,7 @@ def test_browse_filters_and_images(client):
     assert client.get("/listings/nope", headers=headers).status_code == 404
     assert client.get("/listings", headers={}).status_code == 401
     assert client.get("/listings/sources", headers=headers).json() == [
-        {"source_id": "zara_tn", "brands": ["zara"], "count": 2}]
+        {"source_id": "zara_tn", "brands": ["Zara"], "count": 2}]    # display names, not slugs
 
 
 def test_buy_advice_and_similar_on_a_listing(client):
@@ -346,3 +346,39 @@ def test_page_by_page_stop_keeps_what_was_saved(client, db, monkeypatch):
     result = collect_listings.collect(db, client.app.state.settings, {"source_id": "exist_tn", "kind": "sitemap"},
                                       args, lambda s: FakeLabeller(), StopAfterFirst())
     assert result == "stopped" and db.listings.count_documents({"source_id": "exist_tn"}) == 1
+
+
+def insert(db, **fields):
+    """A minimal active shop listing."""
+    doc = {"source_id": "shop", "external_id": fields.get("title", "x"), "status": "active",
+           "in_stock": True, "category": "top", "sub_category": "t-shirt", "colour": "black",
+           "created_at": datetime.now(timezone.utc), "vector": None, **fields}
+    return db.listings.insert_one(doc).inserted_id
+
+
+def test_listings_show_the_users_gender_plus_unisex(client, db):
+    headers = sign_up(client, gender="men")
+    insert(db, title="m", gender="Men")
+    insert(db, title="w", gender="women")
+    insert(db, title="skirt", gender="", sub_category="skirt", category="bottom")
+    insert(db, title="tee", gender="")
+    from app.listings import backfill_gender
+    assert backfill_gender(db) == 3            # "Men" normalised, two filled from the table
+    titles = {x["title"] for x in client.get("/listings", headers=headers).json()["items"]}
+    assert titles == {"m", "tee"}
+    every = client.get("/listings?gender=all", headers=headers).json()["items"]
+    assert {x["title"] for x in every} == {"m", "w", "skirt", "tee"}
+    assert {x["gender"] for x in every} == {"men", "women", "unisex"}
+
+
+def test_a_sellers_listing_takes_the_sellers_gender(client, db):
+    headers = sign_up(client, gender="men")
+    r = client.post("/listings/sell", files={"photo": photo(RED)},
+                    data={"price_tnd": "20", "city": "Tunis", "contact": "x"}, headers=headers)
+    assert r.status_code == 201
+    assert db.listings.find_one({"source_id": "sellers"})["gender"] == "men"
+
+
+def test_a_shop_listing_without_gender_gets_one_from_its_labels(client, db):
+    sync(client, [raw("g1", BLUE)])
+    assert db.listings.find_one({"external_id": "g1"})["gender"] == "unisex"   # jeans

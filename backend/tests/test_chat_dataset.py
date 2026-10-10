@@ -181,3 +181,10 @@ def test_history_is_plain_text_and_not_learned(rows):
         if r["scenario"] not in ("chit_chat", "handoff", "route"):
             assert any(m.get("tool_calls") for m in msgs[last_old:]), r["id"]
     assert with_history > 20
+
+
+def test_builder_user_gender_agrees_with_the_wardrobe():
+    import genders
+    rng = random.Random(0)
+    assert {B.user_gender(rng, True) for _ in range(20)} == {"women"}
+    assert {B.user_gender(rng, False) for _ in range(50)} == set(genders.GENDERS)

@@ -14,7 +14,7 @@ from ..agents.router import route
 from ..chat_engine import ChatBusy, ChatQuota, ChatUnavailable
 from ..events import log_event
 from ..schemas import ChatMessage
-from ..security import current_user
+from ..security import current_user, gendered_user
 
 router = APIRouter(tags=["chat"])
 HISTORY = 20     # messages sent back to the model as context
@@ -29,7 +29,7 @@ NO_ANSWER = {
 
 
 @router.post("/chat")
-def chat(body: ChatMessage, request: Request, user=Depends(current_user)):
+def chat(body: ChatMessage, request: Request, user=Depends(gendered_user)):
     db = request.app.state.db
     history = list(db.chats.find({"user_id": user["_id"]}).sort("created_at", -1).limit(HISTORY))[::-1]
     engine = request.app.state.chat_engine

@@ -6,6 +6,7 @@ import { useI18n } from '../i18n'
 import { COVERAGE_LABELS, vocab } from '../i18n/vocab'
 import { Page } from '../shell'
 import { Button, Chip, TextField } from '../ui/controls'
+import { GenderChoice } from '../ui/GenderChoice'
 import { ErrorNote } from '../ui/states'
 
 export function ProfilePage() {
@@ -45,6 +46,13 @@ export function ProfilePage() {
           </div>
           <Button type="submit" variant="secondary" busy={busy} disabled={!name.trim() || name.trim() === user.name}>{t('save')}</Button>
         </form>
+
+        <fieldset className="ticket min-w-0 px-4 py-4">
+          <legend className="sr-only">{t('gender')}</legend>
+          <h2 className="text-[16px] font-semibold text-carbon">{t('gender')}</h2>
+          <p className="mb-3 mt-1 max-w-[52ch] text-[14px] text-carbon-soft">{t('genderHelp')}</p>
+          <GenderChoice value={user.gender} onChange={(g) => void save({ gender: g })} />
+        </fieldset>
 
         <fieldset className="ticket min-w-0 px-4 py-4">
           <legend className="sr-only">{t('modesty')}</legend>

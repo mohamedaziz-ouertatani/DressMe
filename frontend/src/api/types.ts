@@ -7,6 +7,7 @@ export type Pattern = 'solid' | 'striped' | 'checked' | 'floral' | 'printed'
 export type Season = 'summer' | 'winter' | 'mid-season'
 export type Occasion = 'casual' | 'formal' | 'sport' | 'wedding' | 'eid' | 'work'
 export type Language = 'en' | 'fr' | 'ar'
+export type Gender = 'men' | 'women'
 export type Verdict = 'buy' | 'think' | 'skip'
 
 export interface User {
@@ -17,6 +18,8 @@ export interface User {
   demo: boolean               // demo account: wardrobe of public-dataset photos
   min_coverage: number | null
   language: Language
+  gender: Gender | null
+  needs_gender: boolean       // account from before the question: asked once
 }
 
 export interface Alternative {
@@ -137,6 +140,7 @@ export interface Listing {
   id: string
   source_id: string
   brand: string
+  shop_name?: string     // the shop's display name from the sources table ("Hamadi Abid")
   title: string          // the shop's own words, not translated
   shop_colour: string
   url: string            // the product page: always link to it
@@ -200,6 +204,7 @@ export interface ListingFilters {
   max_price?: number
   sort?: 'new' | 'price'
   page?: number
+  gender?: 'all'              // unset = my gender + unisex
 }
 
 /** GET /admin/sources: one line of mappings/listing_sources.csv + its runs. */

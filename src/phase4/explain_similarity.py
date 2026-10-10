@@ -16,15 +16,18 @@ Concepts are the picture model's associations, not facts about the piece
 import numpy as np
 import pandas as pd
 
+import genders
 from item_images import ROOT
 
 CONCEPTS_PATH = ROOT / "mappings" / "style_concepts.csv"
 FIELDS = ["category", "sub_category", "colour", "pattern"]
 
 
-def load_concepts(path=CONCEPTS_PATH):
-    """The team's concepts: [{"concept", "prompt", "group", "check"}]."""
-    df = pd.read_csv(path, dtype=str, keep_default_na=False)
+def load_concepts(path=CONCEPTS_PATH, gender=None):
+    """The team's concepts: [{"concept", "prompt", "group", "check"}]. gender = men / women
+    uses that gender's wording of a concept when the team wrote one."""
+    df = genders.for_gender(pd.read_csv(path, dtype=str, keep_default_na=False), gender,
+                            lambda r: r.concept)
     return df[["concept", "prompt", "group", "check"]].to_dict("records")
 
 

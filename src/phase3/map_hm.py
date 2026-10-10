@@ -8,7 +8,7 @@ H&M is our "shop" catalogue: real retail products the app can suggest
 training data, it is what the user could buy.
 
 The rules live in editable CSV files in mappings/ (no rule is hard-coded here):
-    hm_index_group.csv       index_group_name  -> keep?, usage (Baby/Children dropped)
+    hm_index_group.csv       index_group_name  -> keep?, usage, gender (Baby/Children dropped)
     hm_product_type.csv      product_type_name -> keep?, category, sub_category
     hm_refine_rules.csv      another column fixes the label (denim trousers -> jeans)
     hm_colour.csv            colour_group_name -> primary_colour
@@ -112,6 +112,9 @@ def main():
         "style": "",                     # not in this dataset
         "coverage": "",                  # not in this dataset
         "source": "",                    # no value for shop items yet (team decision)
+        # Ladieswear / Menswear; empty (Divided, Sport) = decided later by the team's
+        # table of men's / women's pieces (src/phase4/genders.py)
+        "gender": df["index_group_name"].map(groups["gender"]),
         # extra columns, shown in the app or kept for debugging
         "name": df["prod_name"],
         "description": df["detail_desc"],

@@ -31,9 +31,12 @@ from pydantic import BaseModel, Field
 
 from ..db import object_id
 from ..events import log_event
-from ..listings import SELLERS, listing_out, listing_query, thumbnail_path
+from .. import ml  # noqa: F401  (puts src/ on the import path)
+import genders
+
+from ..listings import SELLERS, listing_out, listing_query, shop_name, thumbnail_path
 from ..schemas import ItemUpdate
-from ..security import current_user
+from ..security import current_user, gendered_user, user_gender
 from ..wardrobe import item_out
 from .items import analyse, apply_update, read_photo
 
@@ -78,12 +81,15 @@ def search_changed(request):
 def list_listings(request: Request, category: str | None = None, sub_category: str | None = None,
                   colour: str | None = None, size: str | None = None, source: str | None = None,
                   max_price: float | None = Query(None, ge=0), in_stock: bool = True,
-                  sort: Literal["new", "price"] = "new",
+                  sort: Literal["new", "price"] = "new", gender: Literal["mine", "all"] = "mine",
                   page: int = Query(1, ge=1), per_page: int = Query(24, ge=1, le=100),
-                  user=Depends(current_user)):
+                  user=Depends(gendered_user)):
     """`size` matches the sizes the product comes in; its stock per size is only
-    known when availability_level = colour (then see sizes_in_stock)."""
-    query = listing_query(category, sub_category, colour, size, source, max_price, in_stock)
+    known when availability_level = colour (then see sizes_in_stock).
+    gender=all: also the other gender's pieces (default: the user's gender + unisex)."""
+    shown = None if gender == "all" else genders.shown(user_gender(user))
+    query = listing_query(category, sub_category, colour, size, source, max_price, in_stock,
+                          genders=shown)
     order = [("price_tnd", 1), ("_id", 1)] if sort == "price" else [("created_at", -1), ("_id", -1)]
     db = request.app.state.db
     docs = db.listings.find(query, NO_VECTOR).sort(order).skip((page - 1) * per_page).limit(per_page)
@@ -99,7 +105,9 @@ def listing_sources(request: Request, user=Depends(current_user)):
         {"$match": {"status": "active", "in_stock": True}},
         {"$group": {"_id": "$source_id", "brands": {"$addToSet": "$brand"}, "count": {"$sum": 1}}},
         {"$sort": {"_id": 1}}])
-    return [{"source_id": r["_id"], "brands": sorted(b for b in r["brands"] if b), "count": r["count"]}
+    # brands as shop display names ("Hamadi Abid", not the slug "hamadiabid")
+    return [{"source_id": r["_id"], "count": r["count"],
+             "brands": sorted({shop_name({"source_id": r["_id"], "brand": b}) for b in r["brands"] if b})}
             for r in rows]
 
 
@@ -123,7 +131,7 @@ def text(value, name, longest, required=True):
 async def sell(request: Request, photo: UploadFile = File(...),
                price_tnd: float = Form(..., gt=0, le=100000), size: str = Form(""),
                city: str = Form(...), contact: str = Form(...), title: str = Form(""),
-               user=Depends(current_user)):
+               user=Depends(gendered_user)):
     """A friperie seller posts one item. The photo is cleaned and analysed like a
     wardrobe upload; the listing waits for an admin before anyone else sees it."""
     db = request.app.state.db
@@ -138,7 +146,8 @@ async def sell(request: Request, photo: UploadFile = File(...),
     lid = ObjectId()
     doc = {
         "_id": lid, "source_id": SELLERS, "external_id": str(lid), "seller_id": user["_id"],
-        "title": fields["title"], "brand": "", "shop_colour": "", "gender": "", "url": "",
+        # a seller lists for their own side (REVIEW, see LISTINGS.md)
+        "title": fields["title"], "brand": "", "shop_colour": "", "gender": user_gender(user), "url": "",
         "price_tnd": round(price_tnd, 3), "sizes": [fields["size"]] if fields["size"] else [],
         "sizes_in_stock": [fields["size"]] if fields["size"] else [], "in_stock": True,
         "availability_level": "colour", "image_url": "", "city": fields["city"],
@@ -216,7 +225,7 @@ def delete_listing(listing_id: str, request: Request, user=Depends(current_user)
 
 
 @router.post("/listings/{listing_id}/candidate", status_code=201)
-def listing_candidate(listing_id: str, request: Request, user=Depends(current_user)):
+def listing_candidate(listing_id: str, request: Request, user=Depends(gendered_user)):
     """Copy the listing into the user's candidates (deleted after 24 h, like a scan),
     so /buy-advice and /similar work on it unchanged."""
     oid = object_id(listing_id)

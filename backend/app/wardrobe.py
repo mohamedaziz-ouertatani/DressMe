@@ -65,10 +65,11 @@ def short_item(doc):
             "colour": doc["colour"], "image_url": f"/items/{doc['_id']}/image"}
 
 
-def outfit_out(result, docs_by_id, explain=False):
+def outfit_out(result, docs_by_id, explain=False, rules=None):
     """A compatibility result (score, parts, reasons, items) as JSON. explain=True
     (the app's routes) adds the points per part and the strengths / problems
-    (src/phase4/explain_outfit.py); the chat tools keep the short form."""
+    (src/phase4/explain_outfit.py); the chat tools keep the short form.
+    rules = the user's compatibility.Rules (default: the neutral rules)."""
     out = {"score": result["score"],
            "parts": {k: (round(v, 3) if v is not None else None) for k, v in result["parts"].items()},
            "reasons": result["reasons"],
@@ -76,7 +77,8 @@ def outfit_out(result, docs_by_id, explain=False):
     if explain:
         import compatibility
         import explain_outfit
-        out["contributions"] = explain_outfit.contributions(result, compatibility.RULES.weights)
-        out["explanations"] = (explain_outfit.strengths(result.get("items", []), result["parts"])
+        rules = rules or compatibility.RULES
+        out["contributions"] = explain_outfit.contributions(result, rules.weights)
+        out["explanations"] = (explain_outfit.strengths(result.get("items", []), result["parts"], rules)
                                + result.get("problems", []))
     return out

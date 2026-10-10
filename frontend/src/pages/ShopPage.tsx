@@ -6,8 +6,9 @@ import type { BuyAdvice, Category, Item, Listing, ListingFilters } from '../api/
 import { useI18n } from '../i18n'
 import { plural } from '../i18n/plurals'
 import { CATEGORY_LABELS, SUB_LABELS, vocab } from '../i18n/vocab'
+import { ScopeLine } from '../ui/GenderChoice'
 import { ListingCard, StockLine } from '../ui/ListingCard'
-import { brandName, useListingFormat } from '../ui/listingText'
+import { brandName, shopName, useListingFormat } from '../ui/listingText'
 import { Page } from '../shell'
 import { Button, Chip } from '../ui/controls'
 import { ItemPhoto } from '../ui/ItemPhoto'
@@ -66,6 +67,7 @@ export function ShopPage() {
       </div>
 
       <div className="mb-5 flex flex-col gap-3">
+        <ScopeLine all={filters.gender === 'all'} onToggle={() => set({ gender: filters.gender === 'all' ? undefined : 'all' })} />
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           <Chip selected={!filters.category} onClick={() => set({ category: undefined })}>{t('allCategories')}</Chip>
           {CATEGORIES.map((c) => (
@@ -171,7 +173,7 @@ export function ListingPage() {
                 <div className="min-w-0 pb-1">
                   <p className="text-[20px] font-semibold leading-tight text-carbon" dir="auto">{name(l)}</p>
                   <p className="mt-1 text-[14px] text-carbon-soft">
-                    {l.seller ? t('friperieSellers') : brandName(l.brand)}{l.shop_colour ? <> · <span dir="auto">{l.shop_colour}</span></> : null}{kind && l.title ? ` · ${kind}` : ''}
+                    {l.seller ? t('friperieSellers') : shopName(l)}{l.shop_colour ? <> · <span dir="auto">{l.shop_colour}</span></> : null}{kind && l.title ? ` · ${kind}` : ''}
                   </p>
                   {l.price_tnd !== null && <p className="mt-2 font-mono text-[18px] text-carbon tabular">{price(l.price_tnd, l.price_original)}</p>}
                   {l.price_original && <p className="text-[12px] text-carbon-soft">{t('priceConverted', { o: l.price_original })}</p>}
@@ -204,7 +206,7 @@ export function ListingPage() {
               {l.url && (
                 <a href={l.url} target="_blank" rel="noopener noreferrer"
                   className="inline-flex min-h-11 items-center gap-2 border-[1.5px] border-ink bg-paper px-4 text-[15px] font-medium text-ink">
-                  <ExternalLink className="size-4" aria-hidden /> {t('openInShop', { brand: brandName(l.brand) })}
+                  <ExternalLink className="size-4" aria-hidden /> {t('openInShop', { brand: shopName(l) })}
                 </a>
               )}
               {l.status === 'active' && !advice && (

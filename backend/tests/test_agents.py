@@ -100,7 +100,7 @@ def add_listing(client, **fields):
     doc = {"source_id": "exist", "external_id": f"p{db.listings.count_documents({})}", "title": "Shirt", "brand": "Exist", "status": "active",
            "in_stock": True, "category": "top", "sub_category": "shirt", "pattern": "solid",
            "colour": "black", "price_tnd": 49.0, "created_at": datetime.now(timezone.utc),
-           "vector": vector_to_bson(fake_vector(1)), **fields}
+           "gender": "unisex", "vector": vector_to_bson(fake_vector(1)), **fields}
     return str(db.listings.insert_one(doc).inserted_id)
 
 
@@ -243,3 +243,29 @@ def test_keywords_mode_never_calls_the_llm():
 def test_router_prompt_lists_every_agent():
     prompt = router_prompt()
     assert all(name in prompt for name in AGENTS)
+
+
+def test_listings_carry_the_shop_display_name():
+    """The sources table's shop_name ("Hamadi Abid"), not the slug the connectors store
+    as brand ("hamadiabid"): the chat showed the slug to users (2026-10-10)."""
+    from app.listings import listing_out
+    doc = {"_id": "x", "source_id": "hamadiabid_tn", "brand": "hamadiabid", "title": "Ceinture Homme"}
+    assert listing_out(doc)["shop_name"] == "Hamadi Abid"
+    assert listing_out({**doc, "source_id": "exist_tn", "brand": "exist"})["shop_name"] == "Exist"
+    assert listing_out({**doc, "source_id": "unknown_src", "brand": "acme"})["shop_name"] == "acme"
+    assert listing_out({**doc, "source_id": "sellers", "brand": ""})["shop_name"] == ""
+
+
+def test_same_looking_listings_are_grouped_in_chat_answers(client):
+    """Shops give many products one title ("Ceinture Homme"): three identical lines told the
+    user nothing. The tool keeps one per shop + title + price + colour, with how many there are."""
+    sign_up(client)
+    for colour in ("black", "black", ""):        # our colour guess can be empty: the shop's name decides
+        add_listing(client, source_id="hamadiabid_tn", brand="hamadiabid", title="Ceinture Homme",
+                    category="accessory", sub_category="belt", colour=colour, shop_colour="BLACK",
+                    price_tnd=49.99)
+    add_listing(client, title="Shirt", colour="white")
+    found = shopping_tools(client)["search_listings"]()
+    belts = [x for x in found["listings"] if x["title"] == "Ceinture Homme"]
+    assert len(belts) == 1 and belts[0]["same_kind"] == 3 and belts[0]["brand"] == "Hamadi Abid"
+    assert [x for x in found["listings"] if x["title"] == "Shirt"][0].get("same_kind", 1) == 1

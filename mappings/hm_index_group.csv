@@ -1,6 +1,6 @@
-index_group_name,keep,usage,note
-Ladieswear,yes,,
-Divided,yes,,H&M's young / trend line
-Menswear,yes,,
-Sport,yes,sport,
-Baby/Children,no,,not our users (young adults)
+index_group_name,keep,usage,note,gender
+Ladieswear,yes,,,women
+Divided,yes,,H&M's young / trend line,
+Menswear,yes,,,men
+Sport,yes,sport,,
+Baby/Children,no,,not our users (young adults),

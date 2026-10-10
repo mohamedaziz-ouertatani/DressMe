@@ -4,20 +4,26 @@ The Shopping advisor agent: "should I buy this? where can I find one?".
 
 from .. import ml  # noqa: F401  (puts src/ on the import path)
 import compatibility
+import genders
 
 from ..db import object_id, vector_from_bson
 from ..listings import listing_out, listing_query
-from ..routers.outfits import user_profile, wardrobe
+from ..routers.outfits import rules_of, user_profile, wardrobe
 from ..wardrobe import outfit_out, to_compat
+from ..security import user_gender
 from .common import Agent, list_wardrobe_tool
 
 
 def short_listing(doc_out):
     """The few fields the model needs about a listing. The seller's contact is left
-    out on purpose: the app shows it, the language model never receives it."""
+    out on purpose: the app shows it, the language model never receives it. `brand` is
+    the shop's display name ("Hamadi Abid"), as the model was trained with."""
     keep = ("id", "title", "brand", "source_id", "price_tnd", "category", "sub_category",
             "colour", "url", "image_url", "snapshot", "checked_at")
     row = {k: doc_out.get(k) for k in keep}
+    row["brand"] = doc_out.get("shop_name") or doc_out.get("brand")
+    if doc_out.get("shop_colour"):             # the shop's own colour name: tells same titles apart
+        row["shop_colour"] = doc_out["shop_colour"]
     if doc_out.get("seller"):
         row["city"] = doc_out["seller"]["city"]
     if "score" in doc_out:
@@ -25,8 +31,27 @@ def short_listing(doc_out):
     return row
 
 
+def group_same(rows):
+    """One row per shop + title + price + colour (the shop's own colour name when it gives
+    one, else our model's guess, which can be empty), with `same_kind` = how many look alike.
+    Shops give many products one title ("Ceinture Homme"): three identical lines in an
+    answer told the user nothing (2026-10-10)."""
+    out, seen = [], {}
+    for row in rows:
+        key = (row.get("source_id"), row.get("title"), row.get("price_tnd"),
+               row.get("shop_colour") or row.get("colour"))
+        if key in seen:
+            seen[key]["same_kind"] = seen[key].get("same_kind", 1) + 1
+            continue
+        seen[key] = row
+        out.append(row)
+    return out
+
+
 def tools(request, user):
     """The Shopping advisor's tools, bound to this user."""
+    rules = rules_of(user)                    # the team's rules for the user's gender
+    shown = genders.shown(user_gender(user))  # shops and look-alikes: their gender + unisex
     def buy_advice_last_scan() -> dict:
         """'Should I buy this?' for the last photo the user analysed in the app (buy / think / skip)."""
         cand = request.app.state.db.candidates.find_one({"user_id": user["_id"]},
@@ -37,7 +62,7 @@ def tools(request, user):
         by_id[str(cand["_id"])] = cand
         advice = compatibility.buy_advice(
             to_compat(cand), [to_compat(d) for d in docs],
-            user_profile(user, docs, request))
+            user_profile(user, docs, request), rules)
         return {"item": {"id": str(cand["_id"]), "category": cand["category"],
                          "sub_category": cand["sub_category"], "colour": cand["colour"],
                          "image_url": f"/candidates/{cand['_id']}/image"},
@@ -51,11 +76,12 @@ def tools(request, user):
         jeans, black). max_price: in TND, 0 = no limit. n: how many (1-10)."""
         db = request.app.state.db
         query = listing_query(category or None, sub_category or None, colour or None,
-                              max_price=max_price or None)
+                              max_price=max_price or None, genders=shown)
+        n = max(1, min(int(n), 10))
         docs = (db.listings.find(query, {"vector": 0}).sort([("created_at", -1), ("_id", -1)])
-                .limit(max(1, min(int(n), 10))))
+                .limit(n * 3))            # room for same-looking ones, grouped below
         return {"total": db.listings.count_documents(query),
-                "listings": [short_listing(listing_out(d)) for d in docs]}
+                "listings": group_same([short_listing(listing_out(d)) for d in docs])[:n]}
 
     def find_similar(item_id: str = "", n: int = 5) -> dict:
         """Things to buy that look like one of the user's items (id from list_wardrobe) or,
@@ -70,11 +96,12 @@ def tools(request, user):
         if not doc or not doc.get("vector"):
             return {"error": "no such item or analysed photo"}
         query, k = vector_from_bson(doc["vector"]), max(1, min(int(n), 10))
-        shop = request.app.state.catalog.search_shop(query, k=k, category=doc["category"])
+        shop = request.app.state.catalog.search_shop(query, k=k, category=doc["category"], genders=shown)
         for c in shop:
             c["image_url"] = f"/catalog/{c['id']}/image"
-        listings = request.app.state.listing_index.search(db, query, k=k, category=doc["category"])
-        return {"shop": shop, "listings": [short_listing(x) for x in listings]}
+        listings = request.app.state.listing_index.search(db, query, k=k, category=doc["category"],
+                                                          genders=shown)
+        return {"shop": shop, "listings": group_same([short_listing(x) for x in listings])}
 
     functions = (list_wardrobe_tool(request, user), buy_advice_last_scan, search_listings, find_similar)
     return {f.__name__: f for f in functions}

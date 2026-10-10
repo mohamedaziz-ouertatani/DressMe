@@ -2,7 +2,7 @@
 // localStorage; a 401 anywhere logs the user out (see AuthProvider).
 import type {
   AdminXai, SourceCheck, AdminSource, Job, JobStart, ListingsOverview, AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Insights, Item, ItemPatch,
-  Listing, ListingFilters, ListingPage, ListingPatch, ModelQuality, ReviewListing, SellForm, Occasion, Outfit, Season, Similar, Stats, User,
+  Listing, ListingFilters, ListingPage, ListingPatch, ModelQuality, ReviewListing, SellForm, Occasion, Outfit, Season, Similar, Stats, User, Gender,
   ChatAttachment, ChatAction, TryOnResult, Weather, Explanation, GuessField, OutfitExplanation,
 } from './types'
 
@@ -95,12 +95,12 @@ export function loadImage(path: string): Promise<string> {
 }
 
 export const api = {
-  register: (email: string, password: string, name: string) =>
-    request<{ token: string; user: User }>('/auth/register', json('POST', { email, password, name })),
+  register: (email: string, password: string, name: string, gender: Gender) =>
+    request<{ token: string; user: User }>('/auth/register', json('POST', { email, password, name, gender })),
   login: (email: string, password: string) =>
     request<{ token: string; user: User }>('/auth/login', json('POST', { email, password })),
   me: () => request<User>('/me'),
-  updateMe: (patch: Partial<Pick<User, 'name' | 'min_coverage' | 'language'>>) =>
+  updateMe: (patch: Partial<Pick<User, 'name' | 'min_coverage' | 'language' | 'gender'>>) =>
     request<User>('/me', json('PUT', patch)),
 
   items: () => request<Item[]>('/items'),
@@ -134,12 +134,14 @@ export const api = {
     request<{ item_ids: string[]; rating: 1 | -1 }>('/outfits/feedback', json('POST', { item_ids: itemIds, rating })),
   complete: (itemIds: string[], k = 5) =>
     request<Completion[]>('/outfits/complete', json('POST', { item_ids: itemIds, k })),
-  similar: (ref: { itemId?: string; candidateId?: string }, k = 6) => {
+  similar: (ref: { itemId?: string; candidateId?: string }, k = 6, all = false) => {
     const q = new URLSearchParams({ k: String(k) })
     if (ref.itemId) q.set('item_id', ref.itemId)
     if (ref.candidateId) q.set('candidate_id', ref.candidateId)
+    if (all) q.set('gender', 'all')
     return request<Similar>(`/similar?${q}`)
   },
+  subCategoryGender: () => request<Record<string, 'men' | 'women' | 'unisex'>>('/vocab/sub-category-gender'),
   explain: (ref: { itemId?: string; candidateId?: string }, head?: GuessField, value?: string) => {
     const q = new URLSearchParams()
     if (head) q.set('head', head)
