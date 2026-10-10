@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from ..agents import AGENTS
+from ..agents.common import answer_pictures
 from ..agents.router import route
 from ..chat_engine import ChatBusy, ChatQuota, ChatUnavailable
 from ..events import log_event
@@ -48,6 +49,7 @@ def chat(body: ChatMessage, request: Request, user=Depends(gendered_user)):
         raise HTTPException(502, str(e))
     if not answer.strip():
         answer = NO_ANSWER.get(user["profile"].get("language"), NO_ANSWER["en"])
+    attachments = answer_pictures(attachments)    # the answer's pieces, not every piece looked up
     now = datetime.now(timezone.utc)
     db.chats.insert_many([
         {"user_id": user["_id"], "role": "user", "text": body.message, "created_at": now},

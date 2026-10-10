@@ -82,6 +82,20 @@ def one_line(result):
     return short_value(str(result))
 
 
+LOOKUP = "list_wardrobe"     # the wardrobe lookup: a step before the answer, not the answer
+
+
+def answer_pictures(attachments):
+    """The pictures to show under an answer. list_wardrobe returns the whole wardrobe, as a
+    step before the real tool (price_hint, prepare_sell, score_outfit...): its pictures are
+    kept only when no other tool returned pieces ("what is in my wardrobe?"); otherwise
+    "I want to sell my grey sweatshirt" showed all 26 pieces (2026-10-10). The internal
+    "tool" tag is removed."""
+    if any(a.get("tool") != LOOKUP for a in attachments):
+        attachments = [a for a in attachments if a.get("tool") != LOOKUP]
+    return [{k: v for k, v in a.items() if k != "tool"} for a in attachments]
+
+
 def with_attachments(functions, attachments, actions=None, trace=None):
     """The tools as {name: function}. With an `attachments` list, every item picture a
     tool returns is also added to it (once), so the app can show it under the answer;
@@ -112,11 +126,13 @@ def with_attachments(functions, attachments, actions=None, trace=None):
             if entry is not None:
                 entry["result"] = one_line(result)
             if attachments is not None:
-                seen = {item["id"] for item in attachments}
+                seen = {item["id"]: item for item in attachments}
                 for item in image_attachments(result):
                     if item["id"] not in seen:
-                        attachments.append(item)
-                        seen.add(item["id"])
+                        attachments.append({**item, "tool": name})
+                        seen[item["id"]] = attachments[-1]
+                    elif seen[item["id"]]["tool"] == LOOKUP:   # listed first, then the answer's piece
+                        seen[item["id"]]["tool"] = name
             if actions is not None:
                 for action in chat_actions(result):
                     if action not in actions:
