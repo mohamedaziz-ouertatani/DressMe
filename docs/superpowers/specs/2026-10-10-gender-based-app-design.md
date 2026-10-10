@@ -40,7 +40,9 @@ compatibility rules, which can now differ per gender. Models are not retrained.
 - `men`: tie, cufflinks, suspenders, swim-shorts, jebba.
 - `unisex`: everything else.
 
-### `src/phase4/gender.py` (new)
+### `src/phase4/genders.py` (new; plural so it never clashes with a `gender` variable)
+
+Also holds `for_gender(table, gender, key)`, the rule-merge helper of section 2.
 
 - `GENDERS = ("men", "women")`.
 - `normalise(value)` → `men` / `women` / `unisex` / `""` from any source spelling.
@@ -116,7 +118,8 @@ Every current use of `RULES` (`routers/outfits.py`, `insights.py`, `wardrobe.py`
   (`search_listings`, `find_similar`) filter `gender ∈ {user, unisex}`; listings with no
   stored gender are judged on read with `item_gender`.
 - `GET /listings?gender=all` turns the filter off (Shop page "Show all").
-- `collect_listings.py --backfill-gender` writes `gender` on existing listings (one-off).
+- `listings.backfill_gender(db)` runs at API start-up and writes `gender` on listings that
+  have none (idempotent), so the MongoDB filter stays a plain `$in`.
 
 ### Chat
 
@@ -128,8 +131,8 @@ gender so future datasets match the tools; no rebuild / retrain now.
 
 - `AuthPage` sign-up: required choice Woman / Man (en / fr / ar strings in i18n).
 - `ProfilePage`: same choice, editable.
-- App shell: when `me.needs_gender`, a blocking modal with the same choice (PATCH `/me`);
-  the API client turns a 409 `gender_required` into opening that modal.
+- App shell: when `me.needs_gender`, the route `Gate` shows a one-question page with the
+  same choice (PUT `/me`) instead of the app; the backend 409 stays as the safety net.
 - Label pickers (`FieldRow`, Sell form): sub_categories for `{gender, unisex}` first,
   then a "More…" group with the rest (never blocked). The team table is served by a new
   public `GET /vocab/sub-category-gender` (`{sub_category: gender}`, read from the CSV) so
@@ -139,7 +142,7 @@ gender so future datasets match the tools; no rebuild / retrain now.
 
 ## 5. Tests and docs
 
-- `tests/test_gender.py` (src helpers): `normalise`, `item_gender` (label beats table,
+- `tests/test_genders.py` (src helpers): `normalise`, `item_gender` (label beats table,
   table beats default), `shown_for`; the table covers exactly the vocabulary.
 - Rules: a gendered row overrides the neutral one, the other gender's rows are ignored,
   files without the column load; `rules_for(None)` equals today's `Rules()`;
