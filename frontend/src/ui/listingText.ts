@@ -5,6 +5,8 @@ import { CATEGORY_LABELS, SUB_LABELS, vocab } from '../i18n/vocab'
 
 const BRANDS: Record<string, string> = { zara: 'Zara', bershka: 'Bershka', pullandbear: 'Pull&Bear', inditex: 'Inditex', hm: 'H&M' }
 export const brandName = (b: string) => BRANDS[b] ?? b
+/** The shop's name for a listing: the API's display name, else the brand. */
+export const shopName = (l: Listing) => l.shop_name || brandName(l.brand)
 
 /** Prices and dates in the user's language. */
 export function useListingFormat() {
@@ -18,6 +20,6 @@ export function useListingFormat() {
     /** The shop's own product name, else what the piece is (seller listings may have no name). */
     name: (l: Listing) => l.title || vocab(SUB_LABELS, l.sub_category, lang) || vocab(CATEGORY_LABELS, l.category, lang),
     /** Who sells it: the brand, or the friperie seller's city. */
-    who: (l: Listing) => (l.seller ? t('sellerCity', { c: l.seller.city }) : brandName(l.brand)),
+    who: (l: Listing) => (l.seller ? t('sellerCity', { c: l.seller.city }) : shopName(l)),
   }
 }

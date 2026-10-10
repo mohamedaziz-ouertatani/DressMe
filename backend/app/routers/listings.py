@@ -34,7 +34,7 @@ from ..events import log_event
 from .. import ml  # noqa: F401  (puts src/ on the import path)
 import genders
 
-from ..listings import SELLERS, listing_out, listing_query, thumbnail_path
+from ..listings import SELLERS, listing_out, listing_query, shop_name, thumbnail_path
 from ..schemas import ItemUpdate
 from ..security import current_user, gendered_user, user_gender
 from ..wardrobe import item_out
@@ -105,7 +105,9 @@ def listing_sources(request: Request, user=Depends(current_user)):
         {"$match": {"status": "active", "in_stock": True}},
         {"$group": {"_id": "$source_id", "brands": {"$addToSet": "$brand"}, "count": {"$sum": 1}}},
         {"$sort": {"_id": 1}}])
-    return [{"source_id": r["_id"], "brands": sorted(b for b in r["brands"] if b), "count": r["count"]}
+    # brands as shop display names ("Hamadi Abid", not the slug "hamadiabid")
+    return [{"source_id": r["_id"], "count": r["count"],
+             "brands": sorted({shop_name({"source_id": r["_id"], "brand": b}) for b in r["brands"] if b})}
             for r in rows]
 
 

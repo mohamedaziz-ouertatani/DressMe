@@ -214,10 +214,28 @@ def listing_query(category=None, sub_category=None, colour=None, size=None, sour
     return query
 
 
+_SHOP_NAMES = None     # (by source_id, by brand), read once from the sources table
+
+
+def shop_name(doc):
+    """The shop's display name ("Hamadi Abid"): the sources table's shop_name for the listing's
+    source, else for its brand (snapshot rows carry zara / bershka / pullandbear), else the brand.
+    The connectors store the source's brand slug ("hamadiabid"), which the chat showed to users."""
+    global _SHOP_NAMES
+    if _SHOP_NAMES is None:
+        from .config import ROOT
+        rows = load_sources(ROOT / "mappings")
+        _SHOP_NAMES = ({r["source_id"]: r["shop_name"] for r in rows if r.get("shop_name")},
+                       {r["brand"]: r["shop_name"] for r in rows if r.get("shop_name") and r.get("brand")})
+    by_source, by_brand = _SHOP_NAMES
+    brand = doc.get("brand", "") or ""
+    return by_source.get(doc.get("source_id")) or by_brand.get(brand) or brand
+
+
 def listing_out(doc):
     lid = str(doc["_id"])
     return {
-        "id": lid, "source_id": doc["source_id"], "brand": doc.get("brand", ""),
+        "id": lid, "source_id": doc["source_id"], "brand": doc.get("brand", ""), "shop_name": shop_name(doc),
         "title": doc.get("title", ""), "shop_colour": doc.get("shop_colour", ""),
         "gender": doc.get("gender", ""),
         "url": doc.get("url", ""), "price_tnd": doc.get("price_tnd"),

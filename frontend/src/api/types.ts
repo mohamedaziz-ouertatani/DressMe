@@ -140,6 +140,7 @@ export interface Listing {
   id: string
   source_id: string
   brand: string
+  shop_name?: string     // the shop's display name from the sources table ("Hamadi Abid")
   title: string          // the shop's own words, not translated
   shop_colour: string
   url: string            // the product page: always link to it

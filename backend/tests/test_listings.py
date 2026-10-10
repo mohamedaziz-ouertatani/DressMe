@@ -121,7 +121,7 @@ def test_browse_filters_and_images(client):
     assert client.get("/listings/nope", headers=headers).status_code == 404
     assert client.get("/listings", headers={}).status_code == 401
     assert client.get("/listings/sources", headers=headers).json() == [
-        {"source_id": "zara_tn", "brands": ["zara"], "count": 2}]
+        {"source_id": "zara_tn", "brands": ["Zara"], "count": 2}]    # display names, not slugs
 
 
 def test_buy_advice_and_similar_on_a_listing(client):
