@@ -356,3 +356,30 @@ def test_model_text_hides_tool_protocol_artifacts():
            'Try the grey sweatshirt and khaki trousers.\n' \
            '{"name":"suggest_outfits","arguments":{}}'
     assert clean_model_text(text) == "Try the grey sweatshirt and khaki trousers."
+
+
+def test_answer_shows_only_the_pieces_it_is_about(client):
+    """'I want to sell my grey sweatshirt' showed the whole wardrobe (2026-10-10): the pictures
+    of list_wardrobe, a lookup step, were attached too. Only the sold piece is shown now."""
+    headers = sign_up(client)
+    ids = [upload(client, headers, rgb)["id"] for rgb in (RED, BLUE, BLACK)]
+    r = client.post("/chat", json={"message": "I want to sell my top"}, headers=headers)
+    sold = r.json()["actions"][0]["url"].split("item=")[1].split("&")[0]
+    assert [a["id"] for a in r.json()["attachments"]] == [sold] and sold in ids
+    assert "tool" not in r.json()["attachments"][0]          # internal tag, not sent to the app
+    history = client.get("/chat/history", headers=headers).json()
+    assert [a["id"] for a in history[-1]["attachments"]] == [sold]
+    # list_wardrobe alone ("what is in my wardrobe?") still shows every piece
+    r = client.post("/chat", json={"message": "what is in my wardrobe?"}, headers=headers)
+    assert len(r.json()["attachments"]) == 3
+
+
+def test_a_piece_listed_first_keeps_its_picture_when_another_tool_returns_it():
+    from app.agents.common import answer_pictures, with_attachments
+    pieces = [{"id": i, "image_url": f"/items/{i}/image"} for i in ("a", "b", "c")]
+    attachments = []
+    tools = with_attachments({"list_wardrobe": lambda: pieces,
+                              "prepare_sell": lambda: {"item": pieces[1]}}, attachments)
+    tools["list_wardrobe"]()
+    tools["prepare_sell"]()
+    assert [a["id"] for a in answer_pictures(attachments)] == ["b"]
