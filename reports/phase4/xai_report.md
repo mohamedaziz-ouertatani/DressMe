@@ -1,6 +1,6 @@
 # DressMe — Explainability (XAI) report
 
-Generated 2026-10-09 by `src/phase4/build_xai_report.py` (PDF: `xai_report.pdf`).
+Generated 2026-10-10 by `src/phase4/build_xai_report.py` (PDF: `xai_report.pdf`).
 
 ## 1. Why DressMe explains itself
 
@@ -83,7 +83,7 @@ Every chat answer keeps a trace of its tool calls (agent, how it was chosen, eac
 
 *"How I answered": the Explainer listed the wardrobe, then scored the outfit (55.4).*
 
-Live tests on the demo wardrobe: the base model (qwen3:4b-instruct) gave grounded answers (the real points per part; the shared labels and concepts of two jackets) and asked which piece when a description was ambiguous. The fine-tuned dressme-chat-v2 was trained before `explain_similarity` existed: asked about two jackets it did not call the tool and made up a reason. Its next training run must include the newest tools.
+Live tests on the demo wardrobe: the base model (qwen3:4b-instruct) gave grounded answers (the real points per part; the shared labels and concepts of two jackets) and asked which piece when a description was ambiguous. The fine-tuned dressme-chat-v2 was trained before `explain_similarity` existed: asked about two jackets it did not call the tool and made up a reason. v3 and v4 (the app's model since 2026-10-10) are trained on every Explainer tool: on whole test chats with no help, v4 answers 7 of 8 look-alike questions with `explain_similarity` (reports/phase4/chat_e2e_evaluation.md).
 
 ## 7. Admin > Explainability
 
@@ -99,7 +99,7 @@ The same numbers for the team, plus real use: how often each field is flagged on
 - The colour map is a visual aid: the colour model reads a histogram of all the item's colours, and white / cream items blend into the white background (no map then).
 - "Weakest piece" is limited by the formula's own signal (modest gain over chance).
 - The "not sure" cuts and every XAI threshold are start values (REVIEW), measured on the test split of public datasets; real-use calibration starts with uploads made after the XAI layer (the demo wardrobe predates it).
-- dressme-chat-v2 does not know the newest Explainer tools yet; the Darija text of the app and of the chat data still needs the native-speaker review.
+- The local chat model learns the tools as they are when it is trained: a new or changed Explainer tool needs a rebuilt dataset and a retrain (LLM.md). The Darija text of the app and of the chat data still needs the native-speaker review.
 - All evaluations use public product shots; our own phone photos (Local) are not in them yet.
 
 ## 9. Open team decisions
@@ -115,12 +115,12 @@ The same numbers for the team, plus real use: how often each field is flagged on
 | xai_settings.csv | strength_colour_pair | 0.8 | colour pair score from which the app says "navy and white go together" |
 | xai_settings.csv | near_miss | 5 | buy advice: outfits this many points below good_outfit count as near misses |
 | xai_settings.csv | min_swap_gain | 2 | outfit swaps: a swap must gain at least this many points before the app names a weakest piece |
-| style_concepts.csv | 20 concepts |  | streetwear, formal, sporty, casual, classic, modest, trendy, party, denim, leather, knit, lace, satin, oversized, fitted, floral, striped, checked, vintage, traditional |
+| style_concepts.csv | 24 concepts |  | streetwear, formal, sporty, casual, classic, modest, trendy, party, denim, leather, knit, lace, satin, oversized, fitted, floral, striped, checked, vintage, traditional, formal, formal, modest, modest |
 
 ## 10. How to reproduce
 
-- `python src/phase4/evaluate_explanations.py` → `reports/phase4/explanations_evaluation.md` (2026-10-08)
-- `python src/phase4/evaluate_outfit_explanations.py` → `reports/phase4/outfit_explanations_evaluation.md` (2026-10-09)
-- `python src/phase4/evaluate_concepts.py` → `reports/phase4/concepts_evaluation.md` (2026-10-09)
+- `python src/phase4/evaluate_explanations.py` → `reports/phase4/explanations_evaluation.md` (2026-10-10)
+- `python src/phase4/evaluate_outfit_explanations.py` → `reports/phase4/outfit_explanations_evaluation.md` (2026-10-10)
+- `python src/phase4/evaluate_concepts.py` → `reports/phase4/concepts_evaluation.md` (2026-10-10)
 - `python src/phase4/build_xai_report.py` → this report
 

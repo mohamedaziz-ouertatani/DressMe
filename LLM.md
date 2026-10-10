@@ -5,7 +5,7 @@ no key, no 20-requests-a-day quota, and it works offline on demo day.
 
 ```
 build_chat_dataset.py ──> Kaggle (finetune_chat.py, QLoRA) ──> make_ollama_model.py ──> backend CHAT_ENGINE=ollama
-   synthetic chats          free T4 GPU, ~2-5 h                 GGUF -> `dressme-chat-v2`   evaluate_chat.py compares
+   synthetic chats          free T4 GPU, ~3-4 h                 GGUF -> `dressme-chat-vN`   evaluate_chat(_e2e).py compare
 ```
 
 ## 1. Use the base model now (no training)
@@ -56,13 +56,13 @@ QLoRA with Unsloth: the base model is loaded in 4 bits and only small LoRA adapt
 
 ```
 kaggle datasets create -p data/processed/chat_sft            # first time (private by default)
-kaggle datasets version -p data/processed/chat_sft -m "new data"   # after rebuilding
+kaggle datasets version -p data/processed/chat_sft -m "new data"   # after rebuilding (on Windows: cd into the folder and use -p .)
 kaggle kernels push -p kaggle/chat_finetune
 kaggle kernels status mohameddazizz/dressme-chat-finetune
-kaggle kernels output mohameddazizz/dressme-chat-finetune -p models/llm/dressme-chat-v2-download
+kaggle kernels output mohameddazizz/dressme-chat-finetune -p models/llm/dressme-chat-v5-download   # then move its dressme-chat/ to models/llm/dressme-chat-v5
 ```
 
-The dataset folder also holds a copy of `src/phase4/finetune_chat.py` (written by the build script), and the notebook runs that copy, so **rebuild and re-upload after changing the training script**. The output is `models/llm/dressme-chat/` (git-ignored): `gguf/*.gguf` (~2.5 GB), `lora/` and `training_log.json` (loss per step, val loss).
+The dataset folder also holds a copy of `src/phase4/finetune_chat.py` (written by the build script), and the notebook runs that copy, so **rebuild and re-upload after changing the training script**. The output is a `dressme-chat/` folder (git-ignored; move it to `models/llm/dressme-chat-vN/`, never over an older model): `gguf/*.gguf` (~2.5 GB), `lora/` and `training_log.json` (loss per step, val loss).
 
 Training on our own machine works only on Linux / WSL with a CUDA GPU and `pip install -r requirements-llm.txt`; on 4 GB, only a smoke test with a smaller model:
 `python src/phase4/finetune_chat.py --base unsloth/Qwen3-1.7B --limit 50 --max-seq 2048 --gguf none`.
@@ -70,10 +70,10 @@ Training on our own machine works only on Linux / WSL with a CUDA GPU and `pip i
 ### 2.3 Register it in Ollama
 
 ```
-python src/phase4/make_ollama_model.py --gguf models/llm/dressme-chat-v2/gguf/<file>.gguf --name dressme-chat-v2
+python src/phase4/make_ollama_model.py --gguf models/llm/dressme-chat-v4/gguf/<file>.gguf --name dressme-chat-v4
 ```
 
-This writes a Modelfile next to the GGUF's model folder (`models/llm/dressme-chat-v2/Modelfile`), using the GGUF and the chat template of `qwen3:4b-instruct`, the format the model was trained on. Then it runs `ollama create`. Then set `OLLAMA_MODEL=dressme-chat-v2` in `backend/.env` (if the evaluation says it is better).
+This writes a Modelfile next to the GGUF's model folder (`models/llm/dressme-chat-v4/Modelfile`), using the GGUF and the chat template of `qwen3:4b-instruct`, the format the model was trained on. Then it runs `ollama create`. Then set `OLLAMA_MODEL=dressme-chat-v4` in `backend/.env` (the app's model since 2026-10-10; a newer one only if both evaluations say it is better). A team member without the model downloads the Kaggle notebook's latest output (above) and registers it the same way.
 
 ### 2.4 Evaluate (team rule: the app uses whichever is better)
 

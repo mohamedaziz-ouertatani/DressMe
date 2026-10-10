@@ -234,7 +234,9 @@ def blocks(r, ch):
              "(the real points per part; the shared labels and concepts of two jackets) and asked which "
              "piece when a description was ambiguous. The fine-tuned dressme-chat-v2 was trained before "
              f"{c('explain_similarity')} existed: asked about two jackets it did not call the tool and "
-             "made up a reason. Its next training run must include the newest tools.")
+             "made up a reason. v3 and v4 (the app's model since 2026-10-10) are trained on every "
+             "Explainer tool: on whole test chats with no help, v4 answers 7 of 8 look-alike questions "
+             f"with {c('explain_similarity')} (reports/phase4/chat_e2e_evaluation.md).")
 
     add("h1", "7. Admin > Explainability")
     add("p", "The same numbers for the team, plus real use: how often each field is flagged on real "
@@ -253,7 +255,8 @@ def blocks(r, ch):
         "The \"not sure\" cuts and every XAI threshold are start values (REVIEW), measured on the test "
         "split of public datasets; real-use calibration starts with uploads made after the XAI layer "
         "(the demo wardrobe predates it).",
-        "dressme-chat-v2 does not know the newest Explainer tools yet; the Darija text of the app and "
+        "The local chat model learns the tools as they are when it is trained: a new or changed "
+        "Explainer tool needs a rebuilt dataset and a retrain (LLM.md). The Darija text of the app and "
         "of the chat data still needs the native-speaker review.",
         "All evaluations use public product shots; our own phone photos (Local) are not in them yet."])
 

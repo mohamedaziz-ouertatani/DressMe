@@ -249,8 +249,8 @@ def build():
         "English and Tunisian Darija runs offline with no daily quota" + chat_line,
         "<b>Explainability (XAI):</b> every label, outfit score and buy verdict can say why "
         "(heatmaps, confidence and a \"not sure, check\" flag, points per part, the weakest "
-        "piece and its best swap). Sub-projects 1-2 of 4 are done, 3 (similarity + chat traces) "
-        "is in progress.",
+        "piece and its best swap, why two pieces look alike, how each chat answer was made). All "
+        "four sub-projects are done; the details are in the XAI report.",
         "<b>Real-life features:</b> background removal on every upload, today's weather to "
         "choose the season, beach outfits, an Insights page, and a virtual try-on through "
         "hosted models with a 2D fallback.",
