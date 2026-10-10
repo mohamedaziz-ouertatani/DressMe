@@ -7,7 +7,7 @@ from .. import ml  # noqa: F401  (puts src/ on the import path)
 import compatibility
 
 from ..routers.insights import wardrobe_counts
-from ..routers.outfits import user_profile, wardrobe
+from ..routers.outfits import rules_of, user_profile, wardrobe
 from ..wardrobe import describe, to_compat
 from .common import Agent, list_wardrobe_tool
 
@@ -16,12 +16,13 @@ TOP = 5            # pieces listed per answer: keeps the prompt small
 
 def tools(request, user):
     """The Wardrobe analyst's tools, bound to this user."""
+    rules = rules_of(user)          # the team's rules for the user's gender
     def wardrobe_insights() -> dict:
         """How many good outfits the wardrobe makes, its most versatile pieces, the pieces
         that go with nothing, and what is missing (shoes, top, bottom)."""
         docs, by_id = wardrobe(request, user)
         facts = compatibility.wardrobe_insights([to_compat(d) for d in docs],
-                                                user_profile(user, docs, request))
+                                                user_profile(user, docs, request), rules)
         use = facts["outfit_use"]
         return {"good_outfits": facts["good_outfits"], "complete": facts["complete"],
                 "versatile": [{**describe(i, by_id), "outfits": use[i["id"]]}
@@ -40,7 +41,7 @@ def tools(request, user):
     def find_near_twins() -> dict:
         """Pairs of the user's pieces that look almost the same (useful before buying another)."""
         docs, by_id = wardrobe(request, user)
-        twins = compatibility.near_twins([to_compat(d) for d in docs])
+        twins = compatibility.near_twins([to_compat(d) for d in docs], rules)
         return {"twins": [{"items": [describe(a, by_id), describe(b, by_id)], "similarity": round(s, 3)}
                           for a, b, s in twins[:TOP]]}
 

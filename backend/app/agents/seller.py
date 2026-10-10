@@ -12,7 +12,7 @@ import compatibility
 from ..db import object_id, vector_from_bson
 from ..listings import SELLERS
 from ..resale import load_rules, price_range
-from ..routers.outfits import user_profile, wardrobe
+from ..routers.outfits import rules_of, user_profile, wardrobe
 from ..wardrobe import describe, to_compat
 from .common import Agent, list_wardrobe_tool
 
@@ -23,6 +23,7 @@ MAX_PRICE = 100000     # same limit as POST /listings/sell
 
 def tools(request, user):
     """The Seller assistant's tools, bound to this user."""
+    outfit_rules = rules_of(user)   # the team's outfit rules for the user's gender
     def own_piece(item_id):
         """The user's wardrobe item, or (no id) their last scan, as (document, kind), or (None, '')."""
         db = request.app.state.db
@@ -38,10 +39,10 @@ def tools(request, user):
         pair of near-identical pieces, the second one."""
         docs, by_id = wardrobe(request, user)
         items = [to_compat(d) for d in docs]
-        facts = compatibility.wardrobe_insights(items, user_profile(user, docs, request))
+        facts = compatibility.wardrobe_insights(items, user_profile(user, docs, request), outfit_rules)
         return {"unmatched": [describe(i, by_id) for i in facts["unmatched"][:TOP]],
                 "twins": [{"keep": describe(a, by_id), "sell": describe(b, by_id), "similarity": round(s, 3)}
-                          for a, b, s in compatibility.near_twins(items)[:TOP]]}
+                          for a, b, s in compatibility.near_twins(items, outfit_rules)[:TOP]]}
 
     def price_hint(item_id: str = "") -> dict:
         """A fair friperie price range (TND) for one of the user's items (id from list_wardrobe)

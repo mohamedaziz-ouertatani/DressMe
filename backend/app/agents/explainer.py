@@ -14,7 +14,7 @@ import explain_similarity as similarity_xai   # (explain_similarity is also a to
 
 from ..db import object_id, vector_from_bson
 from ..ml import unsure
-from ..routers.outfits import user_profile, wardrobe
+from ..routers.outfits import rules_of, user_profile, wardrobe
 from ..wardrobe import describe, to_compat
 from .common import Agent, list_wardrobe_tool
 
@@ -88,6 +88,7 @@ def matching(ref, docs):
 
 def tools(request, user):
     """The Explainer's tools, bound to this user."""
+    rules = rules_of(user)          # the team's rules for the user's gender
 
     def outfit_items(item_ids):
         """(wardrobe docs, docs by id, compat items) or an error dict. Each entry is one of
@@ -113,7 +114,7 @@ def tools(request, user):
                 error["candidates"] = candidates
             return None, None, error
         items = [to_compat(by_id[i]) for i in ids]
-        why = compatibility.clashes(items)
+        why = compatibility.clashes(items, rules)
         if why:
             return None, None, {"error": "these pieces can't be worn together: " + "; ".join(why)}
         return docs, by_id, items
@@ -121,12 +122,12 @@ def tools(request, user):
     def scored(items, docs):
         """The app's score of these items (same personal style profile as /outfits/score)."""
         prof = user_profile(user, docs, request)
-        result = compatibility.score_outfit(items, style_profile=prof["style_vector"])
+        result = compatibility.score_outfit(items, rules, style_profile=prof["style_vector"])
         points = {c["part"]: {"points": c["points"], "max": c["max_points"], "counted": c["counted"],
                               **({"why_not_counted": c["why_not"]} if not c["counted"] else {})}
-                  for c in explain_outfit.contributions(result, compatibility.RULES.weights)}
+                  for c in explain_outfit.contributions(result, rules.weights)}
         return result, prof, {"score": result["score"], "points": points,
-                              "works": [fact(l) for l in explain_outfit.strengths(items, result["parts"])],
+                              "works": [fact(l) for l in explain_outfit.strengths(items, result["parts"], rules)],
                               "problems": [fact(l) for l in result["problems"]]}
 
     def explain_outfit_tool(item_ids: list[str]) -> dict:
@@ -138,15 +139,15 @@ def tools(request, user):
         if docs is None:
             return items
         result, prof, out = scored(items, docs)
-        pool, _ = compatibility.filter_items([to_compat(d) for d in docs], prof)
-        swaps = explain_outfit.swaps(items, pool, style_profile=prof["style_vector"])
+        pool, _ = compatibility.filter_items([to_compat(d) for d in docs], prof, rules)
+        swaps = explain_outfit.swaps(items, pool, rules, style_profile=prof["style_vector"])
         min_gain = explain_outfit.explain.load_settings()["min_swap_gain"]
         weakest = explain_outfit.weakest(swaps, min_gain=min_gain)
         swap = next((s for s in swaps if s["item_id"] == weakest), None)
         out["weakest"] = ({"piece": describe({"id": weakest}, by_id),
                            "swap_for": describe({"id": swap["best_swap_id"]}, by_id), "gain": swap["gain"]}
                           if swap else f"no piece of the wardrobe would add {min_gain:g} points or more")
-        pairs = [p for p in explain_outfit.pair_map(items) if p["style"] is not None]
+        pairs = [p for p in explain_outfit.pair_map(items, rules) if p["style"] is not None]
         if pairs:
             worst = min(pairs, key=lambda p: p["style"])
             out["least_alike_pair"] = {"pieces": [describe({"id": worst["a"]}, by_id),
@@ -220,8 +221,8 @@ def tools(request, user):
             return {"error": "no analysed photo in the last 24 hours"}
         docs, by_id = wardrobe(request, user)
         advice = compatibility.buy_advice(to_compat(cand), [to_compat(d) for d in docs],
-                                          user_profile(user, docs, request))
-        why = explain_outfit.buy_explanation(advice)
+                                          user_profile(user, docs, request), rules)
+        why = explain_outfit.buy_explanation(advice, rules)
         return {"item": {"id": str(cand["_id"]), "category": cand["category"],
                          "sub_category": cand["sub_category"], "colour": cand["colour"],
                          "image_url": f"/candidates/{cand['_id']}/image"},
@@ -264,7 +265,7 @@ def tools(request, user):
                 return {"error": f"unknown piece {ref!r} (use list_wardrobe, or 'last_scan')"}
             pieces.append(doc)
         (a, b), (va, vb) = pieces, [vector_from_bson(d.get("vector")) for d in pieces]
-        concepts = request.app.state.analyzer.concept_vectors()
+        concepts = request.app.state.analyzer.concept_vectors(rules.gender)
         baseline = similarity_xai.concept_baseline(request.app.state.catalog.mean_vector(), concepts)
         why = similarity_xai.explain_pair(a, b, va, vb, concepts, baseline=baseline)
         short = lambda d: {"id": str(d["_id"]), "category": d["category"], "sub_category": d["sub_category"],
@@ -275,14 +276,14 @@ def tools(request, user):
         if va is not None and vb is not None:
             sim = float(va @ vb)
             out["similarity"] = round(sim, 3)
-            out["near_twin"] = sim >= compatibility.RULES.settings["similar_item"]
+            out["near_twin"] = sim >= rules.settings["similar_item"]
         return out
 
     def how_scoring_works() -> dict:
         """How DressMe scores outfits and gives buy verdicts: the four parts, the team's current
         weights and thresholds, and when a label counts as unsure."""
-        s, x = compatibility.RULES.settings, explain_outfit.explain.load_settings()
-        return {"parts": PARTS_MEANING, "weights": compatibility.RULES.weights,
+        s, x = rules.settings, explain_outfit.explain.load_settings()
+        return {"parts": PARTS_MEANING, "weights": rules.weights,
                 "weights_note": "score = weighted mean of the parts (0-100); a part that cannot be "
                                 "computed is left out and the other weights are rescaled",
                 "good_outfit": s["good_outfit"],

@@ -62,7 +62,7 @@ def current_admin(user=Depends(current_user)):
 
 def user_gender(user):
     """men / women, or None for an account created before the question existed."""
-    return (user.get("profile") or {}).get("gender") or None
+    return ((user or {}).get("profile") or {}).get("gender") or None
 
 
 def gendered_user(user=Depends(current_user)):

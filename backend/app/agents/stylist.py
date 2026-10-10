@@ -6,7 +6,7 @@ user's real wardrobe.
 from .. import ml  # noqa: F401  (puts src/ on the import path)
 import compatibility
 
-from ..routers.outfits import user_profile, wardrobe
+from ..routers.outfits import rules_of, user_profile, wardrobe
 from ..wardrobe import describe, outfit_out, to_compat
 from ..weather import WeatherUnavailable
 from .common import Agent, list_wardrobe_tool
@@ -14,6 +14,7 @@ from .common import Agent, list_wardrobe_tool
 
 def tools(request, user):
     """The Stylist's tools, bound to this user."""
+    rules = rules_of(user)          # the team's rules for the user's gender
     def suggest_outfits(season: str = "", occasion: str = "", n: int = 1) -> list[dict]:
         """Recommend one best outfit from the user's wardrobe. season: summer, winter or
         mid-season. occasion: casual, formal, sport, wedding, eid or work. n: how many
@@ -22,7 +23,7 @@ def tools(request, user):
         outfits = compatibility.suggest_outfits(
             [to_compat(d) for d in docs], user_profile(
                 user, docs, request, season or None, occasion or None),
-            n=max(1, min(int(n), 10)))
+            n=max(1, min(int(n), 10)), rules=rules)
         return [outfit_out(o, by_id) for o in outfits]
 
     def score_outfit(item_ids: list[str]) -> dict:
@@ -32,11 +33,11 @@ def tools(request, user):
         if not chosen:
             return {"error": "none of these ids are in the wardrobe"}
         items = [to_compat(d) for d in chosen]
-        clash = compatibility.clashes(items)
+        clash = compatibility.clashes(items, rules)
         if clash:          # same hard rule as /outfits/score
             return {"error": "these pieces can't be worn together: " + "; ".join(clash)}
         return outfit_out({**compatibility.score_outfit(
-            items, style_profile=user_profile(user, docs, request)["style_vector"]),
+            items, rules, style_profile=user_profile(user, docs, request)["style_vector"]),
             "items": items}, by_id)
 
     def complete_outfit(item_ids: list[str], k: int = 3) -> dict:
@@ -47,12 +48,12 @@ def tools(request, user):
         if not chosen:
             return {"error": "none of these ids are in the wardrobe"}
         items = [to_compat(d) for d in chosen]
-        clash = compatibility.clashes(items)
+        clash = compatibility.clashes(items, rules)
         if clash:
             return {"error": "these pieces can't be worn together: " + "; ".join(clash)}
         candidates = [to_compat(d) for d in docs if str(d["_id"]) not in item_ids]
         ranked = compatibility.complete_outfit(
-            items, candidates, user_profile(user, docs, request), k=max(1, min(int(k), 5)))
+            items, candidates, user_profile(user, docs, request), k=max(1, min(int(k), 5)), rules=rules)
         return {"completions": [
             {**outfit_out({**r, "items": items + [r["item"]]}, by_id), "added": describe(r["item"], by_id)}
             for r in ranked]}
