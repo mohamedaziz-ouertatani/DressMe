@@ -7,7 +7,9 @@ import {
   CATEGORY_LABELS, COLOUR_HEX, COLOUR_LABELS, COVERAGE_LABELS, OCCASION_LABELS, PATTERN_LABELS,
   SEASON_LABELS, SUB_LABELS, vocab,
 } from '../i18n/vocab'
+import { useAuth } from '../auth'
 import { Chip, Swatch } from './controls'
+import { useSubGender } from './GenderChoice'
 
 type Single = 'category' | 'sub_category' | 'pattern' | 'colour' | 'coverage'
 type Multi = 'season' | 'usage'
@@ -51,7 +53,10 @@ export function FieldRow({ item, field, onSave, saving }: {
   saving?: boolean
 }) {
   const { t, lang } = useI18n()
+  const { user } = useAuth()
+  const subGender = useSubGender()
   const [open, setOpen] = useState(false)
+  const [more, setMore] = useState(false)
   const table = TABLES[field]
   const multi = field === 'season' || field === 'usage'
   const raw = item[field as keyof Item]
@@ -60,6 +65,14 @@ export function FieldRow({ item, field, onSave, saving }: {
   const sure = item.corrected.includes(field) || (!guess && values.length > 0)
   const empty = values.length === 0
   const id = `field-${item.id}-${field}`
+
+  // types for the user's gender (and unisex) first; the others stay one tap away ("More…")
+  const all = options(field, item)
+  const otherSide = user?.gender === 'men' ? 'women' : user?.gender === 'women' ? 'men' : null
+  const others = field === 'sub_category' && subGender && otherSide
+    ? all.filter((v) => subGender[v] === otherSide) : []
+  const shown = more ? all : all.filter((v) => !others.includes(v) || values.includes(v))
+  const hidden = others.filter((v) => !values.includes(v))
 
   const choose = async (v: string) => {
     if (multi) {
@@ -98,7 +111,7 @@ export function FieldRow({ item, field, onSave, saving }: {
       </button>
       {open && (
         <div id={id} className="mt-2 flex flex-wrap gap-2 ps-[108px] max-sm:ps-0" aria-busy={saving || undefined}>
-          {options(field, item).map((v) => (
+          {shown.map((v) => (
             <Chip key={v} selected={values.includes(v)} onClick={() => void choose(v)}>
               <span className="inline-flex items-center gap-1.5">
                 {field === 'colour' && <Swatch hex={COLOUR_HEX[v]} size={12} />}
@@ -107,6 +120,9 @@ export function FieldRow({ item, field, onSave, saving }: {
               </span>
             </Chip>
           ))}
+          {!more && hidden.length > 0 && (
+            <Chip selected={false} onClick={() => setMore(true)}>{t('moreTypes')}</Chip>
+          )}
         </div>
       )}
     </div>

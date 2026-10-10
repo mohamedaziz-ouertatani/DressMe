@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
-import type { Language } from '../api/types'
+import type { Gender, Language } from '../api/types'
 import { useAuth } from '../auth'
 import { useI18n } from '../i18n'
 import { Wordmark } from '../shell'
 import { Button, TextField } from '../ui/controls'
+import { GenderChoice } from '../ui/GenderChoice'
 import { Stamp } from '../ui/Stamp'
 
 export function LanguageSwitch() {
@@ -35,16 +36,21 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
   const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [gender, setGender] = useState<Gender | null>(null)
   const signup = mode === 'signup'
 
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const form = new FormData(e.currentTarget)
+    if (signup && !gender) {
+      setError(t('genderRequired'))
+      return
+    }
     setBusy(true)
     setError('')
     try {
       const email = String(form.get('email')), password = String(form.get('password'))
-      if (signup) await register(email, password, String(form.get('name')))
+      if (signup) await register(email, password, String(form.get('name')), gender!)
       else await login(email, password)
       navigate('/')
     } catch (err) {
@@ -70,6 +76,13 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
           </div>
           <h1 className="text-[22px] font-semibold text-carbon">{signup ? t('signupTitle') : t('loginTitle')}</h1>
           {signup && <TextField label={t('name')} name="name" required autoComplete="given-name" maxLength={60} />}
+          {signup && (
+            <div className="flex flex-col gap-2">
+              <span className="text-[13px] font-medium text-carbon">{t('gender')}</span>
+              <GenderChoice value={gender} onChange={(g) => { setGender(g); setError('') }} />
+              <p className="text-[12px] text-carbon-soft">{t('genderHelp')}</p>
+            </div>
+          )}
           <TextField label={t('email')} name="email" type="email" required autoComplete="email" inputMode="email" dir="ltr" />
           <TextField
             label={t('password')}
