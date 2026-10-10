@@ -58,3 +58,16 @@ def current_admin(user=Depends(current_user)):
         raise HTTPException(403, "Admins only")
     return user
 
+
+
+def user_gender(user):
+    """men / women, or None for an account created before the question existed."""
+    return (user.get("profile") or {}).get("gender") or None
+
+
+def gendered_user(user=Depends(current_user)):
+    """Endpoints whose answer depends on the gender (outfit rules, shops, look-alikes, chat).
+    An older account without one gets 409 until the app has asked it (PUT /me)."""
+    if user_gender(user) is None:
+        raise HTTPException(409, "gender_required")
+    return user

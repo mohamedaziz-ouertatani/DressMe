@@ -47,10 +47,11 @@ def credentials():
     return creds
 
 
-def token(client, email, password, name):
+def token(client, email, password, name, gender):
     r = client.post("/auth/login", json={"email": email, "password": password})
     if r.status_code == 401:
-        r = client.post("/auth/register", json={"email": email, "password": password, "name": name})
+        r = client.post("/auth/register", json={"email": email, "password": password, "name": name,
+                                                "gender": gender})
     r.raise_for_status()
     return r.json()["token"]
 
@@ -62,12 +63,15 @@ def main():
     creds = credentials()
     client = httpx.Client(base_url=args.api, timeout=120)
 
-    demo = {"Authorization": f"Bearer {token(client, DEMO_EMAIL, creds['DEMO_PASSWORD'], 'Amira')}"}
-    token(client, ADMIN_EMAIL, creds["DEMO_ADMIN_PASSWORD"], "Admin")
+    demo = {"Authorization": f"Bearer {token(client, DEMO_EMAIL, creds['DEMO_PASSWORD'], 'Amira', 'women')}"}
+    token(client, ADMIN_EMAIL, creds["DEMO_ADMIN_PASSWORD"], "Admin", "women")
     db = connect(Settings())
     db.users.update_one({"email": ADMIN_EMAIL}, {"$set": {"role": "admin"}})
     # the app labels these wardrobes as demo data (public-dataset photos)
     db.users.update_many({"email": {"$in": [DEMO_EMAIL, ADMIN_EMAIL]}}, {"$set": {"demo": True}})
+    # the demo wardrobe is PolyVore pieces (mostly women's): REVIEW if the seed pieces change
+    db.users.update_many({"email": {"$in": [DEMO_EMAIL, ADMIN_EMAIL]}, "profile.gender": None},
+                         {"$set": {"profile.gender": "women"}})
 
     have = client.get("/items", headers=demo).json()
     df = pd.read_csv(DATA / "processed" / "dressme.csv", dtype=str, keep_default_na=False,

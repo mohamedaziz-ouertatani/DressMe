@@ -227,8 +227,9 @@ def client(make_client):
     return make_client()
 
 
-def sign_up(client, email="amira@example.com", name="Amira"):
-    r = client.post("/auth/register", json={"email": email, "password": "secret-pass", "name": name})
+def sign_up(client, email="amira@example.com", name="Amira", gender="women"):
+    r = client.post("/auth/register", json={"email": email, "password": "secret-pass", "name": name,
+                                            "gender": gender})
     assert r.status_code == 201, r.text
     return {"Authorization": f"Bearer {r.json()['token']}"}
 
