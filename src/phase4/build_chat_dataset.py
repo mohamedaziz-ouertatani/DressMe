@@ -61,6 +61,8 @@ from bson import Binary, ObjectId                          # noqa: E402
 
 import chat_phrases as P                                  # noqa: E402
 import chat_phrases_agents as PA                          # noqa: E402
+import genders                                            # noqa: E402
+from genders import load_table as gender_table            # noqa: E402
 from app.agents import AGENTS                              # noqa: E402
 from app.agents.router import router_prompt                # noqa: E402
 from app.chat_engine import tool_schema                    # noqa: E402
@@ -230,8 +232,12 @@ class FakeCatalog:
         """The "average picture" the concept probes are compared with (app.ml.Catalog)."""
         return self.maker.common.astype(np.float32)
 
-    def search_shop(self, vector, k=6, category=None):
-        rows = [r for r in self.rows if not category or r["category"] == category]
+    def search_shop(self, vector, k=6, category=None, genders=None):
+        # department -> gender like H&M's own (src/phase3/map_hm.py); Divided = the team's table
+        gender = lambda r: {"Ladieswear": "women", "Menswear": "men"}.get(
+            r["department"]) or gender_table().get(r["sub_category"], "unisex")
+        rows = [r for r in self.rows if (not category or r["category"] == category)
+                and (genders is None or gender(r) in genders)]
         rows.sort(key=lambda r: -float(r["vector"] @ vector))
         return [{**{key: v for key, v in r.items() if key != "vector"},
                  "score": round(float(r["vector"] @ vector), 3)} for r in rows[:k]]
@@ -249,7 +255,8 @@ class FakeAnalyzer:
             v = 0.5 * maker.common + 0.8 * maker.styles[k % N_STYLES]                 + maker.nprng.normal(size=VECTOR_DIM) * 0.6 / np.sqrt(VECTOR_DIM)
             self.concepts[row["concept"]] = (v / np.linalg.norm(v)).astype(np.float32)
 
-    def concept_vectors(self):
+    def concept_vectors(self, gender=None):
+        """Same vectors for every gender: a gendered wording keeps the concept's name."""
         return self.concepts
 
 

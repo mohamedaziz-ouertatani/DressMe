@@ -4,11 +4,13 @@ The Shopping advisor agent: "should I buy this? where can I find one?".
 
 from .. import ml  # noqa: F401  (puts src/ on the import path)
 import compatibility
+import genders
 
 from ..db import object_id, vector_from_bson
 from ..listings import listing_out, listing_query
-from ..routers.outfits import user_profile, wardrobe
+from ..routers.outfits import rules_of, user_profile, wardrobe
 from ..wardrobe import outfit_out, to_compat
+from ..security import user_gender
 from .common import Agent, list_wardrobe_tool
 
 
@@ -27,6 +29,8 @@ def short_listing(doc_out):
 
 def tools(request, user):
     """The Shopping advisor's tools, bound to this user."""
+    rules = rules_of(user)                    # the team's rules for the user's gender
+    shown = genders.shown(user_gender(user))  # shops and look-alikes: their gender + unisex
     def buy_advice_last_scan() -> dict:
         """'Should I buy this?' for the last photo the user analysed in the app (buy / think / skip)."""
         cand = request.app.state.db.candidates.find_one({"user_id": user["_id"]},
@@ -37,7 +41,7 @@ def tools(request, user):
         by_id[str(cand["_id"])] = cand
         advice = compatibility.buy_advice(
             to_compat(cand), [to_compat(d) for d in docs],
-            user_profile(user, docs, request))
+            user_profile(user, docs, request), rules)
         return {"item": {"id": str(cand["_id"]), "category": cand["category"],
                          "sub_category": cand["sub_category"], "colour": cand["colour"],
                          "image_url": f"/candidates/{cand['_id']}/image"},
@@ -51,7 +55,7 @@ def tools(request, user):
         jeans, black). max_price: in TND, 0 = no limit. n: how many (1-10)."""
         db = request.app.state.db
         query = listing_query(category or None, sub_category or None, colour or None,
-                              max_price=max_price or None)
+                              max_price=max_price or None, genders=shown)
         docs = (db.listings.find(query, {"vector": 0}).sort([("created_at", -1), ("_id", -1)])
                 .limit(max(1, min(int(n), 10))))
         return {"total": db.listings.count_documents(query),
@@ -70,10 +74,11 @@ def tools(request, user):
         if not doc or not doc.get("vector"):
             return {"error": "no such item or analysed photo"}
         query, k = vector_from_bson(doc["vector"]), max(1, min(int(n), 10))
-        shop = request.app.state.catalog.search_shop(query, k=k, category=doc["category"])
+        shop = request.app.state.catalog.search_shop(query, k=k, category=doc["category"], genders=shown)
         for c in shop:
             c["image_url"] = f"/catalog/{c['id']}/image"
-        listings = request.app.state.listing_index.search(db, query, k=k, category=doc["category"])
+        listings = request.app.state.listing_index.search(db, query, k=k, category=doc["category"],
+                                                          genders=shown)
         return {"shop": shop, "listings": [short_listing(x) for x in listings]}
 
     functions = (list_wardrobe_tool(request, user), buy_advice_last_scan, search_listings, find_similar)

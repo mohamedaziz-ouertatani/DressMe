@@ -207,7 +207,7 @@ def similar(request: Request, item_id: str | None = None, candidate_id: str | No
     for c in catalog + shop:
         c["image_url"] = f"/catalog/{c['id']}/image"
     listings = request.app.state.listing_index.search(
-        request.app.state.db, query, k=k + 1, category=doc["category"])
+        request.app.state.db, query, k=k + 1, category=doc["category"], genders=shown)
     # a candidate made from a listing: leave the listing itself out
     listings = [x for x in listings if x["id"] != str(doc.get("listing_id"))][:k]
 
