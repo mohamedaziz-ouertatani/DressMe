@@ -429,6 +429,12 @@ def scenario(fn):
     return run
 
 
+def user_gender(rng, dress_wearer):
+    """The random user's gender (the tools filter shops and look-alikes by it): a wardrobe
+    with dresses is a woman's; otherwise either."""
+    return "women" if dress_wearer else rng.choice(genders.GENDERS)
+
+
 class Conversation:
     """One synthetic chat with one agent: picks the words, runs the real tools, writes messages."""
 
@@ -442,7 +448,8 @@ class Conversation:
         self.request = world.request()
         self.profile_language = weighted(rng, LANGUAGE_WEIGHTS)
         self.min_coverage = rng.choice([None, None, None, 3, 4, 5])
-        self.user["profile"] = {"language": self.profile_language, "min_coverage": self.min_coverage}
+        self.user["profile"] = {"language": self.profile_language, "min_coverage": self.min_coverage,
+                                "gender": user_gender(rng, self.dress_wearer)}
         self.use_agent(agent)
         self.messages = []
         self.answer_languages = []                     # language of each plain answer, in order
