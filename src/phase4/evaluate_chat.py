@@ -122,6 +122,8 @@ def evaluate(url, model, rows):
         for k, gold in enumerate(msgs):
             if gold["role"] != "assistant" or k == 0:
                 continue
+            if gold.get("learn") is False:       # an earlier turn sent as plain text: not a decision
+                continue
             if not gold.get("tool_calls"):
                 expected_language = next(answer_languages, row["language"])
             if not any(m["role"] == "user" for m in msgs[:k]):

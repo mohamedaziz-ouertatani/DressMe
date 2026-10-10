@@ -9,7 +9,8 @@ the model must get every step right by itself, like in the app.
 
 For each scenario, src/phase4/build_chat_dataset.py makes a test conversation (a
 random wardrobe in a scratch MongoDB database, a question, the reference tool calls).
-The model gets the agent's prompt, its tools and the question. A chat is right when
+The model gets the agent's prompt, its tools, the earlier turns as plain text (as the
+app sends them; ~40% of the chats have some) and the question. A chat is right when
 it calls exactly the reference tools, in order, no tool answers an error and the
 final answer is not empty. Models run at the app's temperature (0.3), so two runs
 can differ by a chat or two.
@@ -36,7 +37,8 @@ SCRATCH_DB = "dressme_e2e_eval"
 # scenario -> agent that gets it (None: one of build_chat_dataset.SCENARIO_AGENTS)
 SCENARIOS = {"why_similar": "explainer", "similar": "shopping", "search": "shopping", "buy": "shopping",
              "not_owned": "stylist", "not_owned_other": None, "handoff": "shopping", "chit_chat": "stylist",
-             "score": "stylist", "today": "stylist"}
+             "score": "stylist", "today": "stylist", "sell": "seller", "sell_other": "seller",
+             "follow_up": "stylist"}
 ALLOWED_ERRORS = {"weather unavailable"}     # the data switches the weather off on purpose
 
 
@@ -65,20 +67,25 @@ def evaluate(model, db, per, failures):
             conv.build(scenario)
             if conv.kind != scenario:       # the wardrobe could not make this scenario
                 continue
-            gold = [c["function"]["name"] for m in conv.messages for c in m.get("tool_calls", [])]
-            # the real question (a chat may open with a greeting exchange)
-            question = [m["content"] for m in conv.messages if m["role"] == "user"][-1]
+            last = max(k for k, m in enumerate(conv.messages) if m["role"] == "user")
+            question = conv.messages[last]["content"]
+            gold = [c["function"]["name"] for m in conv.messages[last:] for c in m.get("tool_calls", [])]
+            # earlier turns as the app sends them: questions and answers, text only
+            history = [{"role": "model" if m["role"] == "assistant" else "user", "text": m["content"]}
+                       for m in conv.messages[:last] if m["role"] in ("user", "assistant") and m["content"]]
+            had = "with history" if any(h["role"] == "model" for h in history) else "no history"
             errors = []
             tools = {n: watch(f, errors) for n, f in AGENTS[name].tools(conv.request, conv.user).items()}
             started = time.time()
             try:
-                answer, used = engine.reply(AGENTS[name].prompt(conv.user), [], question, tools)
+                answer, used = engine.reply(AGENTS[name].prompt(conv.user), history, question, tools)
             except Exception as e:           # e.g. Ollama 500 on malformed tool-call JSON
                 answer, used, crashes = "", [f"crash: {str(e)[:80]}"], crashes + 1
             ok = used == gold and not errors and bool(answer.strip())
             right[scenario].append(ok)
+            right[had].append(ok)
             if not ok:
-                failures.append(f"- **{model}**, {scenario}: {question}  \n  expected {gold}, used {used}"
+                failures.append(f"- **{model}**, {scenario} ({had}): {question}  \n  expected {gold}, used {used}"
                                 f"{', error: ' + errors[0] if errors else ''} ({time.time() - started:.0f} s)  \n"
                                 f"  answer: {answer[:160]}")
         print(f"  {model} {scenario}: {sum(right[scenario])} / {len(right[scenario])}", flush=True)
@@ -107,17 +114,17 @@ def main():
              "chats per scenario (fewer when a wardrobe cannot make it), the same chats for every model, "
              "temperature 0.3 (a rerun can differ by a chat or two).", "",
              "| Scenario | " + " | ".join(args.models) + " |", "|---|" + "---|" * len(args.models)]
-    for scenario in SCENARIOS:
+    for scenario in [*SCENARIOS, "no history", "with history"]:
         lines.append(f"| {scenario} | " + " | ".join(
             f"{sum(results[m][0][scenario])} / {len(results[m][0][scenario])}" for m in args.models) + " |")
-    totals = {m: [x for v in results[m][0].values() for x in v] for m in args.models}
+    totals = {m: [x for k, v in results[m][0].items() if k in SCENARIOS for x in v] for m in args.models}
     lines.append("| **all** | " + " | ".join(
         f"**{sum(t)} / {len(t)} ({100 * sum(t) / max(len(t), 1):.1f}%)**" for t in totals.values()) + " |")
     lines.append("| crashes (Ollama could not read a tool call) | " + " | ".join(
         str(results[m][1]) for m in args.models) + " |")
     lines += ["", "## Failures", ""] + failures
     REPORT.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print("\n".join(lines[6:6 + len(SCENARIOS) + 3]))
+    print("\n".join(lines[6:6 + len(SCENARIOS) + 5]))
     print(f"-> {REPORT}")
 
 
