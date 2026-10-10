@@ -212,10 +212,10 @@ FastAPI + MongoDB, in [`backend/`](backend/). It needs a running MongoDB (e.g. t
 
 ```bash
 pip install -r backend/requirements.txt
-cp backend/.env.example backend/.env      # then set JWT_SECRET (and GEMINI_API_KEY for the chat)
+cp backend/.env.example backend/.env      # then set JWT_SECRET; for the chat: CHAT_ENGINE=ollama + a local model (LLM.md), or GEMINI_API_KEY
 cd backend
 uvicorn app.main:create_app --factory --port 8000    # docs: http://localhost:8000/docs
-python -m pytest                                      # 25 fast tests (fake models, dressme_test database)
+python -m pytest                                      # ~305 fast tests (fake models, dressme_test database)
 ```
 
 | endpoint | what it does |
@@ -226,7 +226,10 @@ python -m pytest                                      # 25 fast tests (fake mode
 | `POST /outfits/score`, `GET /outfits/suggest`, `POST /outfits/complete` | outfits from your wardrobe |
 | `GET /insights` | wardrobe insights: good outfits, most versatile and unmatched pieces, what to add next, near twins, colour / category / pattern mix, fields left empty |
 | `GET /similar` | look-alikes in your wardrobe + dataset inspiration + H&M products to buy (`shop`) |
-| `POST /chat`, `GET/DELETE /chat/history` | Gemini or local Ollama assistant that uses your real wardrobe |
+| `POST /chat`, `GET/DELETE /chat/history` | five AI agents (Stylist, Shopping advisor, Wardrobe analyst, Seller assistant, Explainer) on your real wardrobe, each answer with "how I answered"; Gemini or our fine-tuned local model with Ollama ([`AGENTS.md`](AGENTS.md), [`LLM.md`](LLM.md)) |
+| `GET /listings`, `POST /listings/sell`, `GET /listings/mine` | clothes for sale now: Tunisian shops and friperie sellers (approved by an admin); see [`LISTINGS.md`](LISTINGS.md) |
+| `GET /items/{id}/explain`, `POST /outfits/explain` | why a piece got its labels (heatmaps, confidence) and why an outfit got its score (points, weakest piece) |
+| `GET /weather` | today's weather and the season to dress for (Open-Meteo) |
 | `POST /tryon` | virtual try-on: your photo + wardrobe pieces and/or a scan → you wearing them (hosted Hugging Face Spaces tried in order, chained for a full outfit) |
 
 ## Phase 4: the app (frontend + admin)
@@ -247,9 +250,9 @@ python -m app.make_admin you@example.com # give an existing account the admin ro
 ```
 
 - **What's in it:**
-  - Today's outfit, Scan ("should I buy this?" with a stamped BUY / THINK / SKIP), Wardrobe (every predicted field correctable), Insights (`/insights`, linked from Wardrobe), Build, the Assistant chat, Similar pieces, and Profile (modesty level, language);
+  - Today's outfit (for today's weather), Scan ("should I buy this?" with a stamped BUY / THINK / SKIP and "Why this verdict?"), Wardrobe (every predicted field correctable, "Why these labels?"), Insights (`/insights`, linked from Wardrobe), Build ("Why this score?"), Shops and Sell (listings), the Assistant chat (five agents), Similar pieces (with why they look alike), virtual try-on, and Profile (gender, modesty level, language);
   - English, French and Arabic (right-to-left).
-  - Admins also get `/admin`: usage stats, model quality (how often users correct each prediction), user management, and the formula editor.
+  - Admins also get `/admin`: usage stats, model quality (how often users correct each prediction), user management, the formula editor, listing sources and moderation, collector runs, and Explainability.
 - **Design:** the visual system ("Ticket & Recharge-Card Stock") is documented in [`DESIGN.md`](DESIGN.md), and the product brief in [`PRODUCT.md`](PRODUCT.md).
 - **Demo data:** demo accounts show dataset photos and say so in the app; they are for the academic demo only.
 
@@ -289,4 +292,6 @@ The datasets are used for non-commercial academic work only and are never redist
 
 - [`PRODUCT.md`](PRODUCT.md): users, purpose, constraints and principles of the app.
 - [`DESIGN.md`](DESIGN.md): the visual system (colours, type, components and their rules).
-- [`reports/`](reports/): every evaluation report (EDA, colours, embeddings, classifier, compatibility).
+- [`reports/`](reports/): every evaluation report (EDA, colours, embeddings, classifier, compatibility, explanations, chat models) and the Phase 4 and XAI PDF reports.
+- [`AGENTS.md`](AGENTS.md), [`LLM.md`](LLM.md), [`LISTINGS.md`](LISTINGS.md): the chat agents, the local chat model, the listings.
+- [`DEMO.md`](DEMO.md): the jury demo script.

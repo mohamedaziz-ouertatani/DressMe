@@ -37,7 +37,8 @@ FIG = REPORTS / "figures"
 FIG4 = FIG / "summary"
 MAPPINGS = ROOT / "mappings"
 MODEL_NAMES = {"qwen3:4b-instruct": "qwen3:4b-instruct (base)", "dressme-chat": "dressme-chat (v1)",
-               "dressme-chat-v2": "dressme-chat-v2", "dressme-chat-v3": "dressme-chat-v3"}
+               "dressme-chat-v2": "dressme-chat-v2", "dressme-chat-v3": "dressme-chat-v3",
+               "dressme-chat-v4": "dressme-chat-v4"}
 
 SECTIONS = ["context", "architecture", "embeddings", "classifier", "compatibility",
             "backend", "listings", "agents", "chat", "xai", "frontend", "testing", "local",
@@ -202,7 +203,8 @@ def build():
     n_fast, n_slow = count_tests()
     chat_eval = read_chat_eval()
     # the app's model: the newest fine-tuned one in the evaluation
-    served = next((m for m in ("dressme-chat-v3", "dressme-chat-v2") if m in chat_eval), None)
+    served = next((m for m in ("dressme-chat-v4", "dressme-chat-v3", "dressme-chat-v2")
+                   if m in chat_eval), None)
     v2 = chat_eval[served]["summary"] if served else None
     base = chat_eval.get("qwen3:4b-instruct", {}).get("summary")
 
@@ -247,8 +249,8 @@ def build():
         "English and Tunisian Darija runs offline with no daily quota" + chat_line,
         "<b>Explainability (XAI):</b> every label, outfit score and buy verdict can say why "
         "(heatmaps, confidence and a \"not sure, check\" flag, points per part, the weakest "
-        "piece and its best swap). Sub-projects 1-2 of 4 are done, 3 (similarity + chat traces) "
-        "is in progress.",
+        "piece and its best swap, why two pieces look alike, how each chat answer was made). All "
+        "four sub-projects are done; the details are in the XAI report.",
         "<b>Real-life features:</b> background removal on every upload, today's weather to "
         "choose the season, beach outfits, an Insights page, and a virtual try-on through "
         "hosted models with a 2D fallback.",
@@ -280,7 +282,7 @@ def build():
                      ["4.5 Frontend", "React + Tailwind app and admin dashboard", "done"],
                      ["Listings", "Tunisian shops, frozen snapshot, friperie sellers", "done"],
                      ["AI agents", "five chat agents with tools + a router", "done"],
-                     ["Local chat model", "Qwen3-4B + QLoRA, served by Ollama (v3)", "done"],
+                     ["Local chat model", "Qwen3-4B + QLoRA, served by Ollama (v4)", "done"],
                      ["XAI 1-2", "item labels; outfit scores and buy verdicts", "done"],
                      ["XAI 3-4", "similarity + chat traces; XAI report, Admin > Explainability", "done"]],
                     widths=[3.5 * cm, WIDTH - 5.5 * cm, 2 * cm])]
@@ -299,7 +301,7 @@ def build():
                     src/phase4/compatibility.py + explain*.py  (rules in mappings/*.csv)
                                          |
        /chat: router -> one of 5 agents -> tools on the user's data
-              engine: Gemini API  or  Ollama (local dressme-chat-v3)
+              engine: Gemini API  or  Ollama (local dressme-chat-v4)
                                          |
        collect_listings.py (nightly, separate process): connectors -> analysed listings
        Open-Meteo (weather)    Hugging Face Spaces (virtual try-on)
@@ -596,8 +598,10 @@ def build():
                      ["What it teaches", "list the wardrobe before any tool that takes ids, check "
                       "the weather before \"what do I wear today?\", no tool for greetings or "
                       "off-topic, send a question for another agent to it in one sentence, and "
-                      "say so when the user names a piece they do not own"],
-                     ["Training", "v3: 256 min on the T4, 1 epoch"],
+                      "say so when the user names a piece they do not own. 40% of the chats start "
+                      "with earlier turns as plain text, as the app sends them: seen by the model "
+                      "but not learned"],
+                     ["Training", "v4: 220 min on the T4, 1 epoch"],
                      ["Darija", "<i>reports/phase4/darija_review.md</i>: every Darija word and "
                       "sentence for a native check; the agents' new phrases are not reviewed yet"]],
                     widths=[3 * cm, WIDTH - 3 * cm]),
@@ -616,21 +620,21 @@ def build():
                          for m, r in chat_eval.items()],
                         widths=[3.6 * cm] + [(WIDTH - 3.6 * cm) / 6] * 6),
                   Spacer(1, 6)]
-        story.append(fig(chart_chat(chat_eval), caption="Same test decisions for every model. "
-                         "v2 was trained before the Explainer's look-alike tool, v3 after it. The "
-                         "router column rests on only ~6 router decisions.", max_h=7 * cm))
+        story.append(fig(chart_chat(chat_eval), caption="Same test decisions for both models "
+                         "(v4 test set). The router column rests on only 4 router decisions.",
+                         max_h=7 * cm))
         story += [p("This evaluation is lenient: the model sees the <b>correct</b> conversation up to "
                     "each decision, so once the right wardrobe list is there the next tool is easy. "
                     "<i>evaluate_chat_e2e.py</i> runs <b>whole chats</b> through the app's engine and "
                     "real tools with no help (<i>reports/phase4/chat_e2e_evaluation.md</i>):"),
                   Spacer(1, 4),
-                  table([["Whole chats, no help", "dressme-chat-v2", "dressme-chat-v3"],
-                         ["piece the user does not own (scoring)", "0 / 5", "<b>5 / 5</b>"],
-                         ["piece not owned (complete, look-alike, price)", "0 / 8", "<b>5 / 8</b>"],
-                         ["look-alikes", "6 / 8", "7 / 8"],
-                         ["look-alike explanations, search, buy, chit-chat", "32 / 32", "32 / 32"],
-                         ["scoring, today, hand-offs", "23 / 24", "21 / 24"],
-                         ["<b>all</b>", "61 / 77 (79.2%)", "<b>70 / 77 (90.9%)</b>"]],
+                  table([["Whole chats, no help", "dressme-chat-v3", "dressme-chat-v4"],
+                         ["chats with earlier turns (history)", "33 / 47", "<b>39 / 47</b>"],
+                         ["chats without history", "41 / 51", "41 / 51"],
+                         ["sell another piece (after a sale)", "5 / 8", "<b>8 / 8</b>"],
+                         ["hand-offs to another agent", "3 / 8", "<b>5 / 8</b>"],
+                         ["scoring a piece the user does not own", "<b>4 / 6</b>", "1 / 6"],
+                         ["<b>all</b>", "74 / 98 (75.5%)", "<b>80 / 98 (81.6%)</b>"]],
                         widths=[7.6 * cm] + [(WIDTH - 7.6 * cm) / 2] * 2),
                   Spacer(1, 6)]
     story += bullets([
@@ -640,14 +644,18 @@ def build():
         "<i>&lt;think&gt;&lt;/think&gt;</i> before every last answer, which the app's template "
         "never does. v1 learned it, began its answers with stray tags and called tools for "
         "\"thank you\". Both are fixed since v2.",
-        "<b>v3</b> (the app's model, team rule: the better one) adds the Explainer's look-alike "
-        "tool, which v2 never saw (v2 made up a reason in a live chat), the app's own words in "
-        "search (v2 wrote <i>slacks</i>, <i>violet</i>) and what to do with a piece the user does "
-        "not own (v2 sent another piece's id). <b>Still weak:</b> a complete / look-alike / price "
-        "question about a piece the user does not own (3 in 8 still use another piece), and v3 "
-        "once said it could not find a piece it had just listed. The test chats come from the "
-        "same generator as the training data: they measure tool use and language, not how "
-        "natural the answers sound with real users.",
+        "<b>v3</b> added the Explainer's look-alike tool (v2 made up a reason in a live chat), the "
+        "app's own words in search (v2 wrote <i>slacks</i>, <i>violet</i>) and what to do with a "
+        "piece the user does not own. <b>v4</b> (the app's model, team rule: the better one) fixes "
+        "a failure found in a real chat: the app sends earlier turns as plain text, without the "
+        "tool calls behind them, and v2 / v3, trained only on chats whose earlier turns kept "
+        "their tool calls, then answered from that text (\"I can't find a blue jacket\" the "
+        "wardrobe holds). v4's data has such history, shown to the model but hidden from the "
+        "loss (<i>finetune_chat.mask_history</i>).",
+        "<b>Still weak in v4:</b> scoring a piece the user does not own (1 / 6: it scores another "
+        "piece instead, a regression from v3's 4 / 6), and hand-offs (5 / 8). The test chats come "
+        "from the same generator as the training data: they measure tool use and language, not "
+        "how natural the answers sound with real users.",
         "<b>Speed</b> on the RTX 2050 with the backend's models loaded: ~21 tokens/s, "
         "11-18 s per answer that uses tools (Ollama puts 58% of the model on the GPU), plus "
         "~3 s for the router's call.",
@@ -786,7 +794,7 @@ def build():
                       "agent: easier for a small local model, and each can be tested alone"],
                      ["Local chat model, fine-tuned on synthetic chats", "no daily quota, works "
                       "offline; the real tools write the answers, so the model learns our scores "
-                      "and never invents clothes. Team rule: the better model is used (v3)"],
+                      "and never invents clothes. Team rule: the better model is used (v4)"],
                      ["Explanations only show how an answer was made", "they reuse the same "
                       "code as the answer, so they cannot disagree with it"],
                      ["Local photos for test only", "the one honest measure of the real "

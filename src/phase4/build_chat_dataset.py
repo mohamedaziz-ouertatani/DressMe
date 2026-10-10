@@ -85,7 +85,7 @@ SCENARIOS = {
     "not_owned_other": (None, 4),        # complete / look-alike / price of a piece they don't own
     "insights": ("analyst", 4), "stats": ("analyst", 3), "twins": ("analyst", 2),
     "what_sell": ("seller", 3), "price": ("seller", 3), "sell": ("seller", 3),
-    "my_listings": ("seller", 2),
+    "my_listings": ("seller", 2), "sell_other": ("seller", 3),
     "why_score": ("explainer", 4), "what_if": ("explainer", 3), "labels": ("explainer", 3),
     "why_verdict": ("explainer", 2), "how_scoring": ("explainer", 1),
     "why_similar": ("explainer", 4),
@@ -96,6 +96,11 @@ LANGUAGE_WEIGHTS = {"fr": 45, "ar": 35, "en": 20}          # the app's profile l
 OTHER_LANGUAGE = 0.12      # the user writes in another language than their profile
 ARABIZI = 0.5              # Darija questions typed in Latin letters
 EARLIER_EXCHANGE = 0.25    # a greeting exchange before the question
+# Earlier turns as the app sends them: text only, without the tool calls behind them.
+# They are seen but not learned ("learn": False, see finetune_chat.mask_history).
+HISTORY = 0.4              # share of tool chats that start with 1-3 such earlier exchanges
+HISTORY_SCENARIOS = ["list", "suggest", "today", "score", "complete", "buy", "search", "similar",
+                     "insights", "stats", "what_sell", "price", "sell", "why_score", "labels"]
 WEATHER_DOWN = 0.1         # get_weather answers an error
 NO_ID_WITHOUT_LIST = {"score_outfit", "complete_outfit", "find_similar", "price_hint", "prepare_sell",
                       "explain_outfit", "what_if", "explain_labels", "explain_similarity"}
@@ -743,14 +748,15 @@ class Conversation:
 
     @scenario
     def scenario_follow_up(self):
-        """'Another one?' after a suggestion. (The app keeps only the text of earlier
-        turns, but every assistant turn here is learned, so the first one keeps its
-        tool call: an answer without it would teach the model to invent outfits.)"""
+        """'Another one?' after a suggestion. The first exchange is sent as plain text, like
+        the app does, and is not learned (to_history): the model must call the tool again."""
         if len(self.tools["suggest_outfits"]()) < 1:
             return self.scenario_suggest()
+        start = len(self.messages)
         self.ask(P.ASK_SUGGEST)
         outfits = self.call("suggest_outfits")
         self.say(" ".join(self.outfit_sentences(outfits[:1], P.SAY_SUGGEST)))
+        self.to_history(start)
         self.new_turn()
         self.ask(P.ASK_MORE)
         more = self.call("suggest_outfits", n=3)            # the best one again + 2 new ones
@@ -792,6 +798,8 @@ class Conversation:
         lang = self.lang
         if "error" in advice:
             return self.say(P.SAY_BUY_NO_SCAN[lang])
+        # the last scan, as the tool reads it (an earlier turn of the chat may have made it)
+        cand = self.world.db.candidates.find_one({"user_id": self.user["_id"]}, sort=[("created_at", -1)])
         verdict = advice["verdict"]
         example = ""
         if advice["best"]:
@@ -922,6 +930,30 @@ class Conversation:
         if not self.docs:
             return self.say(P.SAY_LIST_EMPTY[lang])
         text = []
+        if found["unmatched"]:
+            text.append(PA.SAY_SELL_UNMATCHED[lang].format(items=capital(self.items_text(found["unmatched"][:3]))))
+        if found["twins"]:
+            text.append(PA.SAY_SELL_TWINS[lang].format(items=self.items_text([t["sell"] for t in found["twins"][:2]])))
+        if not text:
+            return self.say(PA.SAY_SELL_NOTHING[lang])
+        text.append(PA.SAY_SELL_NEXT[lang])
+        self.say(" ".join(text))
+
+    @scenario
+    def scenario_sell_other(self):
+        """'I want to sell a different item' after a sale (seen as plain text): pieces_to_sell
+        again, never an answer from the earlier text (v3 said "I can only sell pieces you own")."""
+        pieces = self.unique_items({"top", "bottom", "dress", "outerwear", "shoes", "bag"})
+        if not pieces:
+            return self.scenario_what_sell()
+        start = len(self.messages)
+        self.scenario_sell()
+        self.kind = "sell_other"
+        self.to_history(start)
+        self.new_turn()
+        self.ask(PA.ASK_SELL_OTHER)
+        found = self.call("pieces_to_sell")
+        lang, text = self.lang, []
         if found["unmatched"]:
             text.append(PA.SAY_SELL_UNMATCHED[lang].format(items=capital(self.items_text(found["unmatched"][:3]))))
         if found["twins"]:
@@ -1190,8 +1222,36 @@ class Conversation:
         name = PA.AGENT_NAMES[target][self.lang]
         self.say(self.pick(PA.SAY_HANDOFF[self.lang]).format(agent=name, Agent=capital(name)))
 
+    def to_history(self, start):
+        """Turn the messages from `start` into what the app sends for earlier turns: the
+        questions and the final answers as plain text, no tool calls, answers not learned."""
+        old, kept = self.messages[start:], []
+        n_answers = sum(1 for m in old if m["role"] == "assistant" and not m.get("tool_calls"))
+        for m in old:
+            if m["role"] == "user":
+                kept.append(m)
+            elif m["role"] == "assistant" and not m.get("tool_calls"):
+                kept.append({**m, "learn": False})
+        self.messages[start:] = kept
+        if n_answers:                                  # answer_languages: learned answers only
+            del self.answer_languages[-n_answers:]
+
+    def add_history(self):
+        """1-3 earlier exchanges (any agent, real tools), kept as plain text."""
+        main_agent = self.agent
+        for _ in range(self.rng.randint(1, 3)):
+            name = self.rng.choice(HISTORY_SCENARIOS)
+            self.use_agent(SCENARIOS[name][0])
+            start = len(self.messages)
+            getattr(self, "scenario_" + name)()
+            self.to_history(start)
+            self.new_turn()
+        self.use_agent(main_agent)
+
     def build(self, scenario):
-        if self.rng.random() < EARLIER_EXCHANGE and scenario not in ("chit_chat", "handoff"):
+        if scenario not in ("chit_chat", "handoff") and self.rng.random() < HISTORY:
+            self.add_history()
+        elif self.rng.random() < EARLIER_EXCHANGE and scenario not in ("chit_chat", "handoff"):
             self.ask(P.ASK_HELLO)                      # earlier text-only exchange
             self.say(self.hello())
             self.new_turn()

@@ -62,7 +62,9 @@ def test_answers_are_in_their_language(rows):
     for r in rows:
         if r["scenario"] == "route":
             continue
-        answers = [m for m in r["messages"] if m["role"] == "assistant" and not m.get("tool_calls")]
+        # learned plain answers (earlier turns sent as plain text are seen, not learned)
+        answers = [m for m in r["messages"] if m["role"] == "assistant" and not m.get("tool_calls")
+                   and m.get("learn", True)]
         assert len(r["answer_languages"]) == len(answers)
         assert r["answer_languages"][-1] == r["language"]
         for m, lang in zip(answers, r["answer_languages"]):
@@ -130,6 +132,55 @@ def test_a_piece_the_user_does_not_own_is_never_given_an_id(rows):
         if r["scenario"] in ("not_owned", "not_owned_other"):
             calls = [c["function"]["name"] for m in r["messages"] for c in m.get("tool_calls", [])]
             assert calls == ["list_wardrobe"], (r["id"], calls)
+
+
+def test_history_turns_are_hidden_from_the_loss():
+    """Earlier turns the app sends as plain text (learn: false) must not be learned: they were
+    answered with tools the model no longer sees, so learning them teaches answers without tools."""
+    import finetune_chat as F
+    start, end = [7, 8], 9                  # "<|im_start|>assistant\n" and "<|im_end|>"
+    ids = [1, 2, 7, 8, 30, 31, 9, 3, 7, 8, 40, 9]
+    labels = [-100, -100, -100, -100, 30, 31, 9, -100, -100, -100, 40, 9]   # responses only
+    assert F.mask_history(ids, labels, [False, True], start, end) == \
+        [-100, -100, -100, -100, -100, -100, -100, -100, -100, -100, 40, 9]
+    assert F.mask_history(ids, labels, [True, True], start, end) == labels
+    with pytest.raises(ValueError):          # flags and assistant turns must match
+        F.mask_history(ids, labels, [True], start, end)
+
+
+def test_examples_keep_one_learn_flag_per_assistant_turn():
+    import finetune_chat as F
+
+    class Tokenizer:
+        def apply_chat_template(self, messages, tools, tokenize):
+            return "".join(f"<|im_start|>{m['role']}\n{m['content']}<|im_end|>\n" for m in messages)
+
+        def __call__(self, text, add_special_tokens):
+            return {"input_ids": text.split()}
+
+    rows = [{"tools": [], "messages": [
+        {"role": "user", "content": "a"}, {"role": "assistant", "content": "old", "learn": False},
+        {"role": "user", "content": "b"}, {"role": "assistant", "content": "new"}]}]
+    texts, flags, too_long = F.to_examples(rows, Tokenizer(), max_seq=100)
+    assert flags == [[False, True]] and too_long == 0 and "learn" not in texts[0]
+
+
+def test_history_is_plain_text_and_not_learned(rows):
+    """Earlier turns look like the app's history: no tool calls, answers flagged learn: false,
+    and the new question still calls its own tools (never answered from the earlier text)."""
+    with_history = 0
+    for r in rows:
+        msgs = r["messages"]
+        old = [m for m in msgs if m.get("learn") is False]
+        if not old:
+            continue
+        with_history += 1
+        last_old = max(k for k, m in enumerate(msgs) if m.get("learn") is False)
+        assert not any(m.get("tool_calls") or m["role"] == "tool" for m in msgs[:last_old])
+        assert msgs[-1].get("learn", True)                        # the new answer is learned
+        if r["scenario"] not in ("chit_chat", "handoff", "route"):
+            assert any(m.get("tool_calls") for m in msgs[last_old:]), r["id"]
+    assert with_history > 20
 
 
 def test_builder_user_gender_agrees_with_the_wardrobe():

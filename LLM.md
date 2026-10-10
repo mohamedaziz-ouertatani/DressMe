@@ -5,7 +5,7 @@ no key, no 20-requests-a-day quota, and it works offline on demo day.
 
 ```
 build_chat_dataset.py ──> Kaggle (finetune_chat.py, QLoRA) ──> make_ollama_model.py ──> backend CHAT_ENGINE=ollama
-   synthetic chats          free T4 GPU, ~2-5 h                 GGUF -> `dressme-chat-v2`   evaluate_chat.py compares
+   synthetic chats          free T4 GPU, ~3-4 h                 GGUF -> `dressme-chat-vN`   evaluate_chat(_e2e).py compare
 ```
 
 ## 1. Use the base model now (no training)
@@ -56,13 +56,13 @@ QLoRA with Unsloth: the base model is loaded in 4 bits and only small LoRA adapt
 
 ```
 kaggle datasets create -p data/processed/chat_sft            # first time (private by default)
-kaggle datasets version -p data/processed/chat_sft -m "new data"   # after rebuilding
+kaggle datasets version -p data/processed/chat_sft -m "new data"   # after rebuilding (on Windows: cd into the folder and use -p .)
 kaggle kernels push -p kaggle/chat_finetune
 kaggle kernels status mohameddazizz/dressme-chat-finetune
-kaggle kernels output mohameddazizz/dressme-chat-finetune -p models/llm/dressme-chat-v2-download
+kaggle kernels output mohameddazizz/dressme-chat-finetune -p models/llm/dressme-chat-v5-download   # then move its dressme-chat/ to models/llm/dressme-chat-v5
 ```
 
-The dataset folder also holds a copy of `src/phase4/finetune_chat.py` (written by the build script), and the notebook runs that copy, so **rebuild and re-upload after changing the training script**. The output is `models/llm/dressme-chat/` (git-ignored): `gguf/*.gguf` (~2.5 GB), `lora/` and `training_log.json` (loss per step, val loss).
+The dataset folder also holds a copy of `src/phase4/finetune_chat.py` (written by the build script), and the notebook runs that copy, so **rebuild and re-upload after changing the training script**. The output is a `dressme-chat/` folder (git-ignored; move it to `models/llm/dressme-chat-vN/`, never over an older model): `gguf/*.gguf` (~2.5 GB), `lora/` and `training_log.json` (loss per step, val loss).
 
 Training on our own machine works only on Linux / WSL with a CUDA GPU and `pip install -r requirements-llm.txt`; on 4 GB, only a smoke test with a smaller model:
 `python src/phase4/finetune_chat.py --base unsloth/Qwen3-1.7B --limit 50 --max-seq 2048 --gguf none`.
@@ -70,19 +70,28 @@ Training on our own machine works only on Linux / WSL with a CUDA GPU and `pip i
 ### 2.3 Register it in Ollama
 
 ```
-python src/phase4/make_ollama_model.py --gguf models/llm/dressme-chat-v2/gguf/<file>.gguf --name dressme-chat-v2
+python src/phase4/make_ollama_model.py --gguf models/llm/dressme-chat-v4/gguf/<file>.gguf --name dressme-chat-v4
 ```
 
-This writes a Modelfile next to the GGUF's model folder (`models/llm/dressme-chat-v2/Modelfile`), using the GGUF and the chat template of `qwen3:4b-instruct`, the format the model was trained on. Then it runs `ollama create`. Then set `OLLAMA_MODEL=dressme-chat-v2` in `backend/.env` (if the evaluation says it is better).
+This writes a Modelfile next to the GGUF's model folder (`models/llm/dressme-chat-v4/Modelfile`), using the GGUF and the chat template of `qwen3:4b-instruct`, the format the model was trained on. Then it runs `ollama create`. Then set `OLLAMA_MODEL=dressme-chat-v4` in `backend/.env` (the app's model since 2026-10-10; a newer one only if both evaluations say it is better). A team member without the model downloads the Kaggle notebook's latest output (above) and registers it the same way.
 
 ### 2.4 Evaluate (team rule: the app uses whichever is better)
 
 ```
-python src/phase4/evaluate_chat.py --models qwen3:4b-instruct dressme-chat-v2 dressme-chat-v3   # 150 test conversations
-python src/phase4/evaluate_chat_e2e.py --models dressme-chat-v2 dressme-chat-v3                # whole chats, no help
+python src/phase4/evaluate_chat.py --models dressme-chat-v3 dressme-chat-v4       # 150 test conversations
+python src/phase4/evaluate_chat_e2e.py --models dressme-chat-v3 dressme-chat-v4   # whole chats, no help, with history
 ```
 
 Baseline before fine-tuning (`qwen3:4b-instruct`, `--limit 30`, 75 decisions, 2026-10-04, old language rule): tool decision 76.0%, tool name 33.3%, **arguments 13.9%** (0% on score and suggest), language 94.9%, 8.6 s per decision. It knows *when* to use a tool, but rarely picks the right one with the right ids, and it invents reasons (e.g. "two tops is too revealing" for the max-1-top rule). The language check only looks for Arabic script, so MSA counts as Darija. Until 2026-10-04 the language check compared every answer with the language of the conversation's *last* question, but the language can change between questions, so even the expected answers scored only 93.9% (now 100%; `answer_languages` in the dataset gives one language per answer). The baseline language figure above used the old check; rebuild the dataset before re-running.
+
+**v4 (2026-10-10).** A real chat (2026-10-10) showed v3 answering "I can't find a blue jacket" that the wardrobe holds, without calling a tool. The app sends earlier turns as **plain text**, without the tool calls behind them, but every training chat had kept its earlier tool calls: with history, v2 and v3 answered from the earlier text (v2 even "prepared" a Sell form without calling anything). v4's data starts 40% of the tool chats with 1-3 such earlier exchanges (real tools, then text only), flagged `learn: false`; `finetune_chat.mask_history` hides them from the loss after `train_on_responses_only`, so they are seen but never learned (learning them would teach answers without tools). New `sell_other` scenario ("sell a different item"). `evaluate_chat_e2e.py` now sends the earlier turns as history, like the app. 220 min on the T4.
+
+| v4 test set | Tool decision | Tool name | Arguments | Language | Router | End to end, all | with history |
+|---|---|---|---|---|---|---|---|
+| dressme-chat-v3 | 96.5% | 92.6% | 81.8% | 94.3% | 75.0% | 74 / 98 (75.5%) | 33 / 47 |
+| **dressme-chat-v4** | **98.8%** | **96.6%** | **89.2%** | **96.9%** | 75.0% | **80 / 98 (81.6%)** | **39 / 47** |
+
+The replay of the real chat: v4 6 / 6 (with and without history), v3 4 / 6. **v4 is the app's model** (`OLLAMA_MODEL=dressme-chat-v4`). **Regression to fix next:** scoring a piece the user doesn't own, 1 / 6 for v4 against 4 / 6 for v3 (v4 scores another piece instead, e.g. "beige shoes" → "blue sandals"); hand-offs are 5 / 8.
 
 **v3 (2026-10-10).** v2 was trained before the Explainer's `explain_similarity` tool, and the evaluation showed weak spots. v3's data adds that tool, gives search the app's own words (v2 wrote `slacks`, `violet`, `earring`), and teaches what to do when the user names a piece they don't own: list the wardrobe, then say so (v2 sent another piece's id to `score_outfit` / `complete_outfit` / `price_hint`). 4,500 training chats, 256 min on the T4.
 
@@ -94,7 +103,7 @@ Two evaluations, because the first one is lenient: `evaluate_chat.py` scores eac
 | dressme-chat-v2 | 95.7% | 95.2% | 89.9% | 100.0% | 100.0% | 61 / 77 (79.2%) |
 | **dressme-chat-v3** | **97.0%** | **95.2%** | 88.4% | 99.4% | 66.7% | **70 / 77 (90.9%)** |
 
-The router column rests on ~6 decisions. End to end, v3 fixes the pieces the user doesn't own (scoring 5 / 5 vs 0 / 5; complete / look-alike / price 5 / 8 vs 0 / 8) and look-alikes (7 / 8 vs 6 / 8); both answer every look-alike explanation, search, buy and chit-chat right. **v3 is the app's model** (`OLLAMA_MODEL=dressme-chat-v3`). Watch: v3 once said it could not find a piece it had just listed (it learned "not owned" a little too eagerly), it still answers a complete / look-alike / price question about a piece the user doesn't own with another piece 3 times in 8, and "show my listings" asked of the Shopping advisor lists the wardrobe instead of pointing to the Seller assistant.
+The router column rests on ~6 decisions. End to end, v3 fixes the pieces the user doesn't own (scoring 5 / 5 vs 0 / 5; complete / look-alike / price 5 / 8 vs 0 / 8) and look-alikes (7 / 8 vs 6 / 8); both answer every look-alike explanation, search, buy and chit-chat right. v3 was the app's model until v4. Watch: v3 once said it could not find a piece it had just listed (it learned "not owned" a little too eagerly), it still answers a complete / look-alike / price question about a piece the user doesn't own with another piece 3 times in 8, and "show my listings" asked of the Shopping advisor lists the wardrobe instead of pointing to the Seller assistant.
 
 **v2 results (2026-10-09, `reports/phase4/chat_evaluation.md` of that day, 150 test conversations of the v2 dataset, five agents + router):**
 

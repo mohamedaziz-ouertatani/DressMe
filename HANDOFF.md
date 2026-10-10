@@ -1,5 +1,17 @@
 # DressMe — Handoff (2026-10-03, updated 14:00 after the full app walkthrough)
 
+> **Current state (2026-10-10).** This file is the record of 2026-10-03; the living docs are
+> [`CLAUDE.md`](CLAUDE.md) (everything, kept up to date), [`AGENTS.md`](AGENTS.md), [`LLM.md`](LLM.md),
+> [`LISTINGS.md`](LISTINGS.md) and [`DEMO.md`](DEMO.md). Since 2026-10-03 the app gained: **listings**
+> (Tunisian shops Exist and Hamadi Abid, a frozen Inditex snapshot, friperie sellers approved by an
+> admin), **five chat agents** (Stylist, Shopping advisor, Wardrobe analyst, Seller assistant,
+> Explainer) with a router, a **local chat model** (`dressme-chat-v4`, Qwen3-4B fine-tuned on
+> Kaggle, served by Ollama: no daily quota, works offline; the app's model), the **XAI layer**
+> (why these labels / this score / this verdict / these look-alikes, "how I answered" under each
+> chat answer, the XAI report and Admin > Explainability), weather, beach outfits, Insights,
+> virtual try-on and a gender-based profile. The Gemini notes below (quota, model name) still
+> apply when `CHAT_ENGINE=gemini`.
+
 Paste this file into a new Claude Code session on your machine to pick up the project. Read the first six sections first (state, branches, commands, next steps); everything after "Reference" is the detailed record of what was built and decided.
 
 ## 1. Current context (2026-10-03)

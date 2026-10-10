@@ -513,3 +513,16 @@ Look-alike explanations (`explain_similarity`) in `src/phase4/chat_phrases_agent
 | SAY_BOTH_READ | المودال متاع التصاور يشوف الزوز {concepts}. | The picture model reads both as {concepts}. | |
 | SAY_CONTRAST | المودال متاع التصاور يشوف {a} {ca}، أما {b} {cb}. | The picture model reads {a} as {ca}, but {b} as {cb}. | |
 | SAY_SCAN_PIECE | الحاجة إلي صورتها | the piece you scanned | |
+
+## 9. New phrases for model v4 (2026-10-10, NOT reviewed)
+
+"Sell a different item" after a sale (`ASK_SELL_OTHER` in `src/phase4/chat_phrases_agents.py`). `dressme-chat-v4` was trained on them as written. **Meaning** is the English version.
+
+| Key | Darija | Meaning | Correction |
+|---|---|---|---|
+| ASK_SELL_OTHER | نحب نبيع حاجة أخرى | I want to sell a different item | |
+| ASK_SELL_OTHER | شنوة نجم نبيع زادة؟ | What else could I sell? | |
+| ASK_SELL_OTHER | وحاجة أخرى؟ | And another piece? | |
+| ASK_SELL_OTHER (arabizi) | n7eb nbi3 7aja o5ra | I want to sell a different item | |
+| ASK_SELL_OTHER (arabizi) | chnowa najem nbi3 zeda? | What else could I sell? | |
+| ASK_SELL_OTHER (arabizi) | w 7aja o5ra? | And another piece? | |

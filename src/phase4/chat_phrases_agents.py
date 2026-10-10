@@ -470,3 +470,12 @@ SAY_CONTRAST = {"en": "The picture model reads {a} as {ca}, but {b} as {cb}.",
                 "fr": "Le modèle d'images voit {a} plutôt {ca}, mais {b} plutôt {cb}.",
                 "ar": "المودال متاع التصاور يشوف {a} {ca}، أما {b} {cb}."}
 SAY_SCAN_PIECE = {"en": "the piece you scanned", "fr": "la pièce scannée", "ar": "الحاجة إلي صورتها"}
+
+# ------------------------------------------------------------------ v4 (2026-10-10): chats with history
+# (the Darija below is NEW and NOT REVIEWED: section 9 of the review sheet)
+ASK_SELL_OTHER = {   # after a sale: "another piece"
+    "en": ["I want to sell a different item", "What else could I sell?", "And another piece?"],
+    "fr": ["Je veux vendre une autre pièce", "Je pourrais vendre quoi d'autre ?", "Et une autre pièce ?"],
+    "ar": ["نحب نبيع حاجة أخرى", "شنوة نجم نبيع زادة؟", "وحاجة أخرى؟"],
+    "arabizi": ["n7eb nbi3 7aja o5ra", "chnowa najem nbi3 zeda?", "w 7aja o5ra?"],
+}
