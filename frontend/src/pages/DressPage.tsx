@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ChevronDown, LocateFixed, RefreshCw } from 'lucide-react'
 import { api } from '../api/client'
-import type { BuildResult, Item, OccasionChip, WeatherCondition } from '../api/types'
+import type { BuildResult, Item, OccasionChip } from '../api/types'
 import { useI18n } from '../i18n'
 import type { StringKey } from '../i18n/strings'
 import { CATEGORY_LABELS, SEASON_LABELS, SUB_LABELS, vocab } from '../i18n/vocab'
@@ -12,42 +12,22 @@ import { OutfitCard } from '../ui/OutfitCard'
 import { PillButton, PillChip, Segmented } from '../ui/dress'
 import { Empty, ErrorNote, Skeleton } from '../ui/states'
 import { useLoad } from '../useLoad'
+import { CHIP_KEY, CONDITION_KEY, DEFAULT_CHIP, PLACE_KEY, remember, remembered, savedPlace, startChip, type Place } from '../dressPrefs'
 
 // ---- the Dress page: "For today" (three outfits) and "Build" (outfits around the pieces you pick)
 
-const CHIP_KEY = 'dressme.dressChip'              // the last chip used
-const PLACE_KEY = 'dressme.weatherPlace'          // the position the user shared, rounded to ~10 km
 const KNOWN_CHIPS = ['everyday', 'work', 'university', 'outing', 'eid', 'wedding', 'beach']
 // used until /outfits/occasions answers (and if it fails): the same list as mappings/dress_occasions.csv
 const FALLBACK_CHIPS: OccasionChip[] = [
   { chip: 'everyday', main: true }, { chip: 'work', main: true }, { chip: 'university', main: true }, { chip: 'outing', main: true },
   { chip: 'eid', main: false }, { chip: 'wedding', main: false }, { chip: 'beach', main: false },
 ]
-const CONDITION_KEY: Record<WeatherCondition, StringKey> = {
-  clear: 'weatherClear', cloudy: 'weatherCloudy', fog: 'weatherFog', rain: 'weatherRainy', snow: 'weatherSnow', storm: 'weatherStorm',
-}
-type Place = { lat: number; lon: number }
-
-function remembered(key: string): string | null {
-  try { return localStorage.getItem(key) } catch { return null }       // private mode: nothing is remembered
-}
-function remember(key: string, value: string) {
-  try { localStorage.setItem(key, value) } catch { /* the next visit starts from the default */ }
-}
-function savedPlace(): Place | null {
-  try {
-    const place = JSON.parse(remembered(PLACE_KEY) ?? 'null')
-    return typeof place?.lat === 'number' && typeof place?.lon === 'number' ? place : null
-  } catch {
-    return null
-  }
-}
 
 export function DressPage({ mode }: { mode: 'today' | 'build' }) {
   const { t } = useI18n()
   const navigate = useNavigate()
   return (
-    <Page title={t('navDress')}>
+    <Page title={t('navDress')} look="soft">
       <Segmented
         label={t('navDress')}
         value={mode}
@@ -87,8 +67,8 @@ function TodayMode() {
   const chipLabel = useChipLabel()
   const chips = useLoad(() => api.occasions().catch(() => FALLBACK_CHIPS), [])
   const list = chips.data ?? FALLBACK_CHIPS
-  const [chosen, setChosen] = useState(() => remembered(CHIP_KEY) ?? 'everyday')
-  const chip = list.some((c) => c.chip === chosen) ? chosen : 'everyday'
+  const [chosen, setChosen] = useState(startChip)
+  const chip = list.some((c) => c.chip === chosen) ? chosen : DEFAULT_CHIP
   const [more, setMore] = useState(() => { const c = remembered(CHIP_KEY); return FALLBACK_CHIPS.some((x) => x.chip === c && !x.main) })
   const [shuffle, setShuffle] = useState(0)
   const [place, setPlace] = useState<Place | null>(savedPlace)

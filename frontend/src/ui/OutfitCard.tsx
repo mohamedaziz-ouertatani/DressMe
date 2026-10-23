@@ -20,8 +20,9 @@ const DOTS = { high: 5, medium: 3, low: 1 } as const
 // accessories sit small under the main pieces
 const SMALL = new Set(['shoes', 'bag', 'accessory'])
 
-/** Main pieces large (by how many there are, so the row always fits a 320 px phone), accessories small. */
-function Collage({ items }: { items: OutfitItem[] }) {
+/** Main pieces large (by how many there are, so the row always fits a 320 px phone), accessories small.
+ *  Shared with Home's "Today's pick". */
+export function Collage({ items }: { items: OutfitItem[] }) {
   const { lang } = useI18n()
   const main = items.filter((i) => !SMALL.has(i.category))
   const small = items.filter((i) => SMALL.has(i.category))

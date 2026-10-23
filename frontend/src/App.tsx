@@ -8,6 +8,7 @@ import { I18nProvider } from './i18n'
 import { AuthPage } from './pages/AuthPage'
 import { LandingPage } from './pages/LandingPage'
 import { DressPage } from './pages/DressPage'
+import { HomePage } from './pages/HomePage'
 import { ChatPage } from './pages/ChatPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { ScanPage } from './pages/ScanPage'
@@ -65,8 +66,10 @@ export default function App() {
             <Route path="/login" element={<GuestOnly><AuthPage mode="login" /></GuestOnly>} />
             <Route path="/signup" element={<GuestOnly><AuthPage mode="signup" /></GuestOnly>} />
             <Route element={<Gate><AppShell /></Gate>}>
-              {/* Today and Build became one page, Dress; the old addresses still work */}
-              <Route index element={<Navigate to="/dress" replace />} />
+              {/* Home is the landing page after login (step H); Today and Build became one page, Dress, and the
+                  old addresses still work */}
+              <Route index element={<HomePage />} />
+              <Route path="home" element={<Navigate to="/" replace />} />
               <Route path="today" element={<Navigate to="/dress" replace />} />
               <Route path="build" element={<Navigate to="/dress/build" replace />} />
               <Route path="dress" element={<DressPage mode="today" />} />
