@@ -112,5 +112,8 @@ def apply_wear_penalty(outfits, worn_ids, rules, n):
     if not penalty_active(rules) or not worn_ids:
         return outfits[:n]
     points = rules["wear_penalty_points"]
-    rank = lambda o: o["score"] - points * sum(1 for i in o["items"] if i["id"] in worn_ids)
+
+    def rank(outfit):
+        return outfit["score"] - points * sum(1 for i in outfit["items"] if i["id"] in worn_ids)
+
     return sorted(outfits, key=rank, reverse=True)[:n]
