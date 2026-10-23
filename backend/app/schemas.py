@@ -27,6 +27,7 @@ class ProfileUpdate(BaseModel):
     min_coverage: int | None = Field(None, ge=1, le=5)   # modesty level, 1-5
     language: str | None = None
     gender: Gender | None = None
+    budget_tnd: float | None = Field(None, gt=0, le=1_000_000)   # optional; null clears it
 
     @field_validator("language")
     @classmethod
@@ -91,6 +92,7 @@ class Complete(BaseModel):
 class BuyAdvice(BaseModel):
     candidate_id: str
     corrections: ItemUpdate | None = None
+    price_tnd: float | None = Field(None, gt=0, le=100000)    # the price on the tag; missing = unknown (never 0)
 
 
 class ChatMessage(BaseModel):

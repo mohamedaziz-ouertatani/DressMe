@@ -12,7 +12,7 @@ router = APIRouter(tags=["auth"])
 
 
 def profile_out(user):
-    profile = {"gender": None, **user["profile"]}
+    profile = {"gender": None, "budget_tnd": None, **user["profile"]}
     return {"id": str(user["_id"]), "email": user["email"], "role": user.get("role", "user"),
             "demo": bool(user.get("demo")), **profile,
             "needs_gender": profile["gender"] is None}   # accounts from before: asked once

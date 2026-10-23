@@ -51,6 +51,13 @@ def to_compat(doc):
     }
 
 
+def candidate_view(doc):
+    """A scan (or a listing copied into the candidates) as src/phase4/verdict.py wants it: the
+    compat item plus what the model guessed, what the user corrected and the price on the tag."""
+    return {**to_compat(doc), "predicted": doc.get("predicted", {}), "corrected": doc.get("corrected", []),
+            "price_tnd": doc.get("price_tnd")}
+
+
 def describe(compat_item, docs_by_id):
     """Short readable form of an item inside an outfit answer."""
     doc = docs_by_id[compat_item["id"]]

@@ -16,13 +16,14 @@ import compatibility
 import explain_outfit
 import explain_similarity
 import genders
+import verdict
 
 from ..db import vector_from_bson, vector_to_bson
 from ..events import log_event
 from ..schemas import BuyAdvice, Complete, ItemIds, OutfitFeedback
 from ..security import current_user, gendered_user, user_gender
 from ..vocab import SEASONS, USAGES
-from ..wardrobe import item_out, outfit_out, short_item, to_compat
+from ..wardrobe import candidate_view, item_out, outfit_out, short_item, to_compat
 from .items import apply_update, own_item
 
 router = APIRouter(tags=["outfits"])
@@ -161,17 +162,31 @@ def complete(body: Complete, request: Request, user=Depends(gendered_user)):
 def buy_advice(body: BuyAdvice, request: Request, user=Depends(gendered_user)):
     """A candidate from /analyze (optionally corrected) vs the wardrobe."""
     cand = own_item(request, user, body.candidate_id, collection="candidates")
-    if body.corrections:
-        changes = apply_update(cand, body.corrections)
+    changes = apply_update(cand, body.corrections) if body.corrections else {}
+    if body.price_tnd is not None:
+        changes["price_tnd"] = body.price_tnd      # the price on the tag; not given = unknown, kept as it was
+    if changes:
         # saved, so /tryon and the chat's last scan see the corrected item too
         request.app.state.db.candidates.update_one({"_id": cand["_id"]}, {"$set": changes})
         cand = {**cand, **changes}
     docs, by_id = wardrobe(request, user)
     by_id[str(cand["_id"])] = cand
     rules = rules_of(user)
-    advice = compatibility.buy_advice(
-        to_compat(cand), [to_compat(d) for d in docs], user_profile(user, docs, request), rules)
+    owned = [to_compat(d) for d in docs]
+    prof = user_profile(user, docs, request)
+    advice = compatibility.buy_advice(to_compat(cand), owned, prof, rules)
     log_event(request.app.state.db, "verdict", user["_id"], verdict=advice["verdict"])
+    # how far to trust it, and why (src/phase4/verdict.py): reads the advice, never changes it
+    assessed = verdict.assess(
+        advice, candidate_view(cand), owned, {**prof, "budget_tnd": user["profile"].get("budget_tnd")},
+        compatibility.wardrobe_insights(owned, prof, rules), rules)
+    s = rules.settings
+    request.app.state.db.candidates.update_one({"_id": cand["_id"]}, {"$set": {"last_advice": {
+        "verdict": advice["verdict"], "good_outfits": advice["good_outfits"],
+        "codes": assessed["codes"], "confidence": assessed["confidence"],
+        "thresholds": {"good_outfit": s["good_outfit"], "buy_min": int(s["buy_min_outfits"]),
+                       "think_min": int(s["think_min_outfits"])},
+        "price_tnd": cand.get("price_tnd"), "computed_at": datetime.now(timezone.utc)}}})
     # why this verdict: owned ids become short items the app can show with their photo
     why = explain_outfit.buy_explanation(advice, rules)
     explanation = {**why,
@@ -183,7 +198,8 @@ def buy_advice(body: BuyAdvice, request: Request, user=Depends(gendered_user)):
     return {"verdict": advice["verdict"], "good_outfits": advice["good_outfits"],
             "reasons": advice["reasons"], "candidate": item_out(cand, kind="candidates"),
             "best": [outfit_out(o, by_id, explain=True, rules=rules) for o in advice["best"]],
-            "explanation": explanation}
+            "explanation": explanation,
+            "confidence": assessed["confidence"], "codes": assessed["codes"]}
 
 
 @router.get("/similar")
