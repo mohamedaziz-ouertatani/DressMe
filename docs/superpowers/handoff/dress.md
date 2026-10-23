@@ -148,6 +148,16 @@ gained only `label`, `confidence` and `confidence_reasons` (all 22 outfit confid
 `medium` / `low` in the buy-advice goldens are the verdict's own). Frontend: `npm run build && npm run lint`;
 no frontend tests: use `manual-checks/step-2.md`.
 
+## 5b. Incomplete outfits (step 6b)
+
+`dress.outfit_completeness(items, rules)` (pure) returns `{complete, missing}`: complete = a top and a bottom, or a full
+piece (dress, traditional, swimwear: the `slot` column of `mappings/outfit_structure.csv`); shoes and accessories are not
+required; `missing` is `bottom`, `top` or `core` (neither). `outfit_out(..., explain=True)` adds both fields to every
+app outfit (`/outfits/score|suggest|complete|today|build`, the verdict's `best`); the chat tools keep the short form.
+The score is not changed: a top + shoes outfit still scores 86 (`test_known_issue_incomplete_outfit_scores_high`), and the
+app shows "Incomplete: add a bottom" next to it (`ui/IncompleteNote.tsx`, on the card, in the details sheet, on the verdict strip).
+Build completes a top + shoes pick by itself, so the note only shows there when the wardrobe has nothing to complete it with.
+
 ## 6. Suggested next tasks
 
 1. Pick the numbers of section 4 on real wardrobes (most outfits of the frozen wardrobe are "safe": the cuts decide
@@ -157,3 +167,9 @@ no frontend tests: use `manual-checks/step-2.md`.
 4. The wear history screen with the Wardrobe view (step 5); ask `occasion` / `event_name` there.
 5. Load today's entries once per page; send the chip from Build; a season filter in Build.
 6. Apply the Dress look (tokens) to the other pages, and review the new French and Arabic sentences with a native speaker.
+
+### Future work
+
+- Check the compatibility swap test (`evaluate_compatibility.py`): colour, pattern and structure score about 50 % AUC, which
+  may be because of ties (many swaps leave those parts equal), not because they carry no signal. Break ties or use a
+  tie-aware metric before concluding they add nothing.
