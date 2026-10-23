@@ -1,20 +1,25 @@
 import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
-import { LayoutGrid, LogOut, MessageCircle, ScanLine, Shirt, ShieldCheck, ShoppingBag, UserRound } from 'lucide-react'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { House, LayoutGrid, LogOut, MessageCircle, ScanLine, Shirt, ShieldCheck, ShoppingBag, UserRound } from 'lucide-react'
 import { useAuth } from './auth'
 import { useI18n } from './i18n'
 import type { StringKey } from './i18n/strings'
+import { LookContext } from './ui/look'
 
-// The phone tab bar has 5 slots with Scan in the middle: the same five items as the desktop rail.
-// short = a shorter label for the phone tab bar, where a long one wraps.
-const NAV: { to: string; key: StringKey; icon: typeof Shirt; short?: StringKey }[] = [
+// The desktop rail lists every item, Home first. The phone tab bar (the prototype's floating pill) has five:
+// Home, Dress, Buy?, Wardrobe, Assistant; Shops is reached from Home and the rail.
+// short = a shorter label for the phone tab bar, where a long one does not fit.
+type NavItem = { to: string; key: StringKey; icon: typeof Shirt; short?: StringKey }
+const NAV: NavItem[] = [
+  { to: '/', key: 'navHome', icon: House },
   { to: '/dress', key: 'navDress', icon: Shirt },
   { to: '/wardrobe', key: 'navWardrobe', icon: LayoutGrid },
   { to: '/scan', key: 'navScan', short: 'navScanShort', icon: ScanLine },
   { to: '/shop', key: 'navShop', icon: ShoppingBag },
   { to: '/chat', key: 'navChat', icon: MessageCircle },
 ]
+const PHONE_NAV = ['/', '/dress', '/scan', '/wardrobe', '/chat'].map((to) => NAV.find((n) => n.to === to)!)
 
 /** The wordmark: a small perforated tag before the name. */
 export function Wordmark({ className = '' }: { className?: string }) {
@@ -37,12 +42,31 @@ function todaySerial(): string {
 
 /** Page frame: a header ticket (title on the face; date and serial on the
  *  perforated stub, like a validated fare), then the content. */
-export function Page({ title, children, aside, serial }: {
+export function Page({ title, children, aside, serial, look = 'ticket', kicker }: {
   title: string
   children: ReactNode
   aside?: ReactNode
   serial?: string
+  look?: 'ticket' | 'soft'         // soft = the team prototype's look (step H): kicker + display headline, flat cards
+  kicker?: ReactNode               // soft look only: the short line above the headline
 }) {
+  if (look === 'soft') {
+    return (
+      <LookContext.Provider value="soft">
+        <div className="look-soft page-enter mx-auto w-full max-w-[1080px] px-5 pb-6 pt-4 lg:px-10 lg:pb-16 lg:pt-10">
+          <PageHeader title={title} kicker={kicker} />
+          {aside ? (
+            <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
+              <div className="min-w-0">{children}</div>
+              <aside className="min-w-0">{aside}</aside>
+            </div>
+          ) : (
+            children
+          )}
+        </div>
+      </LookContext.Provider>
+    )
+  }
   return (
     <div className="page-enter mx-auto w-full max-w-[1080px] px-4 pb-6 pt-3 lg:px-10 lg:pb-16 lg:pt-10">
       <header className="ticket mb-5 flex">
@@ -66,20 +90,39 @@ export function Page({ title, children, aside, serial }: {
   )
 }
 
-/** Keeps the CSS variable --tabbar-h equal to the phone tab bar's real height. The bar pads itself by
- *  env(safe-area-inset-bottom), so the measured height already includes that inset. The content below
- *  reads the variable instead of a fixed number, so it follows the bar if its height ever changes. */
+/** The soft look's page header: a short kicker line, then the one display headline of the screen. */
+export function PageHeader({ title, kicker, aside }: { title: ReactNode; kicker?: ReactNode; aside?: ReactNode }) {
+  return (
+    <header className="mb-6 flex items-start justify-between gap-4">
+      <div className="flex min-w-0 flex-col gap-1.5">
+        {kicker && <p className="text-[14px] font-medium leading-5 text-carbon-soft">{kicker}</p>}
+        <h1 className="font-display text-[32px] font-bold leading-9 text-carbon lg:text-[40px] lg:leading-[42px]">{title}</h1>
+      </div>
+      {aside}
+    </header>
+  )
+}
+
+/** Keeps the CSS variable --tabbar-h equal to the room the phone tab bar takes at the bottom of the screen: the
+ *  floating bar's height PLUS its distance from the bottom edge (which includes env(safe-area-inset-bottom)), so
+ *  `pb-[var(--tabbar-h)]` clears it. 0 when the bar is hidden (desktop). The content reads the variable instead of
+ *  a fixed number, so it follows the bar if its size or offset ever changes. */
 function useTabBarHeight() {
   const root = useRef<HTMLDivElement>(null)
   const bar = useRef<HTMLElement>(null)
   useEffect(() => {
     const el = bar.current
     if (!root.current || !el) return
-    const update = () => root.current?.style.setProperty('--tabbar-h', `${Math.ceil(el.getBoundingClientRect().height)}px`)
+    const update = () => {
+      const box = el.getBoundingClientRect()
+      const room = box.height ? Math.ceil(window.innerHeight - box.top) : 0
+      root.current?.style.setProperty('--tabbar-h', `${room}px`)
+    }
     update()
     const watcher = new ResizeObserver(update)
-    watcher.observe(el, { box: 'border-box' })     // padding (the safe-area inset) counts too
-    return () => watcher.disconnect()
+    watcher.observe(el, { box: 'border-box' })
+    window.addEventListener('resize', update)        // the offset from the bottom changes with the viewport
+    return () => { watcher.disconnect(); window.removeEventListener('resize', update) }
   }, [])
   return { root, bar }
 }
@@ -88,6 +131,9 @@ export function AppShell() {
   const { t } = useI18n()
   const { user, logout } = useAuth()
   const { root, bar } = useTabBarHeight()
+  const { pathname } = useLocation()
+  const home = pathname === '/'                         // Home has its own header (greeting and avatar)
+  const current = (to: string) => (to === '/' ? pathname === '/' : pathname === to || pathname.startsWith(`${to}/`))
 
   return (
     <div ref={root} className="min-h-dvh lg:flex">
@@ -141,7 +187,7 @@ export function AppShell() {
 
       <div className="min-w-0 flex-1">
         {/* phone header */}
-        <div className="flex items-center justify-between px-4 pt-[max(12px,env(safe-area-inset-top))] lg:hidden">
+        <div className={`items-center justify-between px-4 pt-[max(12px,env(safe-area-inset-top))] lg:hidden ${home ? 'hidden' : 'flex'}`}>
           <Wordmark />
           <div className="flex items-center gap-1">
             {user?.role === 'admin' && (
@@ -154,41 +200,39 @@ export function AppShell() {
             </NavLink>
           </div>
         </div>
-        {/* below lg the fixed tab bar covers the bottom: pad by its height (safe-area inset included) plus
-            2rem for the Scan button that sticks out above it, so the last element scrolls fully clear */}
-        <main id="main-content" tabIndex={-1} className="pb-[calc(var(--tabbar-h,57px)+2rem)] lg:pb-0">
+        {/* below lg the floating tab bar covers the bottom: pad by the room it takes (its height, its offset and the
+            safe-area inset) plus a little air, so the last element scrolls fully clear */}
+        <main id="main-content" tabIndex={-1} className="pb-[calc(var(--tabbar-h,88px)+1rem)] lg:pb-0">
           <Outlet />
         </main>
       </div>
 
-      {/* phone tab bar: stubs torn along a perforation; Scan is the big centre slot */}
-      <nav ref={bar} aria-label="Main" className="fixed inset-x-0 bottom-0 z-20 border-t-[1.5px] border-dashed border-perf bg-paper pb-[env(safe-area-inset-bottom)] lg:hidden">
-        <ul className="mx-auto grid max-w-md grid-cols-5 items-end">
-          {NAV.map(({ to, key, short, icon: Icon }) => {
-            const scan = to === '/scan'
-            return (
-              <li key={to} className="flex justify-center">
-                <NavLink
-                  to={to}
-                  end={to === '/'}
-                  className={({ isActive }) =>
-                    scan
-                      ? `-mt-6 flex size-[68px] flex-col items-center justify-center gap-0.5 px-1 text-center text-[11px] font-semibold leading-[1.1] shadow-[var(--shadow-lift)] ${isActive ? 'bg-stamp text-paper' : 'bg-ink text-paper'}`
-                      : `relative flex min-h-14 w-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium ${isActive ? 'text-ink' : 'text-carbon-soft'}`
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      {isActive && !scan && <span aria-hidden className="absolute top-1.5 size-2 rounded-full bg-stamp" />}
-                      <Icon className={scan ? 'size-7' : 'size-5'} aria-hidden />
-                      {t(short ?? key)}
-                    </>
-                  )}
-                </NavLink>
-              </li>
-            )
-          })}
-        </ul>
+      {/* phone tab bar: the prototype's floating pill. The current tab is a near-black pill with its icon and label;
+          the others show the icon only (their name is the aria-label). */}
+      <nav
+        ref={bar}
+        aria-label="Main"
+        className="look-soft fixed inset-x-5 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] z-20 mx-auto flex h-tabbar max-w-[440px] items-center justify-between rounded-pill bg-surface p-2 shadow-[var(--shadow-float)] lg:hidden"
+      >
+        {PHONE_NAV.map(({ to, key, short, icon: Icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end={to === '/'}
+            aria-label={current(to) ? undefined : t(key)}
+            className={({ isActive }) =>
+              `press flex h-tap min-w-tap shrink-0 items-center justify-center gap-2 rounded-pill text-[14px] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${
+                isActive ? 'bg-pill px-4 text-pill-text' : 'text-carbon-soft'
+              }`}
+          >
+            {({ isActive }) => (
+              <>
+                <Icon className="size-6" strokeWidth={1.75} aria-hidden />
+                {isActive && <span className="whitespace-nowrap">{t(short ?? key)}</span>}
+              </>
+            )}
+          </NavLink>
+        ))}
       </nav>
     </div>
   )
