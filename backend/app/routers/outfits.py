@@ -143,6 +143,24 @@ Season = Literal[tuple(SEASONS)]       # only these values are accepted (else 42
 Occasion = Literal[tuple(USAGES)]
 
 
+def ranked_suggestions(request, user, docs, prof, rules, dress_rules, n):
+    """The `n` best outfits of the wardrobe for a profile (season, occasion, beach...), with the recent-wear
+    penalty when the team turned it on. The one place GET /outfits/suggest and GET /outfits/today read from."""
+    # TODO(step 2): wear_penalty_days and wear_penalty_points start at 0 (mappings/dress_rules.csv, REVIEW): the
+    # team picks the values, then the suggestions start to rotate the pieces worn recently.
+    penalty = dress.penalty_active(dress_rules)
+    # the penalty re-orders a longer list (the first n of it are the outfits asked for without it, as each
+    # piece is used in at most 2); with the penalty off nothing is fetched, re-ordered or changed
+    outfits = compatibility.suggest_outfits([to_compat(d) for d in docs], prof, n=max(n, 20) if penalty else n, rules=rules)
+    if penalty:
+        today = dress.tunis_date(datetime.now(timezone.utc))
+        recent = request.app.state.db.wear_log.find(
+            {"user_id": user["_id"], "worn_on": {"$gte": (today - timedelta(days=int(dress_rules["wear_penalty_days"]))).isoformat()}})
+        outfits = dress.apply_wear_penalty(outfits, dress.recently_worn(recent, today, dress_rules["wear_penalty_days"]),
+                                           dress_rules, n)
+    return outfits
+
+
 @router.get("/outfits/suggest")
 def suggest(request: Request, season: Season | None = None, occasion: Occasion | None = None,
             n: int = Query(5, ge=1, le=20), beach: bool = False, user=Depends(gendered_user)):
@@ -152,18 +170,7 @@ def suggest(request: Request, season: Season | None = None, occasion: Occasion |
     prof["beach"] = beach
     rules = rules_of(user)
     dress_rules = dress.load_rules()
-    # TODO(step 2): wear_penalty_days and wear_penalty_points start at 0 (mappings/dress_rules.csv, REVIEW): the
-    # team picks the values, then the suggestions start to rotate the pieces worn recently.
-    penalty = dress.penalty_active(dress_rules)
-    # the penalty re-orders a longer list (the first n of it are the outfits asked for without it, as each
-    # piece is used in at most 2); with the penalty off nothing is fetched, re-ordered or changed
-    outfits = compatibility.suggest_outfits([to_compat(d) for d in docs], prof, n=20 if penalty else n, rules=rules)
-    if penalty:
-        today = dress.tunis_date(datetime.now(timezone.utc))
-        recent = request.app.state.db.wear_log.find(
-            {"user_id": user["_id"], "worn_on": {"$gte": (today - timedelta(days=int(dress_rules["wear_penalty_days"]))).isoformat()}})
-        outfits = dress.apply_wear_penalty(outfits, dress.recently_worn(recent, today, dress_rules["wear_penalty_days"]),
-                                           dress_rules, n)
+    outfits = ranked_suggestions(request, user, docs, prof, rules, dress_rules, n)
     outfits = labelled_outfits(outfits, docs, prof, rules, dress_rules)
     return [outfit_out(o, by_id, explain=True, rules=rules) for o in outfits]
 

@@ -41,6 +41,7 @@
    ],
    "label": "safe",
    "confidence": "high",
+   "confidence_reasons": [],
    "contributions": [
     {
      "part": "style",
@@ -146,6 +147,7 @@
    ],
    "label": "safe",
    "confidence": "high",
+   "confidence_reasons": [],
    "contributions": [
     {
      "part": "style",
@@ -244,6 +246,7 @@
    ],
    "label": "bolder",
    "confidence": "high",
+   "confidence_reasons": [],
    "contributions": [
     {
      "part": "style",
@@ -331,6 +334,7 @@
    ],
    "label": "experimental",
    "confidence": "high",
+   "confidence_reasons": [],
    "contributions": [
     {
      "part": "style",

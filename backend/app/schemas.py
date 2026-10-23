@@ -102,6 +102,13 @@ class DecisionIn(BaseModel):
     price_paid: float | None = Field(None, gt=0, le=100000)      # optional: what they really paid
 
 
+class BuildIn(BaseModel):
+    """The Dress page, Build mode: the pieces picked so far, and what to dress for."""
+    item_ids: list[str] = Field(min_length=1, max_length=8)
+    occasion: str | None = Field(None, max_length=40)       # a chip of mappings/dress_occasions.csv
+    shuffle: int = Field(0, ge=0, le=1_000_000)             # "New outfits" counts up
+
+
 class WearIn(BaseModel):
     """"I wore this": the pieces worn today, and what the app showed for that outfit."""
     item_ids: list[str] = Field(min_length=1, max_length=10)

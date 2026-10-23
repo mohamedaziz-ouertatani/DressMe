@@ -86,6 +86,7 @@ def outfit_out(result, docs_by_id, explain=False, rules=None):
     if "label" in result:                    # step 2 (src/phase4/dress.py): only the routes that label outfits
         out["label"] = result["label"]
         out["confidence"] = result["confidence"]
+        out["confidence_reasons"] = result.get("confidence_reasons", [])
     if explain:
         import compatibility
         import explain_outfit
