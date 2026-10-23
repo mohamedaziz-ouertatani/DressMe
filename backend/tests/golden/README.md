@@ -23,11 +23,13 @@ answer recorded before the upgrade. If something changes, the test says exactly 
 | `expected/outfits_suggest.json` | `GET /outfits/suggest` for three fixed inputs: no filter, `season=summer&occasion=casual`, `occasion=formal`. |
 | `expected/outfits_score.json` | `POST /outfits/score` for two fixed outfits, and the 422 answer for two tops. |
 | `expected/outfits_complete.json` | `POST /outfits/complete` from a top, from a top + a bottom, and from a dress. |
+| `wardrobe_men.json` | Step 2: a second frozen wardrobe, for a man (`golden-men@example.com`, no modesty level): 14 pieces (Fashion Product Men, test split, plus one Fashionpedia swim-shorts crop, because Fashion Product has no men's swimwear), with the classifier's predictions and real vectors. Built by `make_wardrobe.py` in the same run; the women's `wardrobe.json` stays byte for byte the same. |
+| `expected/outfits_suggest_men.json` | Step 2, `test_outfits_suggest_men_and_beach`: `GET /outfits/suggest` for the man (3 everyday outfits, swimwear left out) and `?beach=true` (one outfit around the swim-shorts, no shoes). Recorded from the behaviour of `main` before the Dress step. |
 | `expected/insights.json` | `GET /insights` for the whole wardrobe. |
 
 Not covered on purpose: the chat, try-on, weather, listings browsing, the admin pages, outfit
-feedback, swimwear / beach outfits (no swimsuit in the wardrobe). The wardrobe is a woman's:
-the men's rules (`gender` rows in `mappings/`) are not exercised here.
+feedback. `wardrobe.json` is a woman's; the man's wardrobe (step 2) covers the men's profile and the
+beach request, but only `/outfits/suggest`.
 
 ## How answers are compared
 

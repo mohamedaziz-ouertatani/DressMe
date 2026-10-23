@@ -25,6 +25,14 @@ What is in it
   /listings/{id}/candidate then /buy-advice.
 - scenarios: the fixed inputs of the golden tests.
 
+- wardrobe_men.json (step 2 of the upgrade, a second FROZEN wardrobe for another user, so the
+  women's file above stays byte for byte the same): a man's wardrobe of 14 pieces for the men's
+  /outfits/suggest and the beach request. Pieces come from Fashion Product (Men, test split) and
+  one swim-shorts crop from Fashionpedia (Fashion Product has no men's swimwear). Same rule as
+  above: category, sub_category and pattern are the CLASSIFIER's predictions; the colour is the
+  dataset's own label (Fashion Product) or the colour model's guess (Fashionpedia), and counts as
+  confirmed by the user. Built by `build_men` below; the scenarios are MEN_SCENARIOS.
+
 Stable on purpose: the script refuses to write the file if any outfit that decides a verdict
 scores within 1 point of the good-outfit threshold (60), or within 1 point of the owned piece
 it is compared with, so the golden tolerance (+-0.5) can never flip a verdict. The checks are
@@ -50,6 +58,7 @@ import similarity  # noqa: E402
 from item_images import DATA  # noqa: E402
 
 OUT = Path(__file__).resolve().parent / "wardrobe.json"
+OUT_MEN = Path(__file__).resolve().parent / "wardrobe_men.json"
 
 # ---------------------------------------------------------------- what is frozen
 SEED_PLAN = [("top", 5), ("bottom", 3), ("dress", 2), ("outerwear", 2), ("shoes", 3), ("bag", 2)]
@@ -97,6 +106,23 @@ SCENARIOS = {
         "from_top": {"item_ids": ["top_1"], "k": 3},
         "from_top_and_bottom": {"item_ids": ["top_2", "bottom_3"], "k": 3},
         "from_dress": {"item_ids": ["dress_2"], "k": 3},
+    },
+}
+
+
+# The second frozen wardrobe (step 2): a man, no modesty level. (dataset, category, sub_category, how many);
+# "fp" = Fashion Product (Men, test split), "fpd" = Fashionpedia crops (the only men's swimwear we have).
+MEN_USER = {"email": "golden-men@example.com", "password": "golden-pass-123", "name": "Golden Men",
+            "gender": "men", "min_coverage": None}
+MEN_PLAN = [("fp", "top", "t-shirt", 2), ("fp", "top", "shirt", 1), ("fp", "top", "sweatshirt", 1),
+            ("fp", "bottom", "jeans", 2), ("fp", "bottom", "trousers", 1), ("fp", "bottom", "shorts", 1),
+            ("fp", "outerwear", "jacket", 1), ("fp", "shoes", "sneakers", 1), ("fp", "shoes", "casual-shoes", 1),
+            ("fp", "shoes", "formal-shoes", 1), ("fp", "accessory", "watch", 1), ("fpd", "swimwear", "swim-shorts", 1)]
+MEN_RANDOM_STATE = 16               # chosen by trying 1..40: stable order (scores 88.8 / 87.5 / 77.0, no near-tie)
+MEN_SCENARIOS = {
+    "suggest": {
+        "default": {"n": 3},                          # swimwear is left out of everyday outfits (3: shoes can be in 2 outfits only)
+        "beach": {"beach": True, "n": 3},             # beach / pool outfits around a swimsuit, no shoes
     },
 }
 
@@ -200,10 +226,11 @@ def build_wardrobe(t):
     return items
 
 
-def profile_for(items_c, rules, season=None, occasion=None):
+def profile_for(items_c, rules, season=None, occasion=None, user=USER, beach=False):
     """What routers.outfits.user_profile builds (no outfit feedback in the golden user)."""
-    return {"min_coverage": USER["min_coverage"], "season": season, "occasion": occasion,
-            "style_vector": C.user_style_profile(items_c, [], rules), "disliked_outfits": set()}
+    return {"min_coverage": user["min_coverage"], "season": season, "occasion": occasion,
+            "style_vector": C.user_style_profile(items_c, [], rules), "disliked_outfits": set(),
+            "beach": beach}
 
 
 # ---------------------------------------------------------------- stability checks
@@ -351,6 +378,70 @@ def search(t, items, items_c, profile, rules):
                   f"{r['category']}/{r['sub_category']} {r['primary_colour']} {r['pattern']} - {r['name']}")
 
 
+# ---------------------------------------------------------------- the men's wardrobe (step 2)
+def stored_men_item(t, row_id, hex_id_, created_at):
+    """A men's piece as the app would have stored it. Fashion Product has a true colour label, so the
+    user "confirmed" it (colour in `corrected`, the dataset's confidence is 1.0); a Fashionpedia crop
+    has the colour model's guess, like the women's wardrobe."""
+    p = t.pred.loc[row_id]
+    row = t.df.set_index("id").loc[row_id]
+    if row_id in t.col.index:
+        c = t.col.loc[row_id]
+        colour_conf, guessed = float(c["colour_confidence"]), c["predicted_colour"]
+        colour = c["primary_colour"] if colour_conf >= 0.7 else ""
+        corrected = []
+    else:
+        colour_conf, guessed, colour, corrected = 1.0, row["primary_colour"], row["primary_colour"], ["colour"]
+    return {
+        "id": hex_id_, "dataset_id": row_id,
+        "category": p["pred_category"], "sub_category": p["pred_sub_category"],
+        "pattern": p["pred_pattern"], "colour": colour,
+        "coverage": None, "season": [], "usage": [],
+        "predicted": {"category": guess(p["pred_category"], p["pred_category_conf"]),
+                      "sub_category": guess(p["pred_sub_category"], p["pred_sub_category_conf"]),
+                      "pattern": guess(p["pred_pattern"], p["pred_pattern_conf"]),
+                      "colour": guess(guessed, colour_conf)},
+        "corrected": corrected, "created_at": created_at,
+        "vector_b64": b64(t.idx.vector(row_id)),
+    }
+
+
+def build_men(t):
+    """The 14 pieces of MEN_PLAN: for each line, a sample of the pieces the classifier labels the same as
+    the dataset does (so a golden piece is a typical one), in plan order, with keys like top_1."""
+    ok = t.df[(t.df["duplicate"] != "True") & t.df["id"].isin(t.pred.index) & t.df["id"].isin(t.idx.row_of.index)]
+    items, counts = [], {}
+    for source, category, sub, n in MEN_PLAN:
+        # Fashion Product: test split. Fashionpedia swim-shorts: val + test (the test split has only 2, and the
+        # classifier does not read them as swim-shorts)
+        splits = ["test"] if source == "fp" else ["val", "test"]
+        pool = ok[(ok["dataset"] == ("fashion_product" if source == "fp" else "fashionpedia"))
+                  & (ok["sub_category"] == sub) & ok["split"].isin(splits)]
+        if source == "fp":
+            pool = pool[pool["gender"] == "Men"]
+        pool = pool[pool["id"].map(t.pred["pred_sub_category"]) == sub]
+        for row_id in pool.sample(n, random_state=MEN_RANDOM_STATE)["id"]:
+            doc = stored_men_item(t, row_id, hex_id(4, len(items) + 1), f"2026-10-01T11:{len(items) + 1:02d}:00Z")
+            counts[doc["category"]] = counts.get(doc["category"], 0) + 1
+            doc["key"] = f"{doc['category']}_{counts[doc['category']]}"
+            items.append(doc)
+    return items
+
+
+def check_men(items_c, rules):
+    """Run the men's fixed inputs once; return (problems, scores per input)."""
+    problems, summary = [], {}
+    for name, p in MEN_SCENARIOS["suggest"].items():
+        prof = profile_for(items_c, rules, user=MEN_USER, beach=bool(p.get("beach")))
+        out = C.suggest_outfits(items_c, prof, n=p["n"], rules=rules)
+        scores = [o["score"] for o in out]
+        problems += [f"men suggest {name}: {m}" for m in order_gaps(scores, "outfits")]
+        if len(out) < (1 if p.get("beach") else p["n"]):
+            problems.append(f"men suggest {name}: only {len(out)} outfit(s)")
+        summary[f"suggest_{name}"] = scores
+    return problems, summary
+
+
 # ---------------------------------------------------------------- build
 def check_scenarios(items, items_c, profile, rules):
     """Run every fixed input once with the real functions; return (problems, a short summary)."""
@@ -442,6 +533,23 @@ def main():
     OUT.write_text(json.dumps(data, indent=1) + "\n", encoding="utf-8")
     print(f"wrote {OUT} ({OUT.stat().st_size / 1024:.1f} KB)")
     print(json.dumps(data["checked"], indent=1))
+
+    # --- the second frozen wardrobe (a man), for the men's and the beach /outfits/suggest
+    men_rules = C.rules_for(MEN_USER["gender"])
+    men = build_men(t)
+    men_c = [compat_item(d) for d in men]
+    men_problems, men_summary = check_men(men_c, men_rules)
+    assert not men_problems, "unstable men's scenarios:\n  " + "\n  ".join(men_problems)
+    men_data = {
+        "format": 1,
+        "about": "Frozen golden wardrobe of a man (step 2). Generated by backend/tests/golden/make_wardrobe.py; "
+                 "see that file. Do not edit by hand.",
+        "user": MEN_USER, "items": men, "scenarios": MEN_SCENARIOS,
+        "checked": {"scenario_scores": men_summary},
+    }
+    OUT_MEN.write_text(json.dumps(men_data, indent=1) + "\n", encoding="utf-8")
+    print(f"wrote {OUT_MEN} ({OUT_MEN.stat().st_size / 1024:.1f} KB)")
+    print(json.dumps(men_data["checked"], indent=1))
 
 
 if __name__ == "__main__":

@@ -46,6 +46,7 @@ from tests.conftest import BLACK, RED, TEST_DB, photo, sign_up
 GOLDEN_DIR = Path(__file__).resolve().parent / "golden"
 EXPECTED_DIR = GOLDEN_DIR / "expected"
 WARDROBE = json.loads((GOLDEN_DIR / "wardrobe.json").read_text(encoding="utf-8"))
+WARDROBE_MEN = json.loads((GOLDEN_DIR / "wardrobe_men.json").read_text(encoding="utf-8"))      # step 2: a man
 RECORD = os.getenv("GOLDEN_RECORD") == "1"
 
 TOL_SCORE = 0.5      # scores and points
@@ -188,6 +189,18 @@ def golden(make_client, settings):
     return SimpleNamespace(client=client, headers=headers, ids=ids, listing_id=listing["id"], db=db)
 
 
+@pytest.fixture
+def golden_men(make_client, settings):
+    """A client logged in as the second frozen user (a man, step 2) with his 14 pieces seeded; no scans, no listing."""
+    client = make_client()
+    user = WARDROBE_MEN["user"]
+    headers = sign_up(client, user["email"], user["name"], user["gender"])
+    db = MongoClient(settings.mongo_url)[TEST_DB]
+    user_id = db.users.find_one({"email": user["email"]})["_id"]
+    db.items.insert_many([stored(d, user_id) for d in WARDROBE_MEN["items"]])
+    return SimpleNamespace(client=client, headers=headers, db=db)
+
+
 def ids_of(golden, keys):
     return [golden.ids[k] for k in keys]
 
@@ -225,6 +238,21 @@ def test_outfits_suggest(golden):
         assert r.status_code == 200, r.text
         answers[name] = r.json()
     check("outfits_suggest", answers)
+
+
+def test_outfits_suggest_men_and_beach(golden_men):
+    """Step 2: what a man gets from /outfits/suggest, and the beach request (outfits around a swimsuit, no shoes).
+    Recorded from the behaviour of main before the Dress step, so it proves that step changed neither."""
+    answers = {}
+    for name, p in WARDROBE_MEN["scenarios"]["suggest"].items():
+        params = {k: ("true" if v is True else v) for k, v in p.items()}
+        r = golden_men.client.get("/outfits/suggest", params=params, headers=golden_men.headers)
+        assert r.status_code == 200, r.text
+        answers[name] = r.json()
+    assert not any(i["category"] == "swimwear" for o in answers["default"] for i in o["items"])   # left out of everyday outfits
+    assert all(any(i["category"] == "swimwear" for i in o["items"]) and not any(i["category"] == "shoes" for i in o["items"])
+               for o in answers["beach"])
+    check("outfits_suggest_men", answers)
 
 
 def test_outfits_score(golden):
