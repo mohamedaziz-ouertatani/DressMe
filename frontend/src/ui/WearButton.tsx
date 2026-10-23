@@ -32,6 +32,9 @@ export function WearButton({ outfit, source, occasion }: {
   const ids = outfit.items.map((i) => i.id)
   const [state, setState] = useState<State>({ kind: 'checking' })
 
+  // TODO(step 2): one GET /wear per card shown. The full version loads today's entries once per page (and a
+  // history screen, step 5, reads the same list).
+
   useEffect(() => {
     let stale = false
     const day = tunisToday()

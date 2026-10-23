@@ -152,6 +152,8 @@ def suggest(request: Request, season: Season | None = None, occasion: Occasion |
     prof["beach"] = beach
     rules = rules_of(user)
     dress_rules = dress.load_rules()
+    # TODO(step 2): wear_penalty_days and wear_penalty_points start at 0 (mappings/dress_rules.csv, REVIEW): the
+    # team picks the values, then the suggestions start to rotate the pieces worn recently.
     penalty = dress.penalty_active(dress_rules)
     # the penalty re-orders a longer list (the first n of it are the outfits asked for without it, as each
     # piece is used in at most 2); with the penalty off nothing is fetched, re-ordered or changed

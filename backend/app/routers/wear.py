@@ -9,6 +9,10 @@ The wear log (step 2 of the upgrade): what the user wore, day by day.
 taken from the app. The same set of pieces on the same day is one entry: the second POST returns the first
 (200), so a double tap or a reload never doubles the log. Every piece must be the user's own (else 404).
 No screen shows the history yet: it comes with the wardrobe view (step 5).
+
+TODO(step 2): the history screen is still to come (step 5, the Wardrobe view): it will read GET /wear. The app
+does not ask for `occasion` or `event_name` yet (the API accepts and keeps them), and GET /wear stops at 500
+entries (add paging when a screen needs more).
 """
 
 from datetime import date, datetime, timezone
