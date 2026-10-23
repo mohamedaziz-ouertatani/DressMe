@@ -95,5 +95,12 @@ class BuyAdvice(BaseModel):
     price_tnd: float | None = Field(None, gt=0, le=100000)    # the price on the tag; missing = unknown (never 0)
 
 
+class DecisionIn(BaseModel):
+    """What the user did after a verdict: bought the piece, or left it."""
+    candidate_id: str
+    answer: Literal["bought", "left"]
+    price_paid: float | None = Field(None, gt=0, le=100000)      # optional: what they really paid
+
+
 class ChatMessage(BaseModel):
     message: str = Field(min_length=1, max_length=2000)

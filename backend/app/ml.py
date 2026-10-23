@@ -23,6 +23,15 @@ from .config import SRC_DIRS
 sys.path[:0] = [str(d) for d in SRC_DIRS]
 
 
+def file_tag(path):
+    """'classifier_best.pt 2026-10-10': a model file's name and the day it was written."""
+    from datetime import datetime, timezone
+    try:
+        return f"{path.name} {datetime.fromtimestamp(path.stat().st_mtime, timezone.utc):%Y-%m-%d}"
+    except OSError:
+        return path.name
+
+
 class Analyzer:
     def __init__(self):
         import joblib
@@ -38,6 +47,14 @@ class Analyzer:
         self._colour = joblib.load(estimate_colours.MODEL_PATH)
         self._modules = (classifier, fashionclip, estimate_colours)
         self._explain, self._palette = explain, Palette()
+
+    @property
+    def versions(self):
+        """The model files behind the labels (a saved item keeps them as `analysed_by`):
+        the file name and the day it was written, so a retrained model is told apart."""
+        classifier, fashionclip, estimate_colours = self._modules
+        return {"classifier": file_tag(classifier.CHECKPOINT), "colour": file_tag(estimate_colours.MODEL_PATH),
+                "embedding": fashionclip.MODEL_NAME}
 
     def analyze(self, img):
         explain = self._explain

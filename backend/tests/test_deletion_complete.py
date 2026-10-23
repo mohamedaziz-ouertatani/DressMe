@@ -17,7 +17,7 @@ from bson import ObjectId
 from tests.conftest import BLACK, BLUE, GREEN, RED, photo, sign_up
 
 # the places that must really hold the user's data before the deletion, or the test proves nothing
-MUST_HOLD_DATA = {"users", "items", "candidates", "chats", "events", "outfit_feedback", "listings"}
+MUST_HOLD_DATA = {"users", "items", "candidates", "chats", "events", "outfit_feedback", "listings", "decisions"}
 
 
 def mentions(value, user_id):
@@ -57,6 +57,15 @@ def leave_data_everywhere(client, headers):
     scan = client.post("/analyze", files={"photo": photo(GREEN)}, headers=headers).json()
     assert client.post("/buy-advice", json={"candidate_id": scan["id"], "corrections": {"colour": "green"}},
                        headers=headers).status_code == 200
+    # step 1: the decision log. "Bought it" also saves the scan into the wardrobe; "Left it" leaves a
+    # second scan alone
+    assert client.post("/decisions", json={"candidate_id": scan["id"], "answer": "bought"},
+                       headers=headers).status_code == 201
+    left = client.post("/analyze", files={"photo": photo(RED)}, headers=headers).json()
+    assert client.post("/buy-advice", json={"candidate_id": left["id"], "price_tnd": 40},
+                       headers=headers).status_code == 200
+    assert client.post("/decisions", json={"candidate_id": left["id"], "answer": "left"},
+                       headers=headers).status_code == 201
 
     assert client.post("/outfits/feedback", json={"item_ids": [top["id"], bottom["id"]], "rating": 1},
                        headers=headers).status_code == 200

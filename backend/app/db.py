@@ -12,6 +12,8 @@ MongoDB access (pymongo). Collections:
     listing_runs  one line per collector run and source (admin page)
     listing_jobs  collector runs started from the admin page (app/jobs.py)
     source_checks the read-only shop checks run from Admin > Listings
+    decisions   "bought it" / "left it" after a verdict: the labels, a copy of what was shown
+                (last_advice) and the item made, never the photo (routers/decisions.py)
 
 FashionCLIP vectors are stored as raw float16 bytes (1 KB per item).
 """
@@ -21,12 +23,20 @@ from bson import Binary, ObjectId
 from bson.errors import InvalidId
 from pymongo import ASCENDING, MongoClient
 
+# The collections whose documents belong to ONE user (they carry `user_id`): deleting an account
+# empties all of them. A new per-user collection goes here, nowhere else.
+USER_COLLECTIONS = ("items", "candidates", "chats", "events", "outfit_feedback", "decisions")
+
 
 def connect(settings):
     client = MongoClient(settings.mongo_url, serverSelectionTimeoutMS=5000, tz_aware=True)
     db = client[settings.mongo_db]
     db.users.create_index("email", unique=True)
     db.items.create_index([("user_id", ASCENDING), ("created_at", ASCENDING)])
+    # a scan can become a wardrobe item only once (items made another way have no promoted_from.id)
+    db.items.create_index("promoted_from.id", unique=True,
+                          partialFilterExpression={"promoted_from.id": {"$exists": True}})
+    db.decisions.create_index([("user_id", ASCENDING), ("candidate_id", ASCENDING)], unique=True)
     db.candidates.create_index("created_at", expireAfterSeconds=24 * 3600)
     db.chats.create_index([("user_id", ASCENDING), ("created_at", ASCENDING)])
     db.events.create_index([("at", ASCENDING), ("type", ASCENDING)])

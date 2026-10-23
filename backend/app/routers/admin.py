@@ -35,7 +35,7 @@ from .. import ml  # noqa: F401  (puts src/ on the import path)
 import check_shop_source
 import compatibility
 
-from ..db import object_id
+from ..db import USER_COLLECTIONS, object_id
 from ..events import EVENT_TYPES
 from ..listings import SELLERS, SOURCES_FILE, last_run, listing_out, load_sources, usable
 from .listings import delete_seller_listings
@@ -150,7 +150,7 @@ def update_user(user_id: str, body: UserUpdate, request: Request, admin=Depends(
 def delete_user(user_id: str, request: Request, admin=Depends(current_admin)):
     user = other_user(request, admin, user_id)
     db = request.app.state.db
-    for coll in ("items", "candidates", "chats", "events", "outfit_feedback"):
+    for coll in USER_COLLECTIONS:
         db[coll].delete_many({"user_id": user["_id"]})
     delete_seller_listings(db, request.app.state.settings.storage_dir, user["_id"])
     request.app.state.listing_index.invalidate()
