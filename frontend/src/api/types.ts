@@ -67,6 +67,8 @@ export interface Item {
   predicted: Partial<Record<GuessField, Guess>>
   corrected: string[]
   image_url?: string
+  /** The scan this item was saved from ("Bought it"); missing for an upload. */
+  promoted_from?: { kind: string; id: string } | null
 }
 
 export type ItemPatch = Partial<Pick<Item, 'category' | 'sub_category' | 'pattern' | 'colour' | 'coverage' | 'season' | 'usage'>>

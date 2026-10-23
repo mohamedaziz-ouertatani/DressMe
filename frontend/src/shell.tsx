@@ -6,11 +6,12 @@ import { useI18n } from './i18n'
 import type { StringKey } from './i18n/strings'
 
 // phone: false = only in the desktop rail (the phone tab bar has 5 slots; Shops
-// is an icon in the phone header instead)
-const NAV: { to: string; key: StringKey; icon: typeof CalendarDays; phone?: false }[] = [
+// is an icon in the phone header instead). short = a shorter label for the phone tab bar,
+// where a long one wraps.
+const NAV: { to: string; key: StringKey; icon: typeof CalendarDays; phone?: false; short?: StringKey }[] = [
   { to: '/', key: 'navToday', icon: CalendarDays },
   { to: '/wardrobe', key: 'navWardrobe', icon: LayoutGrid },
-  { to: '/scan', key: 'navScan', icon: ScanLine },
+  { to: '/scan', key: 'navScan', short: 'navScanShort', icon: ScanLine },
   { to: '/build', key: 'navBuild', icon: Shapes },
   { to: '/chat', key: 'navChat', icon: MessageCircle },
   { to: '/shop', key: 'navShop', icon: ShoppingBag, phone: false },
@@ -146,7 +147,7 @@ export function AppShell() {
       {/* phone tab bar: stubs torn along a perforation; Scan is the big centre slot */}
       <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-20 border-t-[1.5px] border-dashed border-perf bg-paper pb-[env(safe-area-inset-bottom)] lg:hidden">
         <ul className="mx-auto grid max-w-md grid-cols-5 items-end">
-          {NAV.filter((n) => n.phone !== false).map(({ to, key, icon: Icon }) => {
+          {NAV.filter((n) => n.phone !== false).map(({ to, key, short, icon: Icon }) => {
             const scan = to === '/scan'
             return (
               <li key={to} className="flex justify-center">
@@ -163,7 +164,7 @@ export function AppShell() {
                     <>
                       {isActive && !scan && <span aria-hidden className="absolute top-1.5 size-2 rounded-full bg-stamp" />}
                       <Icon className={scan ? 'size-7' : 'size-5'} aria-hidden />
-                      {t(key)}
+                      {t(short ?? key)}
                     </>
                   )}
                 </NavLink>

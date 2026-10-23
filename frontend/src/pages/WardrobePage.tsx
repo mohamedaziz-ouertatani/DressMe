@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, ChartBar, CheckCheck, Lightbulb, Search, Trash2 } from 'lucide-react'
+import { ArrowLeft, ChartBar, CheckCheck, Lightbulb, ScanLine, Search, Trash2 } from 'lucide-react'
 import { api } from '../api/client'
 import type { Category, Item, ItemPatch } from '../api/types'
 import { useAuth } from '../auth'
@@ -171,6 +171,11 @@ export function ItemPage() {
                 </div>
               </div>
             </Ticket>
+            {it.promoted_from && (
+              <p className="mt-3 flex items-center gap-2 text-[13px] text-carbon-soft">
+                <ScanLine className="size-4 shrink-0" aria-hidden /> {t('addedFromScan')}
+              </p>
+            )}
             <section className="ticket mt-3 px-4 pb-4 pt-3" aria-busy={saving || undefined}>
               <p className="mb-1 text-[13px] text-carbon-soft">{t('checkFieldsHint')}</p>
               <div className="divide-y divide-perf/40">
