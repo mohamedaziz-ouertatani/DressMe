@@ -117,7 +117,7 @@ cd frontend && npm run build && npm run lint
 
 ## Files
 
-43 files, +3466 / -68 against `main`. New: `src/phase4/verdict.py`, `mappings/verdict_rules.csv`,
+44 files, +3590 / -68 against `main`. New: `src/phase4/verdict.py`, `mappings/verdict_rules.csv`,
 `backend/app/wardrobe_store.py`, `backend/app/routers/decisions.py`, `frontend/src/ui/VerdictExtras.tsx`, four
 test files, five golden files. Changed: `schemas.py`, `db.py`, `events.py`, `main.py`, `ml.py`, `wardrobe.py`,
 `routers/{admin,auth,items,listings,outfits}.py`, the Scan and Shop pages, the API types and client, the
