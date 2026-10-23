@@ -20,6 +20,7 @@ export interface User {
   language: Language
   gender: Gender | null
   needs_gender: boolean       // account from before the question: asked once
+  budget_tnd: number | null   // optional spending budget (no screen sets it yet)
 }
 
 export interface Alternative {
@@ -93,13 +94,51 @@ export interface Completion extends Outfit {
   item: Item
 }
 
+export type Confidence = 'high' | 'medium' | 'low'
+
+/** A reason code of the verdict (src/phase4/verdict.py): small_wardrobe, no_pairing_piece, guessed_field
+ *  (these lower the confidence); fills_gap, far_from_style, over_budget (these only inform). */
+export interface VerdictCode {
+  code: string
+  params: Record<string, string | number>
+}
+
 export interface BuyAdvice {
   verdict: Verdict
   good_outfits: number
   reasons: string[]
+  confidence: Confidence
+  codes: VerdictCode[]
   candidate: Item
   best: Outfit[]
   explanation?: BuyExplanation
+}
+
+/** What the user did after a verdict (POST /decisions). */
+export type DecisionAnswer = 'bought' | 'left'
+
+export interface Decision {
+  id: string
+  candidate_id: string
+  listing_id: string | null
+  answer: DecisionAnswer
+  price_tnd: number | null
+  price_paid: number | null
+  category: string
+  sub_category: string
+  colour: string
+  pattern: string
+  last_advice: {
+    verdict: Verdict
+    good_outfits: number
+    codes: VerdictCode[]
+    confidence: Confidence
+    thresholds: { good_outfit: number; buy_min: number; think_min: number }
+    price_tnd: number | null
+    computed_at: string
+  }
+  item_id: string | null      // the wardrobe item made by "bought"
+  created_at: string
 }
 
 export interface CatalogHit {
@@ -293,6 +332,7 @@ export interface DayStats {
   correction: number
   chat: number
   tryon?: number
+  decision?: number            // "bought it" / "left it" answers (step 1)
 }
 
 export interface Stats {

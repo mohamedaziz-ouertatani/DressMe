@@ -4,6 +4,7 @@ import type {
   AdminXai, SourceCheck, AdminSource, Job, JobStart, ListingsOverview, AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Insights, Item, ItemPatch,
   Listing, ListingFilters, ListingPage, ListingPatch, ModelQuality, ReviewListing, SellForm, Occasion, Outfit, Season, Similar, Stats, User, Gender,
   ChatAttachment, ChatAction, TryOnResult, Weather, Explanation, GuessField, OutfitExplanation,
+  Decision, DecisionAnswer,
 } from './types'
 
 const BASE = '/api'
@@ -100,7 +101,7 @@ export const api = {
   login: (email: string, password: string) =>
     request<{ token: string; user: User }>('/auth/login', json('POST', { email, password })),
   me: () => request<User>('/me'),
-  updateMe: (patch: Partial<Pick<User, 'name' | 'min_coverage' | 'language' | 'gender'>>) =>
+  updateMe: (patch: Partial<Pick<User, 'name' | 'min_coverage' | 'language' | 'gender' | 'budget_tnd'>>) =>
     request<User>('/me', json('PUT', patch)),
 
   items: () => request<Item[]>('/items'),
@@ -112,8 +113,13 @@ export const api = {
   insights: () => request<Insights>('/insights'),
 
   analyze: (file: Blob) => request<Item>('/analyze', { method: 'POST', body: photoForm(file) }),
-  buyAdvice: (candidateId: string, corrections?: ItemPatch) =>
-    request<BuyAdvice>('/buy-advice', json('POST', { candidate_id: candidateId, corrections })),
+  /** priceTnd = the price on the tag, optional (left out when unknown, never 0). */
+  buyAdvice: (candidateId: string, corrections?: ItemPatch, priceTnd?: number) =>
+    request<BuyAdvice>('/buy-advice', json('POST', { candidate_id: candidateId, corrections, price_tnd: priceTnd })),
+  /** "Bought it" saves the scan into the wardrobe (no second analysis); "Left it" only logs the answer. */
+  decide: (candidateId: string, answer: DecisionAnswer, pricePaid?: number) =>
+    request<Decision>('/decisions', json('POST', { candidate_id: candidateId, answer, price_paid: pricePaid })),
+  decisions: () => request<Decision[]>('/decisions'),
 
   suggest: (opts: { season?: Season; occasion?: Occasion; beach?: boolean; n?: number }) => {
     const q = new URLSearchParams()

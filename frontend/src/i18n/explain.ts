@@ -1,6 +1,6 @@
 // One sentence per explanation code of the outfit formula (src/phase4/compatibility.py
 // and explain_outfit.py), in en / fr / ar. Unknown codes fall back to the code itself.
-import type { ExplainLine, Language } from '../api/types'
+import type { ExplainLine, Language, VerdictCode } from '../api/types'
 import { CATEGORY_LABELS, COLOUR_LABELS, PATTERN_LABELS, SUB_LABELS, vocab } from './vocab'
 
 type T = Record<Language, string>
@@ -38,4 +38,63 @@ export function explainLine(line: ExplainLine, l: Language): string {
     structure_pair: () => ({ en: `${sub('a')} and ${sub('b')} don't go together`, fr: `${sub('a')} et ${sub('b')} ne vont pas ensemble`, ar: `${sub('a')} و${sub('b')} لا يتماشيان` }),
   }
   return texts[line.code]?.()[l] ?? line.code
+}
+
+// ---- the reason codes of "Should I buy this?" (src/phase4/verdict.py), same mechanism: one sentence
+// per code in en / fr / ar; an unknown code falls back to the code itself.
+const FIELD_WORDS: Record<string, T> = {
+  category: { en: 'category', fr: 'de la catégorie', ar: 'الصنف' },
+  sub_category: { en: 'type', fr: 'du type', ar: 'النوع' },
+  pattern: { en: 'pattern', fr: 'du motif', ar: 'النقشة' },
+  colour: { en: 'colour', fr: 'de la couleur', ar: 'اللون' },
+}
+
+// what the wardrobe lacks: the labels of wardrobe_insights ("main" = no top, bottom or dress at all)
+const SLOT_MISSING: Record<string, T> = {
+  top: { en: 'you have no top', fr: "tu n'as pas de haut", ar: 'ما عندك قطعة علوية' },
+  bottom: { en: 'you have no bottom', fr: "tu n'as pas de bas", ar: 'ما عندك قطعة سفلية' },
+  main: { en: 'you have no top, bottom or dress yet', fr: "tu n'as encore ni haut, ni bas, ni robe", ar: 'ما عندك بعد قطعة علوية أو سفلية أو فستان' },
+  shoes: { en: 'you have no shoes yet', fr: "tu n'as pas encore de chaussures", ar: 'ما عندك أحذية بعد' },
+}
+
+export function verdictCodeLine(c: VerdictCode, l: Language): string {
+  const p = c.params
+  const pct = Math.round(Number(p.share ?? p.conf ?? 0) * 100)
+  const slot = (key: string) => SLOT_MISSING[String(p[key])]?.[l] ?? String(p[key])
+  const texts: Record<string, () => T> = {
+    small_wardrobe: () => ({
+      en: `You only have ${p.owned} usable pieces: DressMe needs about ${p.minimum} to judge well.`,
+      fr: `Tu n'as que ${p.owned} pièces utilisables : DressMe en veut environ ${p.minimum} pour bien juger.`,
+      ar: `عندك ${p.owned} قطع فقط: DressMe يحتاج حوالي ${p.minimum} ليحكم جيدا.`,
+    }),
+    no_pairing_piece: () => ({
+      en: `Nothing to wear it with: ${slot('slot')}.`,
+      fr: `Rien pour la porter : ${slot('slot')}.`,
+      ar: `لا شيء تلبسها معه: ${slot('slot')}.`,
+    }),
+    guessed_field: () => {
+      const f = FIELD_WORDS[String(p.field)] ?? { en: String(p.field), fr: String(p.field), ar: String(p.field) }
+      return {
+        en: `DressMe is not sure of the ${f.en} (${pct}%): check it above.`,
+        fr: `DressMe n'est pas sûr ${f.fr} (${pct} %) : vérifie plus haut.`,
+        ar: `DressMe غير متأكد من ${f.ar} (${pct}%): تحقق من ذلك أعلاه.`,
+      }
+    },
+    fills_gap: () => ({
+      en: `It fills a gap: ${slot('slot')}.`,
+      fr: `Elle comble un manque : ${slot('slot')}.`,
+      ar: `تسدّ نقصا: ${slot('slot')}.`,
+    }),
+    far_from_style: () => ({
+      en: 'It looks quite different from what you usually own.',
+      fr: "Elle ressemble peu à ce que tu portes d'habitude.",
+      ar: 'تبدو مختلفة كثيرا عمّا تملكه عادة.',
+    }),
+    over_budget: () => ({
+      en: `At ${p.price} TND it takes ${pct}% of your budget.`,
+      fr: `À ${p.price} TND, elle prend ${pct} % de ton budget.`,
+      ar: `بسعر ${p.price} دينار تأخذ ${pct}% من ميزانيتك.`,
+    }),
+  }
+  return texts[c.code]?.()[l] ?? c.code
 }

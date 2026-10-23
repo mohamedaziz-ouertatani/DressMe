@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, ExternalLink, MessageCircle, Search, Tag } from 'lucide-react'
 import { api } from '../api/client'
-import type { BuyAdvice, Category, Item, Listing, ListingFilters } from '../api/types'
+import type { BuyAdvice, Category, Decision, Item, Listing, ListingFilters } from '../api/types'
 import { useI18n } from '../i18n'
 import { plural } from '../i18n/plurals'
 import { CATEGORY_LABELS, SUB_LABELS, vocab } from '../i18n/vocab'
@@ -14,6 +14,7 @@ import { Button, Chip } from '../ui/controls'
 import { ItemPhoto } from '../ui/ItemPhoto'
 import { OutfitStrip } from '../ui/OutfitStrip'
 import { VerdictWhy } from '../ui/VerdictWhy'
+import { CodeList, ConfidenceBadge, DecisionButtons } from '../ui/VerdictExtras'
 import { Stamp } from '../ui/Stamp'
 import { Empty, ErrorNote, Skeleton } from '../ui/states'
 import { Ticket } from '../ui/ticket'
@@ -138,7 +139,12 @@ export function ListingPage() {
   // the verdict belongs to one listing: opening another one starts clean
   const [state, setState] = useState<{ id: string; candidate?: Item; advice?: BuyAdvice; error?: unknown }>({ id })
   const [busy, setBusy] = useState(false)
+  const navigate = useNavigate()
   const { candidate, advice, error } = state.id === id ? state : { candidate: undefined, advice: undefined, error: undefined }
+
+  // "Bought it" saved the scan into the wardrobe (no second analysis): open the new item.
+  // "Left it" only logged the answer: back to the shops.
+  const decided = (d: Decision) => navigate(d.answer === 'bought' && d.item_id ? `/wardrobe/${d.item_id}` : '/shop')
 
   const ask = async () => {
     setBusy(true)
@@ -228,10 +234,13 @@ export function ListingPage() {
                     {advice.reasons.map((r) => <li key={r}>{reason(r)}</li>)}
                   </ul>
                 )}
+                <p className="mt-3"><ConfidenceBadge confidence={advice.confidence} /></p>
+                <CodeList codes={advice.codes} />
                 {advice.explanation && <VerdictWhy explanation={advice.explanation} />}
                 <Link to={`/similar?candidate=${candidate.id}`} className="mt-5 inline-flex min-h-11 items-center gap-2 border-[1.5px] border-ink bg-paper px-4 text-[15px] font-medium text-ink">
                   <Search className="size-4" aria-hidden /> {t('seeSimilar')}
                 </Link>
+                <DecisionButtons candidateId={candidate.id} onDone={decided} />
                 {advice.best.length > 0 && (
                   <div className="mt-8">
                     <h2 className="mb-4 text-[18px] font-semibold text-carbon">{t('bestOutfits')}</h2>

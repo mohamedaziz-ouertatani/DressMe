@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, Lightbulb, Plus, ScanLine, Search, ShoppingBag, Sparkles, Tag } from 'lucide-react'
+import { ArrowRight, Lightbulb, ScanLine, Search, ShoppingBag, Sparkles, Tag } from 'lucide-react'
 import { api } from '../api/client'
-import type { BuyAdvice, Item, ItemPatch } from '../api/types'
+import type { BuyAdvice, Decision, Item, ItemPatch } from '../api/types'
 import { useI18n } from '../i18n'
 import { plural } from '../i18n/plurals'
 import { CATEGORY_LABELS, SUB_LABELS, secondLine, vocab } from '../i18n/vocab'
 import { Page } from '../shell'
-import { Button } from '../ui/controls'
+import { Button, TextField } from '../ui/controls'
 import { ExplainPanel } from '../ui/ExplainPanel'
 import { FieldRow } from '../ui/Field'
 import { ItemPhoto } from '../ui/ItemPhoto'
 import { OutfitStrip } from '../ui/OutfitStrip'
 import { VerdictWhy } from '../ui/VerdictWhy'
+import { CodeList, ConfidenceBadge, DecisionButtons } from '../ui/VerdictExtras'
 import { PhotoPicker } from '../ui/PhotoPicker'
 import { Stamp } from '../ui/Stamp'
 import { ErrorNote, Skeleton } from '../ui/states'
@@ -36,15 +37,22 @@ export function ScanPage() {
   const [candidate, setCandidate] = useState<Item | null>(null)
   const [patch, setPatch] = useState<ItemPatch>({})
   const [advice, setAdvice] = useState<BuyAdvice | null>(null)
-  const [busy, setBusy] = useState<'' | 'analyse' | 'verdict' | 'add'>('')
+  const [busy, setBusy] = useState<'' | 'analyse' | 'verdict'>('')
   const [error, setError] = useState<unknown>(null)
   const [why, setWhy] = useState(false)
+  const [priceText, setPriceText] = useState('')
 
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview) }, [preview])
 
   const reset = () => {
     setFile(null); setPreview(''); setCandidate(null); setPatch({}); setAdvice(null); setError(null); setWhy(false)
+    setPriceText('')
   }
+
+  // the price on the tag is optional: empty = unknown (never sent as 0)
+  const price = Number(priceText.replace(',', '.'))
+  const priceGiven = priceText.trim() !== ''
+  const priceBad = priceGiven && !(price > 0)
 
   const analyse = async (f: File) => {
     reset()
@@ -65,7 +73,8 @@ export function ScanPage() {
     setBusy('verdict')
     setError(null)
     try {
-      setAdvice(await api.buyAdvice(candidate.id, Object.keys(patch).length ? patch : undefined))
+      setAdvice(await api.buyAdvice(candidate.id, Object.keys(patch).length ? patch : undefined,
+        priceGiven ? price : undefined))
     } catch (e) {
       setError(e)
     } finally {
@@ -73,17 +82,11 @@ export function ScanPage() {
     }
   }
 
-  const addToWardrobe = async () => {
-    if (!file) return
-    setBusy('add')
-    try {
-      const item = await api.addItem(file)
-      if (Object.keys(patch).length) await api.updateItem(item.id, patch)
-      navigate(`/wardrobe/${item.id}`)
-    } catch (e) {
-      setError(e)
-      setBusy('')
-    }
+  // "Bought it" saved the scan into the wardrobe on the server (no second analysis): open the new item.
+  // "Left it" only logged the answer: back to the start.
+  const decided = (d: Decision) => {
+    if (d.answer === 'bought' && d.item_id) navigate(`/wardrobe/${d.item_id}`)
+    else reset()
   }
 
   const name = (it: Item) => vocab(SUB_LABELS, it.sub_category, lang) || vocab(CATEGORY_LABELS, it.category, lang)
@@ -95,7 +98,10 @@ export function ScanPage() {
           <div className="ticket flex flex-col gap-5 px-5 py-6">
             <div className="flex items-start gap-4">
               <ScanLine className="mt-1 size-8 shrink-0 text-ink" aria-hidden />
-              <p className="text-[16px] leading-relaxed text-carbon">{t('scanHint')}</p>
+              <div>
+                <p className="text-[16px] leading-relaxed text-carbon">{t('scanHint')}</p>
+                <p className="mt-1 text-[13px] text-carbon-soft">{t('onePiecePerPhoto')}</p>
+              </div>
             </div>
             <PhotoPicker onPick={analyse} />
             <Link to="/shop" className="inline-flex min-h-11 items-center gap-2 self-start text-[15px] text-ink underline decoration-1 underline-offset-4">
@@ -169,7 +175,11 @@ export function ScanPage() {
               <Lightbulb className="size-4" aria-hidden /> {why ? t('hideWhy') : t('whyLabels')}
             </Button>
             {why && <div className="mt-2 border-t border-perf/40 pt-4"><ExplainPanel target={{ candidateId: candidate.id }} /></div>}
-            <Button className="mt-4 w-full" busy={busy === 'verdict'} onClick={askVerdict}>
+            <div className="mt-4">
+              <TextField label={t('priceLabel')} hint={t('priceHint')} inputMode="decimal" value={priceText}
+                error={priceBad ? t('priceInvalid') : undefined} onChange={(e) => setPriceText(e.target.value)} />
+            </div>
+            <Button className="mt-4 w-full" busy={busy === 'verdict'} disabled={priceBad} onClick={askVerdict}>
               {busy === 'verdict' ? t('asking') : t('askVerdict')} <ArrowRight className="size-4 mirror-rtl" aria-hidden />
             </Button>
           </section>
@@ -185,6 +195,8 @@ export function ScanPage() {
                 {advice.reasons.map((r) => <li key={r}>{reason(r)}</li>)}
               </ul>
             )}
+            <p className="mt-3"><ConfidenceBadge confidence={advice.confidence} /></p>
+            <CodeList codes={advice.codes} />
             {advice.explanation && <VerdictWhy explanation={advice.explanation} />}
 
             <div className="mt-5 flex flex-wrap gap-2">
@@ -197,10 +209,8 @@ export function ScanPage() {
               <Button variant="secondary" onClick={reset}>
                 <ScanLine className="size-4" aria-hidden /> {t('newScan')}
               </Button>
-              <Button variant="quiet" busy={busy === 'add'} onClick={addToWardrobe}>
-                <Plus className="size-4" aria-hidden /> {t('addToWardrobe')}
-              </Button>
             </div>
+            <DecisionButtons candidateId={advice.candidate.id} onDone={decided} />
 
             {advice.best.length > 0 && (
               <div className="mt-8">

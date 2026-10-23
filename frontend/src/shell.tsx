@@ -155,7 +155,7 @@ export function AppShell() {
                   end={to === '/'}
                   className={({ isActive }) =>
                     scan
-                      ? `-mt-6 flex size-[68px] flex-col items-center justify-center gap-0.5 text-[11px] font-semibold shadow-[var(--shadow-lift)] ${isActive ? 'bg-stamp text-paper' : 'bg-ink text-paper'}`
+                      ? `-mt-6 flex size-[68px] flex-col items-center justify-center gap-0.5 px-1 text-center text-[11px] font-semibold leading-[1.1] shadow-[var(--shadow-lift)] ${isActive ? 'bg-stamp text-paper' : 'bg-ink text-paper'}`
                       : `relative flex min-h-14 w-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium ${isActive ? 'text-ink' : 'text-carbon-soft'}`
                   }
                 >
