@@ -20,7 +20,8 @@ export interface User {
   language: Language
   gender: Gender | null
   needs_gender: boolean       // account from before the question: asked once
-  budget_tnd: number | null   // optional spending budget (no screen sets it yet)
+  budget_tnd: number | null   // optional spending budget (set on the Wardrobe view)
+  consent_at: string | null   // when the user agreed; null = an older account, asked once
 }
 
 export interface Alternative {
@@ -138,6 +139,14 @@ export interface WearEntry {
   label_shown: OutfitLabel | null
   source: 'card' | 'build'
   created_at: string
+}
+
+/** GET /wear/summary: the Wardrobe view's "Worn" section (numbers in mappings/wardrobe_view.csv). */
+export interface WearSummary {
+  worn_lately: { item_id: string; last_worn_on: string }[]   // most recent first
+  never_worn: string[]                                       // item ids, the longest-waiting first
+  window_days: number
+  grace_days: number
 }
 
 export type OutfitRating = 1 | -1

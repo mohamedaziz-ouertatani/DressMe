@@ -9,15 +9,16 @@ import { AuthPage } from './pages/AuthPage'
 import { LandingPage } from './pages/LandingPage'
 import { DressPage } from './pages/DressPage'
 import { ChatPage } from './pages/ChatPage'
-import { InsightsPage } from './pages/InsightsPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { ScanPage } from './pages/ScanPage'
 import { ListingPage, ShopPage } from './pages/ShopPage'
 import { SellPage } from './pages/SellPage'
 import { SimilarPage } from './pages/SimilarPage'
 import { TryOnPage } from './pages/TryOnPage'
+import { WardrobeViewPage } from './pages/WardrobeViewPage'
 import { ItemPage, WardrobePage } from './pages/WardrobePage'
 import { AppShell, Wordmark } from './shell'
+import { ConsentAsk } from './ui/ConsentAsk'
 import { GenderAsk } from './ui/GenderChoice'
 import { ErrorNote } from './ui/states'
 import { ApiError } from './api/client'
@@ -34,6 +35,7 @@ function Gate({ children, admin = false }: { children: ReactNode; admin?: boolea
   }
   if (!user) return <Navigate to="/welcome" replace />
   if (user.needs_gender) return <GenderAsk />
+  if (!user.consent_at) return <ConsentAsk />     // an account from before the checkbox: asked once
   if (admin && user.role !== 'admin') return <Navigate to="/" replace />
   return <>{children}</>
 }
@@ -72,7 +74,7 @@ export default function App() {
               <Route path="scan" element={<ScanPage />} />
               <Route path="wardrobe" element={<WardrobePage />} />
               <Route path="wardrobe/:id" element={<ItemPage />} />
-              <Route path="insights" element={<InsightsPage />} />
+              <Route path="insights" element={<WardrobeViewPage />} />      {/* was the Insights page */}
               <Route path="tryon" element={<TryOnPage />} />
               <Route path="chat" element={<ChatPage />} />
               <Route path="similar" element={<SimilarPage />} />

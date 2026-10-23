@@ -46,6 +46,10 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
       setError(t('genderRequired'))
       return
     }
+    if (signup && !form.get('consent')) {
+      setError(t('consentRequired'))
+      return
+    }
     setBusy(true)
     setError('')
     try {
@@ -94,6 +98,12 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
             hint={signup ? t('passwordHint') : undefined}
             dir="ltr"
           />
+          {signup && (
+            <label className="flex items-start gap-3 text-[14px] text-carbon">
+              <input type="checkbox" name="consent" required className="mt-0.5 size-5 shrink-0" />
+              <span>{t('consentCheckbox')}</span>
+            </label>
+          )}
           {error && (
             <p role="alert" className="border-[1.5px] border-carbon px-3 py-2 text-[14px] text-carbon">
               {error}

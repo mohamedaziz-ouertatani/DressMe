@@ -4,7 +4,7 @@ import type {
   AdminXai, SourceCheck, AdminSource, Job, JobStart, ListingsOverview, AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Insights, Item, ItemPatch,
   Listing, ListingFilters, ListingPage, ListingPatch, ModelQuality, ReviewListing, SellForm, Occasion, Outfit, Season, Similar, Stats, User, Gender,
   ChatAttachment, ChatAction, TryOnResult, Weather, Explanation, GuessField, OutfitExplanation,
-  Decision, DecisionAnswer, OutfitLabel, WearEntry, OccasionChip, TodayOutfits, BuildResult,
+  Decision, DecisionAnswer, OutfitLabel, WearEntry, WearSummary, OccasionChip, TodayOutfits, BuildResult,
 } from './types'
 
 const BASE = '/api'
@@ -96,11 +96,15 @@ export function loadImage(path: string): Promise<string> {
 }
 
 export const api = {
-  register: (email: string, password: string, name: string, gender: Gender) =>
-    request<{ token: string; user: User }>('/auth/register', json('POST', { email, password, name, gender })),
+  register: (email: string, password: string, name: string, gender: Gender, consent: boolean) =>
+    request<{ token: string; user: User }>('/auth/register', json('POST', { email, password, name, gender, consent })),
   login: (email: string, password: string) =>
     request<{ token: string; user: User }>('/auth/login', json('POST', { email, password })),
   me: () => request<User>('/me'),
+  /** The one-time consent dialog of an older account (idempotent: the first date is kept). */
+  consent: () => request<User>('/me/consent', { method: 'POST' }),
+  /** Deletes the account and everything it owns (403 = wrong password). */
+  deleteMe: (password: string) => request<void>('/me', json('DELETE', { password })),
   updateMe: (patch: Partial<Pick<User, 'name' | 'min_coverage' | 'language' | 'gender' | 'budget_tnd'>>) =>
     request<User>('/me', json('PUT', patch)),
 
@@ -161,6 +165,7 @@ export const api = {
     if (range.to) q.set('to', range.to)
     return request<WearEntry[]>(`/wear${q.size ? `?${q}` : ''}`)
   },
+  wearSummary: () => request<WearSummary>('/wear/summary'),
   /** Undo: only on the day it was worn (409 later). */
   unwear: (id: string) => request<void>(`/wear/${id}`, { method: 'DELETE' }),
   similar: (ref: { itemId?: string; candidateId?: string }, k = 6, all = false) => {

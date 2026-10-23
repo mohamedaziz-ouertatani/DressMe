@@ -6,20 +6,19 @@ import type { Insights, OutfitItem } from '../api/types'
 import { useI18n } from '../i18n'
 import { plural } from '../i18n/plurals'
 import { CATEGORY_LABELS, COLOUR_HEX, COLOUR_LABELS, PATTERN_LABELS, SUB_LABELS, vocab } from '../i18n/vocab'
-import { Page } from '../shell'
 import { Swatch } from '../ui/controls'
 import { ItemPhoto } from '../ui/ItemPhoto'
 import { Empty, ErrorNote, Skeleton } from '../ui/states'
 import { useLoad } from '../useLoad'
 
-/** What the wardrobe is made of, what it can do and what it lacks
+/** What the wardrobe is made of, what it can do and what it lacks: the "Wardrobe stats" section of the Wardrobe view
  *  (GET /insights; every number is computed from the user's own pieces). */
-export function InsightsPage() {
+export function StatsSection() {
   const { t } = useI18n()
   const res = useLoad(() => api.insights(), [])
 
   let body
-  if (res.error) body = <ErrorNote error={res.error} onRetry={res.reload} />
+  if (res.error) body = <ErrorNote error={res.error} onRetry={res.reload} message={t('wvStatsFailed')} />
   else if (!res.data) body = <Skeleton className="h-72" />
   else if (res.data.total === 0)
     body = (
@@ -31,7 +30,7 @@ export function InsightsPage() {
     )
   else body = <InsightsBody data={res.data} />
 
-  return <Page title={t('insightsTitle')}>{body}</Page>
+  return body
 }
 
 function Section({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
