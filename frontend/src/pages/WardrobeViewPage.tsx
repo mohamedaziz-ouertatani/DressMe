@@ -1,5 +1,5 @@
-import { useCallback, useState, type FormEvent, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import { ApiError, api } from '../api/client'
 import type { Decision, Item, Language, WearEntry, WearSummary } from '../api/types'
 import { useAuth } from '../auth'
@@ -18,8 +18,9 @@ import { StatsSection } from './InsightsPage'
  *  or left, the wardrobe stats and the profile. The look is the Dress one (tokens in index.css). */
 export function WardrobeViewPage() {
   const { t } = useI18n()
+  useScrollToHash()
   return (
-    <Page title={t('insightsTitle')}>
+    <Page title={t('insightsTitle')} look="soft">
       <div className="flex flex-col gap-10">
         {/* TODO(step 4): the "To check" section goes here, first: pieces added from a photo that still wait for the
             user to confirm their labels (drafts). Hidden until drafts exist. */}
@@ -32,9 +33,25 @@ export function WardrobeViewPage() {
   )
 }
 
-function ViewSection({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
+/** Home's avatar opens /insights#profile. The sections above load on their own and push Profile down, so the
+ *  page scrolls to it again as they arrive (until the user scrolls). */
+function useScrollToHash() {
+  const { hash } = useLocation()
+  useEffect(() => {
+    if (!hash) return
+    let moved = false
+    const stop = () => { moved = true }
+    const go = () => { if (!moved) document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' }) }
+    const timers = [0, 400, 1200].map((ms) => window.setTimeout(go, ms))
+    window.addEventListener('wheel', stop, { once: true })
+    window.addEventListener('touchmove', stop, { once: true })
+    return () => { timers.forEach(clearTimeout); window.removeEventListener('wheel', stop); window.removeEventListener('touchmove', stop) }
+  }, [hash])
+}
+
+function ViewSection({ title, note, children, id }: { title: string; note?: string; children: ReactNode; id?: string }) {
   return (
-    <section>
+    <section id={id} className="scroll-mt-4">
       <h2 className="text-[22px] font-bold text-carbon">{title}</h2>
       {note && <p className="mt-1 max-w-[60ch] text-[14px] text-carbon-soft">{note}</p>}
       <div className="mt-3">{children}</div>
@@ -196,7 +213,7 @@ function ProfileSection() {
   const { user } = useAuth()
   if (!user) return null
   return (
-    <ViewSection title={t('wvProfile')}>
+    <ViewSection title={t('wvProfile')} id="profile">
       <div className="flex flex-col gap-stack">
         <BudgetCard />
         <p className="text-[14px] text-carbon-soft">{user.consent_at ? t('wvConsentOn', { date: date(user.consent_at) }) : t('wvConsentNone')}</p>

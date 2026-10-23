@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, ChartBar, CheckCheck, Lightbulb, ScanLine, Search, Trash2 } from 'lucide-react'
+import { ArrowLeft, ChartBar, CheckCheck, Lightbulb, ScanLine, Search, Shirt, Trash2 } from 'lucide-react'
 import { api } from '../api/client'
 import type { Category, Item, ItemPatch } from '../api/types'
 import { useAuth } from '../auth'
@@ -50,7 +50,7 @@ export function WardrobePage() {
   const shown = filter ? all.filter((i) => i.category === filter) : all
 
   return (
-    <Page title={t('wardrobeTitle')}>
+    <Page title={t('wardrobeTitle')} look="soft" kicker={items.data ? plural('pieces', all.length, lang) : undefined}>
       <section className="ticket mb-6 flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center justify-between gap-4 sm:justify-start">
           <p className="text-[15px] text-carbon">
@@ -74,7 +74,7 @@ export function WardrobePage() {
           {Array.from({ length: 8 }, (_, i) => <Skeleton key={i} className="h-[190px]" />)}
         </div>
       ) : all.length === 0 ? (
-        <Empty title={t('wardrobeEmptyTitle')} body={t('wardrobeEmptyBody')} />
+        <Empty icon={Shirt} title={t('wardrobeEmptyTitle')} body={t('wardrobeEmptyBody')} />
       ) : (
         <>
           <div className="-mx-4 mb-4 flex gap-2 no-scrollbar overflow-x-auto px-4 pb-1 lg:mx-0 lg:flex-wrap lg:px-0">
@@ -152,9 +152,9 @@ export function ItemPage() {
   }
 
   return (
-    <Page title={it ? vocab(SUB_LABELS, it.sub_category, lang) || vocab(CATEGORY_LABELS, it.category, lang) : t('loading')}>
+    <Page look="soft" title={it ? vocab(SUB_LABELS, it.sub_category, lang) || vocab(CATEGORY_LABELS, it.category, lang) : t('loading')}>
       <div className="mx-auto max-w-[640px]">
-        <Link to="/wardrobe" className="mb-4 inline-flex min-h-10 items-center gap-2 text-[14px] text-ink">
+        <Link to="/wardrobe" className="mb-4 inline-flex min-h-11 items-center gap-2 text-[14px] font-semibold text-carbon underline decoration-1 underline-offset-4">
           <ArrowLeft className="size-4 mirror-rtl" aria-hidden /> {t('wardrobeTitle')}
         </Link>
         {item.error ? (
