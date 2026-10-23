@@ -111,6 +111,8 @@
      "image_url": "/items/5f0c01000000000000000010/image"
     }
    ],
+   "complete": true,
+   "missing": null,
    "contributions": [
     {
      "part": "style",
@@ -223,6 +225,8 @@
      "image_url": "/items/5f0c01000000000000000010/image"
     }
    ],
+   "complete": true,
+   "missing": null,
    "contributions": [
     {
      "part": "style",

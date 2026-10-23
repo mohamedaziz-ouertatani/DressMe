@@ -118,6 +118,8 @@
      "image_url": "/items/5f0c02000000000000000003/image"
     }
    ],
+   "complete": true,
+   "missing": null,
    "contributions": [
     {
      "part": "style",
@@ -219,6 +221,8 @@
      "image_url": "/items/5f0c02000000000000000003/image"
     }
    ],
+   "complete": true,
+   "missing": null,
    "contributions": [
     {
      "part": "style",
@@ -322,6 +326,8 @@
      "image_url": "/items/5f0c02000000000000000003/image"
     }
    ],
+   "complete": true,
+   "missing": null,
    "contributions": [
     {
      "part": "style",
