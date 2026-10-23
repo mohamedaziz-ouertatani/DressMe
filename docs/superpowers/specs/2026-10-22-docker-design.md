@@ -21,25 +21,32 @@ PyTorch and package versions, without installing Python, PyTorch or MongoDB on t
    mounted into the containers, so code edits, `data/`, `models/` and `backend/.env`
    are read from the PC. The data and weights still come from a teammate (never in git,
    never in an image: academic licences, and too big).
+5. **PyTorch is the CPU build by default** (decided after seeing the GPU image's size,
+   ~3-4 GB of PyTorch + NVIDIA libraries): the app only runs the trained models on one
+   photo at a time, which the CPU does in well under a second (the code already falls
+   back to the CPU: `classifier.load_classifier`, `fashionclip.load_model`), and the GPU
+   stays free for Ollama. The GPU build is opt-in (`docker-compose.gpu.yml`).
 
 ## What runs
 
 | Service | Image | Port | Notes |
 |---|---|---|---|
 | `mongo` | `mongo:7.0` | 27017 | data in the `mongo-data` volume. pymongo 4.13 (pinned for the team's local MongoDB 4.0) supports 4.0 to 8.0 |
-| `backend` | built from `docker/backend.Dockerfile` | 8000 | Python 3.13 + PyTorch cu126; GPU on by default |
+| `backend` | built from `docker/backend.Dockerfile` | 8000 | Python 3.13 + PyTorch (CPU build; GPU build opt-in) |
 | `frontend` | built from `docker/frontend.Dockerfile` | 5173 | Node 24 + Vite dev server |
 
 ## Files
 
-- `docker-compose.yml` — the three services, volumes, GPU request.
-- `docker-compose.cpu.yml` — override for a PC without an NVIDIA GPU (removes the GPU
-  request; the models then run on the CPU, slower).
-- `docker/backend.Dockerfile` — `python:3.13-slim`, PyTorch from the cu126 index, then
-  the three requirement files with `docker/constraints.txt`.
-- `docker/constraints.txt` — exact versions of every package (`pip freeze` of a working
-  image). `scikit-learn==1.6.1`: `models/checkpoints/colour_model.joblib` was saved with
-  1.6.1, and a scikit-learn pickle can break in another version.
+- `docker-compose.yml` — the three services and their volumes (backend on the CPU).
+- `docker-compose.gpu.yml` — opt-in override: builds the GPU variant (`TORCH_INDEX` =
+  the cu126 index, image `dressme-backend-gpu`) and requests the NVIDIA GPU.
+- `docker/backend.Dockerfile` — `python:3.13-slim`, PyTorch `TORCH_VERSION` /
+  `TORCHVISION_VERSION` from `TORCH_INDEX` (default: the CPU index), then the three
+  requirement files with `docker/constraints.txt`.
+- `docker/constraints.txt` — exact versions of every other package (`pip freeze` of a
+  working image, without torch / torchvision, whose CPU and GPU builds carry different
+  labels). `scikit-learn==1.6.1`: `models/checkpoints/colour_model.joblib` was saved
+  with 1.6.1, and a scikit-learn pickle can break in another version.
 - `docker/frontend.Dockerfile` — `node:24-slim`, `npm ci`.
 - `docker/setup.ps1` — once per PC: creates `backend/.env` from `.env.example` (random
   `JWT_SECRET`, `CHAT_ENGINE=ollama`, `OLLAMA_MODEL=dressme-chat-v4`) if missing, registers
@@ -71,27 +78,41 @@ No application code changes: the backend already reads `MONGO_URL` / `OLLAMA_URL
 
 - The repository's `frontend/` is mounted; `node_modules` stays in the container (an
   anonymous volume), because the PC's copy is built for Windows.
-- `npm run dev -- --host 0.0.0.0`, with `DRESSME_API=http://backend:8000`. The browser
+- Vite runs with `--host 0.0.0.0` and `DRESSME_API=http://backend:8000`. The browser
   still talks only to http://localhost:5173.
+- `CHOKIDAR_USEPOLLING=true` (every 0.3 s): Windows does not send file-change events into
+  the container, so without it an edit is never seen (checked: the dev server kept
+  serving the old file). Costs ~5% of one core.
+- The backend has no auto-reload (models take ~1 min to load), as without Docker:
+  `docker compose restart backend` after a backend change.
+
+## Health checks
+
+`mongo` is healthy when it answers a ping; `backend` when `/health` answers (after the
+models are loaded). The backend waits for a healthy `mongo`, the frontend for a healthy
+`backend`. The backend's `start_period` is 30 min: its first start downloads ~0.9 GB of
+models (FashionCLIP, then rembg's two U2-Net models at start-up), ~20 min at 0.75 MB/s;
+a 10 min limit failed on that connection.
 
 ## A teammate's steps
 
 Once: install Docker Desktop and Ollama; clone; put the files from a teammate in `data/`
-and `models/`; run `docker/setup.ps1`; `docker compose up --build` (first build ~10-20 min,
-PyTorch is ~2.6 GB); `docker compose exec backend python -m app.seed_demo` (demo accounts).
+and `models/`; run `docker/setup.ps1`; `docker compose up --build` (first build a few
+minutes); `docker compose exec backend python -m app.seed_demo` (demo accounts).
 Every day: `docker compose up`, then http://localhost:5173.
 
 ## Checks (how we know it works)
 
-1. `docker compose build` succeeds; inside the image, `torch.cuda.is_available()` is True
-   on a GPU PC.
+1. `docker compose build` succeeds; the image has the CPU build of PyTorch, and a photo
+   is analysed in about a second on the CPU.
 2. The colour model loads with the pinned scikit-learn, without a version warning.
 3. `docker compose up`: the backend logs "Application startup complete"; `GET /health`
    answers through the frontend proxy (`localhost:5173/api/health`).
 4. The backend tests pass in the container against the `mongo` service
    (`docker compose exec backend python -m pytest`).
 5. A chat message gets an answer from `dressme-chat-v4` through `host.docker.internal`.
-6. `docker compose -f docker-compose.yml -f docker-compose.cpu.yml up` starts on the CPU.
+6. `docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build` starts
+   with `torch.cuda.is_available()` True on a PC with an NVIDIA GPU.
 
 ## Out of scope
 

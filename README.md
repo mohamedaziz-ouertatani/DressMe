@@ -256,6 +256,45 @@ python -m app.make_admin you@example.com # give an existing account the admin ro
 - **Design:** the visual system ("Ticket & Recharge-Card Stock") is documented in [`DESIGN.md`](DESIGN.md), and the product brief in [`PRODUCT.md`](PRODUCT.md).
 - **Demo data:** demo accounts show dataset photos and say so in the app; they are for the academic demo only.
 
+## Phase 4: run the app with Docker
+
+The same environment on every PC: `docker compose up` starts MongoDB, the backend and the frontend, with exact versions of Python, PyTorch and every package. Nothing to install but Docker Desktop and Ollama. It is a **development** setup (live code, dev server), not a way to put the app on the internet. The setup above without Docker still works.
+
+- **What runs:** `mongo` (MongoDB 7.0, data in the `mongo-data` volume), `backend` (Python 3.13 + PyTorch, on the CPU), `frontend` (Vite dev server). The images hold the environment only: this folder is mounted, so code edits, `data/`, `models/` and `backend/.env` come from your PC. Ollama runs on your PC, outside Docker; the backend reaches it at `host.docker.internal:11434`.
+- **Why the CPU:** the app runs the trained models on one photo at a time, which the CPU does in about a second, and PyTorch's CPU build is ~0.2 GB instead of ~3-4 GB. Training still needs the GPU setup above.
+- **Versions:** `docker/backend.Dockerfile` (Python, PyTorch) and `docker/constraints.txt` (every other package; `scikit-learn==1.6.1` because the colour model was saved with it). To change a version, edit those files and rebuild.
+
+Once per PC:
+
+1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and [Ollama](https://ollama.com).
+2. Clone this repository and put the files from a teammate (never in git) in the same folders: `models/checkpoints/`, `data/processed/` (with `embeddings/`), `models/llm/dressme-chat-v4/` (the chat model) and, optionally, the pictures in `data/raw/`.
+3. Run the setup script: it creates `backend/.env` (with a new secret key) if it is missing, registers the chat model in Ollama, and lists the files still missing.
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File docker\setup.ps1
+   ```
+4. Build and start (the first time takes a few minutes; the backend then downloads FashionCLIP once, ~0.6 GB):
+   ```bash
+   docker compose up --build
+   ```
+5. Demo accounts (once, in a second terminal; needs the PolyVore pictures):
+   ```bash
+   docker compose exec backend python -m app.seed_demo
+   ```
+
+Every day: `docker compose up`, then open http://localhost:5173 (the page opens when the API has loaded its models, ~1 min). `Ctrl+C` stops it. Start Ollama first (tray icon), or the chat answers "Ollama is not running". The first start on a PC also downloads FashionCLIP and the background-removal models (~0.9 GB, kept in the `model-cache` volume).
+
+Editing code: frontend changes show up at once (the page reloads); after a backend change, run `docker compose restart backend`.
+
+```bash
+docker compose exec backend python -m pytest      # the backend tests, inside the container
+docker compose ps                                 # which services run, and whether they are healthy
+docker compose logs -f backend                    # what the backend prints
+docker compose restart backend                    # after a backend code change (~1 min)
+docker compose down                               # stop and remove the containers (data kept)
+docker compose down -v                            # ... and DELETE the database and the model downloads
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build   # NVIDIA GPU (+~3-4 GB)
+```
+
 ## Phase 4: H&M shop catalogue
 
 The shops block scraping (Zara / Bershka / Pull&Bear, team decision 2026-10-03), so the "buy something like this" suggestions come from the H&M catalogue published on Kaggle: real retail products with their type, colour and pattern. It is **not** merged into `dressme.csv`: it is not training data, it is what the user could buy. There is no price in the data.
