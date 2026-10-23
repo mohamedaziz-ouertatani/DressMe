@@ -1,21 +1,17 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, Lightbulb, ScanLine, Search, ShoppingBag, Sparkles, Tag } from 'lucide-react'
+import { ArrowRight, Lightbulb, ScanLine, ShoppingBag, Tag } from 'lucide-react'
 import { api } from '../api/client'
 import type { BuyAdvice, Decision, Item, ItemPatch } from '../api/types'
 import { useI18n } from '../i18n'
-import { plural } from '../i18n/plurals'
 import { CATEGORY_LABELS, SUB_LABELS, secondLine, vocab } from '../i18n/vocab'
 import { Page } from '../shell'
 import { Button, TextField } from '../ui/controls'
 import { ExplainPanel } from '../ui/ExplainPanel'
 import { FieldRow } from '../ui/Field'
 import { ItemPhoto } from '../ui/ItemPhoto'
-import { OutfitStrip } from '../ui/OutfitStrip'
-import { VerdictWhy } from '../ui/VerdictWhy'
-import { CodeList, ConfidenceBadge, DecisionButtons } from '../ui/VerdictExtras'
+import { VerdictCard } from '../ui/VerdictCard'
 import { PhotoPicker } from '../ui/PhotoPicker'
-import { Stamp } from '../ui/Stamp'
 import { ErrorNote, Skeleton } from '../ui/states'
 import { SecondLine, Serial, Ticket } from '../ui/ticket'
 
@@ -30,7 +26,7 @@ function applyPatch(item: Item, patch: ItemPatch): Item {
 }
 
 export function ScanPage() {
-  const { t, lang, reason } = useI18n()
+  const { t, lang } = useI18n()
   const navigate = useNavigate()
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string>('')
@@ -131,18 +127,6 @@ export function ScanPage() {
                 ) : null}
               </div>
             </div>
-            {advice && (
-              <div className="pointer-events-none absolute -top-4 end-14 sm:end-20">
-                <Stamp
-                  big={t(`verdict_${advice.verdict}`)}
-                  ring="DRESSME · VALIDÉ · مصادق · DRESSME · VALIDÉ ·"
-                  size={118}
-                  angle={-11}
-                  land
-                  label={t(`verdict_${advice.verdict}`)}
-                />
-              </div>
-            )}
           </Ticket>
         )}
 
@@ -186,43 +170,13 @@ export function ScanPage() {
         )}
 
         {advice && (
-          <section className="mt-4" aria-live="polite">
-            <p className="text-[18px] font-medium leading-snug text-carbon">
-              {t(`verdictLine_${advice.verdict}`, { outfits: plural('goodOutfits', advice.good_outfits, lang) })}
-            </p>
-            {advice.reasons.length > 0 && (
-              <ul className="mt-2 space-y-1 text-[15px] text-carbon-soft">
-                {advice.reasons.map((r) => <li key={r}>{reason(r)}</li>)}
-              </ul>
-            )}
-            <p className="mt-3"><ConfidenceBadge confidence={advice.confidence} /></p>
-            <CodeList codes={advice.codes} />
-            {advice.explanation && <VerdictWhy explanation={advice.explanation} />}
-
-            <div className="mt-5 flex flex-wrap gap-2">
-              <Link to={`/similar?candidate=${advice.candidate.id}`} className="inline-flex min-h-11 items-center gap-2 border-[1.5px] border-ink bg-paper px-4 text-[15px] font-medium text-ink">
-                <Search className="size-4" aria-hidden /> {t('seeSimilar')}
-              </Link>
-              <Link to={`/tryon?candidate=${advice.candidate.id}&ccat=${advice.candidate.category}`} className="inline-flex min-h-11 items-center gap-2 border-[1.5px] border-ink bg-paper px-4 text-[15px] font-medium text-ink">
-                <Sparkles className="size-4" aria-hidden /> {t('tryOnBtn')}
-              </Link>
-              <Button variant="secondary" onClick={reset}>
-                <ScanLine className="size-4" aria-hidden /> {t('newScan')}
-              </Button>
-            </div>
-            <DecisionButtons candidateId={advice.candidate.id} onDone={decided} />
-
-            {advice.best.length > 0 && (
-              <div className="mt-8">
-                <h2 className="mb-4 text-[18px] font-semibold text-carbon">{t('bestOutfits')}</h2>
-                <div className="grid gap-10 pt-4 sm:grid-cols-2">
-                  {advice.best.slice(0, 2).map((o, i) => (
-                    <OutfitStrip key={i} outfit={o} compact photoOf={(id) => (id === advice.candidate.id ? preview : undefined)} />
-                  ))}
-                </div>
-              </div>
-            )}
-          </section>
+          <div className="mt-4">
+            <VerdictCard advice={advice} candidatePhoto={preview} showTryOn onDecided={decided}
+              restart={{ label: t('scanAgain'), onClick: reset }} />
+            <Button variant="quiet" className="mt-4" onClick={reset}>
+              <ScanLine className="size-4" aria-hidden /> {t('newScan')}
+            </Button>
+          </div>
         )}
       </div>
     </Page>

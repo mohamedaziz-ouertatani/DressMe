@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, ExternalLink, MessageCircle, Search, Tag } from 'lucide-react'
+import { Link, useParams } from 'react-router-dom'
+import { ArrowLeft, ArrowRight, ExternalLink, MessageCircle, Tag } from 'lucide-react'
 import { api } from '../api/client'
-import type { BuyAdvice, Category, Decision, Item, Listing, ListingFilters } from '../api/types'
+import type { BuyAdvice, Category, Item, Listing, ListingFilters } from '../api/types'
 import { useI18n } from '../i18n'
 import { plural } from '../i18n/plurals'
 import { CATEGORY_LABELS, SUB_LABELS, vocab } from '../i18n/vocab'
@@ -12,10 +12,7 @@ import { brandName, shopName, useListingFormat } from '../ui/listingText'
 import { Page } from '../shell'
 import { Button, Chip } from '../ui/controls'
 import { ItemPhoto } from '../ui/ItemPhoto'
-import { OutfitStrip } from '../ui/OutfitStrip'
-import { VerdictWhy } from '../ui/VerdictWhy'
-import { CodeList, ConfidenceBadge, DecisionButtons } from '../ui/VerdictExtras'
-import { Stamp } from '../ui/Stamp'
+import { VerdictCard } from '../ui/VerdictCard'
 import { Empty, ErrorNote, Skeleton } from '../ui/states'
 import { Ticket } from '../ui/ticket'
 import { useLoad } from '../useLoad'
@@ -133,18 +130,13 @@ export function ShopPage() {
 /** One listing: picture, price, stock, a link to the shop, and the buy verdict. */
 export function ListingPage() {
   const { id = '' } = useParams()
-  const { t, lang, reason } = useI18n()
+  const { t, lang } = useI18n()
   const { price, day, name } = useListingFormat()
   const res = useLoad(() => api.listing(id), [id])
   // the verdict belongs to one listing: opening another one starts clean
   const [state, setState] = useState<{ id: string; candidate?: Item; advice?: BuyAdvice; error?: unknown }>({ id })
   const [busy, setBusy] = useState(false)
-  const navigate = useNavigate()
   const { candidate, advice, error } = state.id === id ? state : { candidate: undefined, advice: undefined, error: undefined }
-
-  // "Bought it" saved the scan into the wardrobe (no second analysis): open the new item.
-  // "Left it" only logged the answer: back to the shops.
-  const decided = (d: Decision) => navigate(d.answer === 'bought' && d.item_id ? `/wardrobe/${d.item_id}` : '/shop')
 
   const ask = async () => {
     setBusy(true)
@@ -193,13 +185,6 @@ export function ListingPage() {
                   ) : null}
                 </div>
               </div>
-              {/* the stamp lands over the photo, so it never hides the price */}
-              {advice && (
-                <div className="pointer-events-none absolute -top-5 start-24">
-                  <Stamp big={t(`verdict_${advice.verdict}`)} ring="DRESSME · VALIDÉ · مصادق · DRESSME · VALIDÉ ·"
-                    size={110} angle={-11} land label={t(`verdict_${advice.verdict}`)} />
-                </div>
-              )}
             </Ticket>
 
             {l.seller && (
@@ -225,33 +210,11 @@ export function ListingPage() {
             {error ? <div className="mt-4"><ErrorNote error={error} onRetry={ask} /></div> : null}
 
             {advice && candidate && (
-              <section className="mt-6" aria-live="polite">
-                <p className="text-[18px] font-medium leading-snug text-carbon">
-                  {t(`verdictLine_${advice.verdict}`, { outfits: plural('goodOutfits', advice.good_outfits, lang) })}
-                </p>
-                {advice.reasons.length > 0 && (
-                  <ul className="mt-2 space-y-1 text-[15px] text-carbon-soft">
-                    {advice.reasons.map((r) => <li key={r}>{reason(r)}</li>)}
-                  </ul>
-                )}
-                <p className="mt-3"><ConfidenceBadge confidence={advice.confidence} /></p>
-                <CodeList codes={advice.codes} />
-                {advice.explanation && <VerdictWhy explanation={advice.explanation} />}
-                <Link to={`/similar?candidate=${candidate.id}`} className="mt-5 inline-flex min-h-11 items-center gap-2 border-[1.5px] border-ink bg-paper px-4 text-[15px] font-medium text-ink">
-                  <Search className="size-4" aria-hidden /> {t('seeSimilar')}
-                </Link>
-                <DecisionButtons candidateId={candidate.id} onDone={decided} />
-                {advice.best.length > 0 && (
-                  <div className="mt-8">
-                    <h2 className="mb-4 text-[18px] font-semibold text-carbon">{t('bestOutfits')}</h2>
-                    <div className="grid gap-10 pt-4 sm:grid-cols-2">
-                      {advice.best.slice(0, 2).map((o, i) => (
-                        <OutfitStrip key={i} outfit={o} compact photoOf={(pid) => (pid === candidate.id ? l.image_url : undefined)} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </section>
+              <div className="mt-6">
+                {/* no onDecided: the card shows what was recorded and the user keeps browsing */}
+                <VerdictCard advice={advice} candidatePhoto={l.image_url}
+                  restart={{ label: t('checkAgain'), onClick: () => setState({ id }) }} />
+              </div>
             )}
           </>
         )}
