@@ -10,7 +10,7 @@ def keys(outfits):
     return [sorted(i["id"] for i in o["items"]) for o in outfits]
 
 
-def test_today_is_stable_for_a_day_and_a_shuffle(golden):
+def test_today_is_stable_for_a_day_and_a_shuffle(golden):  # noqa: F811 (a fixture imported above)
     c, h = golden.client, golden.headers
     first = c.get("/outfits/today", headers=h)
     assert first.status_code == 200, first.text
@@ -33,7 +33,7 @@ def test_today_is_stable_for_a_day_and_a_shuffle(golden):
     assert len(set(labels)) == min(len(labels), len({o["label"] for o in candidates}))
 
 
-def test_build_keeps_the_chosen_piece_and_refuses_other_users_pieces(golden):
+def test_build_keeps_the_chosen_piece_and_refuses_other_users_pieces(golden):  # noqa: F811
     c, h = golden.client, golden.headers
     top = golden.ids["top_1"]
     r = c.post("/outfits/build", json={"item_ids": [top]}, headers=h)
