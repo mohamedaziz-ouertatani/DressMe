@@ -17,7 +17,8 @@ from bson import ObjectId
 from tests.conftest import BLACK, BLUE, GREEN, RED, photo, sign_up
 
 # the places that must really hold the user's data before the deletion, or the test proves nothing
-MUST_HOLD_DATA = {"users", "items", "candidates", "chats", "events", "outfit_feedback", "listings", "decisions"}
+MUST_HOLD_DATA = {"users", "items", "candidates", "chats", "events", "outfit_feedback", "listings", "decisions",
+                  "wear_log"}
 
 
 def mentions(value, user_id):
@@ -67,6 +68,9 @@ def leave_data_everywhere(client, headers):
     assert client.post("/decisions", json={"candidate_id": left["id"], "answer": "left"},
                        headers=headers).status_code == 201
 
+    # step 2: the wear log
+    assert client.post("/wear", json={"item_ids": [top["id"], bottom["id"]], "source": "card"},
+                       headers=headers).status_code == 201
     assert client.post("/outfits/feedback", json={"item_ids": [top["id"], bottom["id"]], "rating": 1},
                        headers=headers).status_code == 200
     assert client.post("/chat", json={"message": "how many items are in my wardrobe?"},
@@ -112,5 +116,19 @@ def test_deleting_an_account_leaves_nothing_behind(make_client, settings):
     assert not folder.exists(), "the user's photo folder is still there"
     assert not listing_picture.exists(), "the seller listing's picture is still there"
     # and nobody else lost anything
+    assert client.get(f"/items/{stayer_item['id']}", headers=stayer).status_code == 200
+    assert db.users.count_documents({}) == 2
+
+    # step 5: the user's own DELETE /me (the password is asked) leaves nothing behind either: same check
+    quitter = sign_up(client, "quitter@example.com", "Quitter")
+    made = leave_data_everywhere(client, quitter)
+    quitter_id = db.users.find_one({"email": "quitter@example.com"})["_id"]
+    quitter_folder = settings.storage_dir / str(quitter_id)
+    quitter_picture = settings.storage_dir / "listings" / f"{made['listing_id']}.jpg"
+    assert MUST_HOLD_DATA <= set(collections_holding(db, quitter_id))
+    assert quitter_folder.exists() and quitter_picture.exists()
+    assert client.request("DELETE", "/me", json={"password": "secret-pass"}, headers=quitter).status_code == 204
+    assert not collections_holding(db, quitter_id), "DELETE /me left user data behind"
+    assert not quitter_folder.exists() and not quitter_picture.exists()
     assert client.get(f"/items/{stayer_item['id']}", headers=stayer).status_code == 200
     assert db.users.count_documents({}) == 2

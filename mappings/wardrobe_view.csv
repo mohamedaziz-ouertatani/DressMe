@@ -1,0 +1,3 @@
+name,value,note
+window_days,14,"REVIEW: start value. A piece worn within this many days (today included, in Tunis time) is listed as 'worn lately' on the Wardrobe view."
+grace_days,14,"REVIEW: start value. A piece is listed as 'never worn' only when it has no wear entry at all and has been in the wardrobe for MORE than this many days (a piece added yesterday is not neglected yet)."

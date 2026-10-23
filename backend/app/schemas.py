@@ -15,6 +15,12 @@ class Register(BaseModel):
     password: str = Field(min_length=8, max_length=128)
     name: str = Field(min_length=1, max_length=60)
     gender: Gender                       # required: shops, look-alikes and rules follow it
+    consent: bool | None = None          # the sign-up checkbox; true stamps users.consent_at (step 5)
+
+
+class DeleteMe(BaseModel):
+    """DELETE /me: the password is asked again before an account and everything it owns is deleted."""
+    password: str = Field(max_length=128)
 
 
 class Login(BaseModel):

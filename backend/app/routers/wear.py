@@ -3,15 +3,15 @@ The wear log (step 2 of the upgrade): what the user wore, day by day.
 
     POST   /wear          {item_ids, occasion?, event_name?, score_shown?, label_shown?, source: card | build}
     GET    /wear          ?from=YYYY-MM-DD&to=YYYY-MM-DD (both optional): the user's entries, newest first
+    GET    /wear/summary  worn lately / never worn (the Wardrobe view; numbers in mappings/wardrobe_view.csv)
     DELETE /wear/{id}     undo; only on the day it was worn (Tunis time), else 409
 
 `worn_on` is the calendar date in Africa/Tunis, computed here on the server (src/phase4/dress.py), never
 taken from the app. The same set of pieces on the same day is one entry: the second POST returns the first
 (200), so a double tap or a reload never doubles the log. Every piece must be the user's own (else 404).
-No screen shows the history yet: it comes with the wardrobe view (step 5).
+The Wardrobe view (step 5) shows the history (GET /wear) and the worn / never-worn summary.
 
-TODO(step 2): the history screen is still to come (step 5, the Wardrobe view): it will read GET /wear. The app
-does not ask for `occasion` or `event_name` yet (the API accepts and keeps them), and GET /wear stops at 500
+TODO(step 2): the app does not ask for `occasion` or `event_name` yet (the API accepts and keeps them), and GET /wear stops at 500
 entries (add paging when a screen needs more).
 """
 
@@ -21,6 +21,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 
 from .. import ml  # noqa: F401  (puts src/ on the import path)
 import dress
+import wardrobe_view
 
 from ..db import object_id
 from ..events import log_event
@@ -70,6 +71,17 @@ def wear_list(request: Request, from_: date | None = Query(None, alias="from"), 
         query["worn_on"] = {**({"$gte": from_.isoformat()} if from_ else {}), **({"$lte": to.isoformat()} if to else {})}
     docs = request.app.state.db.wear_log.find(query).sort([("worn_on", -1), ("created_at", -1)]).limit(500)
     return [entry_out(d) for d in docs]
+
+
+@router.get("/wear/summary")
+def wear_summary(request: Request, user=Depends(current_user)):
+    """The Wardrobe view's "Worn" section: pieces worn lately, and pieces never worn (src/phase4/wardrobe_view.py,
+    the two numbers are in mappings/wardrobe_view.csv)."""
+    db = request.app.state.db
+    items = [{"id": str(d["_id"]), "created_at": d["created_at"]}
+             for d in db.items.find({"user_id": user["_id"]}, {"created_at": 1})]
+    entries = list(db.wear_log.find({"user_id": user["_id"]}, {"item_ids": 1, "worn_on": 1}))
+    return wardrobe_view.worn_summary(items, entries, date.fromisoformat(today()), **wardrobe_view.load_rules())
 
 
 @router.delete("/wear/{entry_id}", status_code=204)
