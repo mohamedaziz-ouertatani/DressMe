@@ -81,7 +81,7 @@ export function TryOnPage() {
     return (
       <Page title={t('tryOnTitle')}>
         <Empty title={t('tryOnNone')} body={t('tryOnNoneBody')}
-          action={<Link to="/build" className="inline-flex min-h-11 items-center border-[1.5px] border-ink bg-paper px-4 text-[15px] font-medium text-ink">{t('navBuild')}</Link>} />
+          action={<Link to="/dress/build" className="inline-flex min-h-11 items-center border-[1.5px] border-ink bg-paper px-4 text-[15px] font-medium text-ink">{t('navBuild')}</Link>} />
       </Page>
     )
   }

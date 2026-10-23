@@ -6,6 +6,13 @@ import { CATEGORY_LABELS, COLOUR_LABELS, PATTERN_LABELS, SUB_LABELS, vocab } fro
 type T = Record<Language, string>
 const sep = (l: Language) => (l === 'ar' ? '، ' : ', ')
 
+// "Right for <this>": the occasion chips of mappings/dress_occasions.csv as a phrase
+const OCCASION_PHRASE: Record<Language, Record<string, string>> = {
+  en: { everyday: 'everyday', work: 'work', university: 'university', outing: 'an outing', eid: 'Eid', wedding: 'a wedding', beach: 'the beach' },
+  fr: { everyday: 'tous les jours', work: 'le travail', university: 'la fac', outing: 'une sortie', eid: "l'Aïd", wedding: 'un mariage', beach: 'la plage' },
+  ar: { everyday: 'للاستعمال اليومي', work: 'للعمل', university: 'للجامعة', outing: 'لنزهة', eid: 'للعيد', wedding: 'لعرس', beach: 'للبحر' },
+}
+
 export function explainLine(line: ExplainLine, l: Language): string {
   const p = line.params
   const col = (k: string) => vocab(COLOUR_LABELS, String(p[k]), l)
@@ -34,6 +41,15 @@ export function explainLine(line: ExplainLine, l: Language): string {
     structure_over_limit: () => {
       const c = vocab(CATEGORY_LABELS, String(p.category), l)
       return { en: `${p.n} pieces of ${c}`, fr: `${p.n} pièces de type ${c}`, ar: `${p.n} قطع من ${c}` }
+    },
+    fits_context: () => {
+      const o = String(p.occasion)
+      const at = p.temp_c === null || p.temp_c === undefined ? '' : String(p.temp_c)
+      return {
+        en: `Right for ${OCCASION_PHRASE.en[o] ?? o}${at ? ` at ${at}°` : ''}`,
+        fr: `Idéale pour ${OCCASION_PHRASE.fr[o] ?? o}${at ? ` à ${at}°` : ''}`,
+        ar: `مناسبة ${OCCASION_PHRASE.ar[o] ?? o}${at ? ` عند ${at}°` : ''}`,
+      }
     },
     structure_pair: () => ({ en: `${sub('a')} and ${sub('b')} don't go together`, fr: `${sub('a')} et ${sub('b')} ne vont pas ensemble`, ar: `${sub('a')} و${sub('b')} لا يتماشيان` }),
   }
@@ -97,4 +113,19 @@ export function verdictCodeLine(c: VerdictCode, l: Language): string {
     }),
   }
   return texts[c.code]?.()[l] ?? c.code
+}
+
+/** Why an outfit's confidence is not higher (the `confidence_reasons` of the Dress routes). `piece` = the name of
+ *  the piece a guessed label belongs to. A small wardrobe reuses the sentence of the buy verdict. */
+export function confidenceReasonLine(r: { code: string; params: Record<string, string | number> }, piece: string, l: Language): string {
+  if (r.code === 'small_wardrobe') return verdictCodeLine({ code: r.code, params: r.params }, l)
+  if (r.code === 'guessed_field') {
+    const f = FIELD_WORDS[String(r.params.field)] ?? { en: String(r.params.field), fr: String(r.params.field), ar: String(r.params.field) }
+    return {
+      en: `DressMe is not sure of the ${f.en} of the ${piece}: check it in your wardrobe.`,
+      fr: `DressMe n'est pas sûr ${f.fr} de « ${piece} » : vérifie-le dans ta garde-robe.`,
+      ar: `DressMe غير متأكد من ${f.ar} في ${piece}: تحقق منه في خزانتك.`,
+    }[l]
+  }
+  return r.code
 }

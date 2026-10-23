@@ -92,7 +92,39 @@ export interface Outfit {
   contributions?: Contribution[]   // points per part (app routes only)
   explanations?: ExplainLine[]     // strengths (+) and problems (-) as codes
   label?: OutfitLabel | null       // suggest / score / complete only (step 2)
-  confidence?: 'low' | 'high'      // the same routes: low = a small wardrobe or an unsure label
+  confidence?: Confidence          // the same routes: how many things lower it (0 high, 1 medium, 2+ low)
+  confidence_reasons?: ConfidenceReason[]   // what lowers it (step 2b)
+  pick?: boolean                   // POST /outfits/build: the pieces you chose already make this outfit
+}
+
+/** What lowers an outfit's confidence: small_wardrobe {owned, minimum}, guessed_field {item_id, field}. */
+export interface ConfidenceReason {
+  code: string
+  params: Record<string, string | number>
+}
+
+/** One chip of the Dress page (mappings/dress_occasions.csv): main ones show, the others sit under "More". */
+export interface OccasionChip {
+  chip: string
+  main: boolean
+}
+
+/** GET /outfits/today: three outfits for today. */
+export interface TodayOutfits {
+  date: string                     // today in Tunis
+  occasion: string
+  season: Season                   // from the weather, else the calendar
+  weather: { temp_c: number; condition: WeatherCondition | null; season: Season } | null
+  outfits: Outfit[]                // up to 3, one per label when the candidates allow it
+  missing: Insights['missing']     // what the wardrobe lacks, only when outfits is empty
+}
+
+/** POST /outfits/build: up to three outfits around the chosen pieces. */
+export interface BuildResult {
+  occasion: string | null
+  outfits: Outfit[]                // `pick: true` first when the chosen pieces already make an outfit
+  notes: { code: 'clash_swapped'; params: { dropped: string; kept: string } }[]
+  used_item_ids: string[]          // the chosen pieces after a clash was swapped
 }
 
 /** One entry of the wear log (POST /wear): what was worn on a day in Tunis. */
@@ -493,7 +525,7 @@ export type PartName = 'style' | 'colour' | 'pattern' | 'structure'
 
 export interface ExplainLine {
   code: string
-  part: PartName
+  part: PartName | 'context'       // 'context' = fits_context (the occasion and the weather)
   sign: '+' | '-'
   params: Record<string, string | number | string[]>
 }

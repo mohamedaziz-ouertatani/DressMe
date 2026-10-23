@@ -63,9 +63,9 @@ export function ExplainLines({ lines }: { lines: ExplainLine[] }) {
 }
 
 /** "Why this score?": loads the swaps and the pair map on demand. */
-export function ScoreDetails({ outfit, onSwap }: { outfit: Outfit; onSwap?: (from: string, to: string) => void }) {
+export function ScoreDetails({ outfit, onSwap, startOpen = false }: { outfit: Outfit; onSwap?: (from: string, to: string) => void; startOpen?: boolean }) {
   const { t, lang } = useI18n()
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(startOpen)
   // the answer is kept with the outfit it is for: after a swap on Build, the old one is not shown
   const [answer, setAnswer] = useState<{ key: string; data?: OutfitExplanation; error?: unknown }>({ key: '' })
   const ids = outfit.items.map((i) => i.id)

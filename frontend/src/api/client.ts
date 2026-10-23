@@ -4,7 +4,7 @@ import type {
   AdminXai, SourceCheck, AdminSource, Job, JobStart, ListingsOverview, AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Insights, Item, ItemPatch,
   Listing, ListingFilters, ListingPage, ListingPatch, ModelQuality, ReviewListing, SellForm, Occasion, Outfit, Season, Similar, Stats, User, Gender,
   ChatAttachment, ChatAction, TryOnResult, Weather, Explanation, GuessField, OutfitExplanation,
-  Decision, DecisionAnswer, OutfitLabel, WearEntry,
+  Decision, DecisionAnswer, OutfitLabel, WearEntry, OccasionChip, TodayOutfits, BuildResult,
 } from './types'
 
 const BASE = '/api'
@@ -140,6 +140,17 @@ export const api = {
     request<{ item_ids: string[]; rating: 1 | -1 }>('/outfits/feedback', json('POST', { item_ids: itemIds, rating })),
   complete: (itemIds: string[], k = 5) =>
     request<Completion[]>('/outfits/complete', json('POST', { item_ids: itemIds, k })),
+  /** The occasion chips of the Dress page, in the team's order. */
+  occasions: () => request<OccasionChip[]>('/outfits/occasions'),
+  /** Three outfits for today: the same day, occasion and shuffle give the same outfits. */
+  outfitsToday: (opts: { occasion: string; shuffle: number; at?: { lat: number; lon: number } }) => {
+    const q = new URLSearchParams({ occasion: opts.occasion, shuffle: String(opts.shuffle) })
+    if (opts.at) { q.set('lat', String(opts.at.lat)); q.set('lon', String(opts.at.lon)) }
+    return request<TodayOutfits>(`/outfits/today?${q}`)
+  },
+  /** Up to three outfits around the chosen pieces. */
+  buildOutfits: (itemIds: string[], shuffle = 0, occasion?: string) =>
+    request<BuildResult>('/outfits/build', json('POST', { item_ids: itemIds, shuffle, occasion })),
   /** "I wore this": the same pieces on the same day are one entry (a second call returns the first). */
   wear: (body: { item_ids: string[]; occasion?: string; event_name?: string; score_shown?: number;
                  label_shown?: OutfitLabel; source: 'card' | 'build' }) =>

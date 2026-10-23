@@ -24,6 +24,26 @@
   --shadow-ticket: 0 1px 1px rgb(20 22 26 / 0.06), 0 6px 14px -6px rgb(30 46 142 / 0.22);
   --shadow-lift: 0 2px 2px rgb(20 22 26 / 0.08), 0 14px 28px -10px rgb(30 46 142 / 0.32);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* ---- The Dress look (step 2b): soft pastel cards, black pill buttons, outlined pill chips.
+     EVERY colour, radius and spacing of that look is here and nowhere else: the Dress page uses them through
+     Tailwind (bg-label-safe, rounded-card, p-card, gap-card, ...). To give the whole app this look later,
+     change these values and use the same utilities in the other pages. */
+  --color-label-safe: #d8eedb;          /* card of a "safe" outfit: green */
+  --color-label-bolder: #f6eeb4;        /* "bolder": yellow */
+  --color-label-experimental: #e4dbf4;  /* "experimental": lilac */
+  --color-label-neutral: #ebeeec;       /* no label (no taste vector yet) */
+  --color-pill: #111312;                /* the black primary button and the selected chip */
+  --color-pill-text: #ffffff;
+  --color-pill-line: #111312;           /* the outline of an outlined pill */
+  --color-tile: #ffffff;                /* the plate behind a piece in the collage */
+  --color-scrim: rgb(17 19 18 / 0.45);  /* behind the details sheet */
+  --radius-card: 1.75rem;               /* an outfit card */
+  --radius-sheet: 1.75rem;              /* the details sheet */
+  --radius-tile: 1rem;                  /* a piece in the collage */
+  --radius-pill: 9999px;                /* buttons, chips, the switch */
+  --spacing-card: 1.25rem;              /* padding inside a card or the sheet */
+  --spacing-stack: 1.5rem;              /* space between the blocks of the page and between cards */
 }
 
 @layer base {

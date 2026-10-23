@@ -1,21 +1,19 @@
 import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { CalendarDays, LayoutGrid, LogOut, MessageCircle, ScanLine, Shapes, ShieldCheck, ShoppingBag, UserRound } from 'lucide-react'
+import { LayoutGrid, LogOut, MessageCircle, ScanLine, Shirt, ShieldCheck, ShoppingBag, UserRound } from 'lucide-react'
 import { useAuth } from './auth'
 import { useI18n } from './i18n'
 import type { StringKey } from './i18n/strings'
 
-// phone: false = only in the desktop rail (the phone tab bar has 5 slots; Shops
-// is an icon in the phone header instead). short = a shorter label for the phone tab bar,
-// where a long one wraps.
-const NAV: { to: string; key: StringKey; icon: typeof CalendarDays; phone?: false; short?: StringKey }[] = [
-  { to: '/', key: 'navToday', icon: CalendarDays },
+// The phone tab bar has 5 slots with Scan in the middle: the same five items as the desktop rail.
+// short = a shorter label for the phone tab bar, where a long one wraps.
+const NAV: { to: string; key: StringKey; icon: typeof Shirt; short?: StringKey }[] = [
+  { to: '/dress', key: 'navDress', icon: Shirt },
   { to: '/wardrobe', key: 'navWardrobe', icon: LayoutGrid },
   { to: '/scan', key: 'navScan', short: 'navScanShort', icon: ScanLine },
-  { to: '/build', key: 'navBuild', icon: Shapes },
+  { to: '/shop', key: 'navShop', icon: ShoppingBag },
   { to: '/chat', key: 'navChat', icon: MessageCircle },
-  { to: '/shop', key: 'navShop', icon: ShoppingBag, phone: false },
 ]
 
 /** The wordmark: a small perforated tag before the name. */
@@ -146,9 +144,6 @@ export function AppShell() {
         <div className="flex items-center justify-between px-4 pt-[max(12px,env(safe-area-inset-top))] lg:hidden">
           <Wordmark />
           <div className="flex items-center gap-1">
-            <NavLink to="/shop" aria-label={t('navShop')} className="grid size-11 place-items-center text-ink">
-              <ShoppingBag className="size-5" aria-hidden />
-            </NavLink>
             {user?.role === 'admin' && (
               <NavLink to="/admin" aria-label={t('navAdmin')} className="grid size-11 place-items-center text-ink">
                 <ShieldCheck className="size-5" aria-hidden />
@@ -169,7 +164,7 @@ export function AppShell() {
       {/* phone tab bar: stubs torn along a perforation; Scan is the big centre slot */}
       <nav ref={bar} aria-label="Main" className="fixed inset-x-0 bottom-0 z-20 border-t-[1.5px] border-dashed border-perf bg-paper pb-[env(safe-area-inset-bottom)] lg:hidden">
         <ul className="mx-auto grid max-w-md grid-cols-5 items-end">
-          {NAV.filter((n) => n.phone !== false).map(({ to, key, short, icon: Icon }) => {
+          {NAV.map(({ to, key, short, icon: Icon }) => {
             const scan = to === '/scan'
             return (
               <li key={to} className="flex justify-center">

@@ -4,6 +4,7 @@ import { ApiError, api } from '../api/client'
 import type { Outfit, WearEntry } from '../api/types'
 import { useI18n } from '../i18n'
 import { Button } from './controls'
+import { PillButton } from './dress'
 import { ErrorNote } from './states'
 
 /** Today's date in Tunis as YYYY-MM-DD (the wear log is dated there, by the server). */
@@ -23,10 +24,11 @@ type State =
 /** "I wore this" under an outfit card. POST /wear once, then "Worn today · Undo" (DELETE /wear/{id}).
  *  The server keeps one entry per set of pieces and day, so an outfit already worn today shows as worn
  *  after a reload too. Remount it (a `key`) when the outfit changes. */
-export function WearButton({ outfit, source, occasion }: {
+export function WearButton({ outfit, source, occasion, pill = false }: {
   outfit: Outfit
   source: 'card' | 'build'
   occasion?: string
+  pill?: boolean             // the Dress look: a black pill "Wear this" (else the older outlined "I wore this")
 }) {
   const { t } = useI18n()
   const ids = outfit.items.map((i) => i.id)
@@ -74,7 +76,7 @@ export function WearButton({ outfit, source, occasion }: {
 
   if (state.kind === 'worn') {
     return (
-      <p role="status" className="mt-4 flex flex-wrap items-center gap-x-3 text-[15px] text-carbon">
+      <p role="status" className={`${pill ? '' : 'mt-4'} flex min-h-11 flex-wrap items-center gap-x-3 text-[15px] text-carbon`}>
         <span className="inline-flex items-center gap-2">
           <Check className="size-4 shrink-0 text-ink" aria-hidden /> {t('wornToday')}
         </span>
@@ -86,11 +88,15 @@ export function WearButton({ outfit, source, occasion }: {
   const failed = state.kind === 'failed' ? state : null
   const tooLate = failed?.action === 'undo' && failed.error instanceof ApiError && failed.error.status === 409
   return (
-    <div className="mt-4">
+    <div className={pill ? '' : 'mt-4'}>
       {failed?.action === 'undo' && failed.entry ? (
         <div className="flex flex-wrap items-center gap-x-3 text-[15px] text-carbon">
           <span className="inline-flex items-center gap-2"><Check className="size-4 shrink-0 text-ink" aria-hidden /> {t('wornToday')}</span>
         </div>
+      ) : pill ? (
+        <PillButton busy={state.kind === 'sending'} disabled={state.kind === 'checking'} onClick={wear}>
+          <Shirt className="size-4" aria-hidden /> {t('wearThis')}
+        </PillButton>
       ) : (
         <Button variant="secondary" busy={state.kind === 'sending'} disabled={state.kind === 'checking'} onClick={wear}>
           <Shirt className="size-4" aria-hidden /> {t('wearBtn')}
