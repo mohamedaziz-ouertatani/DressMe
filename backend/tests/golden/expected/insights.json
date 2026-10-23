@@ -1,0 +1,133 @@
+{
+ "total": 17,
+ "categories": [
+  {
+   "category": "top",
+   "count": 5
+  },
+  {
+   "category": "bottom",
+   "count": 3
+  },
+  {
+   "category": "dress",
+   "count": 2
+  },
+  {
+   "category": "outerwear",
+   "count": 1
+  },
+  {
+   "category": "shoes",
+   "count": 3
+  },
+  {
+   "category": "bag",
+   "count": 2
+  },
+  {
+   "category": "accessory",
+   "count": 1
+  }
+ ],
+ "colours": [
+  {
+   "colour": "pink",
+   "count": 5,
+   "neutral": false
+  },
+  {
+   "colour": "white",
+   "count": 2,
+   "neutral": true
+  },
+  {
+   "colour": "black",
+   "count": 2,
+   "neutral": true
+  },
+  {
+   "colour": "grey",
+   "count": 2,
+   "neutral": true
+  },
+  {
+   "colour": "green",
+   "count": 1,
+   "neutral": false
+  },
+  {
+   "colour": "burgundy",
+   "count": 1,
+   "neutral": false
+  },
+  {
+   "colour": "brown",
+   "count": 1,
+   "neutral": false
+  }
+ ],
+ "patterns": [
+  {
+   "pattern": "solid",
+   "count": 6
+  },
+  {
+   "pattern": "checked",
+   "count": 1
+  },
+  {
+   "pattern": "floral",
+   "count": 2
+  },
+  {
+   "pattern": "printed",
+   "count": 8
+  }
+ ],
+ "to_confirm": {
+  "colour": 3,
+  "coverage": 10,
+  "season": 12,
+  "usage": 10
+ },
+ "outfits": {
+  "good": 12,
+  "complete": true,
+  "good_score": 60
+ },
+ "versatile": [
+  {
+   "id": "5f0c01000000000000000006",
+   "category": "bottom",
+   "sub_category": "skirt",
+   "colour": "black",
+   "image_url": "/items/5f0c01000000000000000006/image",
+   "outfits": 5
+  },
+  {
+   "id": "5f0c01000000000000000007",
+   "category": "bottom",
+   "sub_category": "leggings",
+   "colour": "green",
+   "image_url": "/items/5f0c01000000000000000007/image",
+   "outfits": 5
+  },
+  {
+   "id": "5f0c01000000000000000001",
+   "category": "top",
+   "sub_category": "t-shirt",
+   "colour": "pink",
+   "image_url": "/items/5f0c01000000000000000001/image",
+   "outfits": 2
+  }
+ ],
+ "unmatched": [],
+ "filtered": 1,
+ "new_pairs": {
+  "top": 2,
+  "bottom": 5
+ },
+ "missing": [],
+ "twins": []
+}

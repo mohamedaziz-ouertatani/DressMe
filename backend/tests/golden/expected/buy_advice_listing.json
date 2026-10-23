@@ -1,0 +1,270 @@
+{
+ "candidate": {
+  "id": "<candidate>",
+  "category": "bottom",
+  "sub_category": "skirt",
+  "pattern": "solid",
+  "colour": "navy",
+  "coverage": null,
+  "season": [],
+  "usage": [],
+  "predicted": {
+   "category": {
+    "value": "bottom",
+    "conf": 1.0,
+    "alternatives": [
+     {
+      "value": "bottom",
+      "conf": 1.0
+     }
+    ],
+    "unsure": false
+   },
+   "sub_category": {
+    "value": "skirt",
+    "conf": 1.0,
+    "alternatives": [
+     {
+      "value": "skirt",
+      "conf": 1.0
+     }
+    ],
+    "unsure": false
+   },
+   "pattern": {
+    "value": "solid",
+    "conf": 1.0,
+    "alternatives": [
+     {
+      "value": "solid",
+      "conf": 1.0
+     }
+    ],
+    "unsure": false
+   },
+   "colour": {
+    "value": "navy",
+    "conf": 1.0,
+    "alternatives": [
+     {
+      "value": "navy",
+      "conf": 1.0
+     }
+    ],
+    "unsure": false
+   }
+  },
+  "corrected": [],
+  "image_url": "/candidates/<candidate>/image"
+ },
+ "advice": {
+  "verdict": "think",
+  "good_outfits": 1,
+  "reasons": [],
+  "candidate": {
+   "id": "<candidate>",
+   "category": "bottom",
+   "sub_category": "skirt",
+   "pattern": "solid",
+   "colour": "navy",
+   "coverage": null,
+   "season": [],
+   "usage": [],
+   "predicted": {
+    "category": {
+     "value": "bottom",
+     "conf": 1.0,
+     "alternatives": [
+      {
+       "value": "bottom",
+       "conf": 1.0
+      }
+     ],
+     "unsure": false
+    },
+    "sub_category": {
+     "value": "skirt",
+     "conf": 1.0,
+     "alternatives": [
+      {
+       "value": "skirt",
+       "conf": 1.0
+      }
+     ],
+     "unsure": false
+    },
+    "pattern": {
+     "value": "solid",
+     "conf": 1.0,
+     "alternatives": [
+      {
+       "value": "solid",
+       "conf": 1.0
+      }
+     ],
+     "unsure": false
+    },
+    "colour": {
+     "value": "navy",
+     "conf": 1.0,
+     "alternatives": [
+      {
+       "value": "navy",
+       "conf": 1.0
+      }
+     ],
+     "unsure": false
+    }
+   },
+   "corrected": [],
+   "image_url": "/candidates/<candidate>/image"
+  },
+  "best": [
+   {
+    "score": 78.1,
+    "parts": {
+     "style": 0.376,
+     "colour": 1.0,
+     "pattern": 1.0,
+     "structure": 1.0
+    },
+    "reasons": [
+     "the pieces have quite different styles"
+    ],
+    "items": [
+     {
+      "id": "5f0c01000000000000000005",
+      "category": "top",
+      "sub_category": "top",
+      "colour": "",
+      "image_url": "/items/5f0c01000000000000000005/image"
+     },
+     {
+      "id": "<candidate>",
+      "category": "bottom",
+      "sub_category": "skirt",
+      "colour": "navy",
+      "image_url": "/items/<candidate>/image"
+     },
+     {
+      "id": "5f0c0100000000000000000e",
+      "category": "shoes",
+      "sub_category": "casual-shoes",
+      "colour": "brown",
+      "image_url": "/items/5f0c0100000000000000000e/image"
+     }
+    ],
+    "contributions": [
+     {
+      "part": "style",
+      "weight": 0.35,
+      "counted": true,
+      "value": 0.376,
+      "points": 13.1,
+      "max_points": 35.0,
+      "why_not": null
+     },
+     {
+      "part": "colour",
+      "weight": 0.3,
+      "counted": true,
+      "value": 1.0,
+      "points": 30.0,
+      "max_points": 30.0,
+      "why_not": null
+     },
+     {
+      "part": "pattern",
+      "weight": 0.15,
+      "counted": true,
+      "value": 1.0,
+      "points": 15.0,
+      "max_points": 15.0,
+      "why_not": null
+     },
+     {
+      "part": "structure",
+      "weight": 0.2,
+      "counted": true,
+      "value": 1.0,
+      "points": 20.0,
+      "max_points": 20.0,
+      "why_not": null
+     }
+    ],
+    "explanations": [
+     {
+      "code": "colour_pair",
+      "part": "colour",
+      "sign": "+",
+      "params": {
+       "a": "navy",
+       "b": "brown"
+      }
+     },
+     {
+      "code": "pattern_calm",
+      "part": "pattern",
+      "sign": "+",
+      "params": {}
+     },
+     {
+      "code": "structure_complete",
+      "part": "structure",
+      "sign": "+",
+      "params": {}
+     },
+     {
+      "code": "style_mixed",
+      "part": "style",
+      "sign": "-",
+      "params": {}
+     }
+    ]
+   }
+  ],
+  "explanation": {
+   "path": {
+    "good": 1,
+    "buy_min": 5,
+    "think_min": 1,
+    "verdict": "think"
+   },
+   "beats": [
+    {
+     "item_ids": [
+      "5f0c01000000000000000005",
+      "<candidate>",
+      "5f0c0100000000000000000e"
+     ],
+     "owned_id": "5f0c01000000000000000006",
+     "owned_score": 73.0,
+     "margin": 5.1,
+     "owned": {
+      "id": "5f0c01000000000000000006",
+      "category": "bottom",
+      "sub_category": "skirt",
+      "colour": "black",
+      "image_url": "/items/5f0c01000000000000000006/image"
+     }
+    }
+   ],
+   "lost_to": [
+    {
+     "owned_id": "5f0c01000000000000000006",
+     "outfits": 4,
+     "owned": {
+      "id": "5f0c01000000000000000006",
+      "category": "bottom",
+      "sub_category": "skirt",
+      "colour": "black",
+      "image_url": "/items/5f0c01000000000000000006/image"
+     }
+    }
+   ],
+   "near_misses": 0,
+   "to_next_verdict": 4,
+   "twins": []
+  }
+ }
+}

@@ -1,0 +1,213 @@
+{
+ "full_outfit": {
+  "status": 200,
+  "body": {
+   "score": 76.3,
+   "parts": {
+    "style": 0.436,
+    "colour": 0.867,
+    "pattern": 1.0,
+    "structure": 1.0
+   },
+   "reasons": [],
+   "items": [
+    {
+     "id": "5f0c01000000000000000001",
+     "category": "top",
+     "sub_category": "t-shirt",
+     "colour": "pink",
+     "image_url": "/items/5f0c01000000000000000001/image"
+    },
+    {
+     "id": "5f0c01000000000000000006",
+     "category": "bottom",
+     "sub_category": "skirt",
+     "colour": "black",
+     "image_url": "/items/5f0c01000000000000000006/image"
+    },
+    {
+     "id": "5f0c0100000000000000000e",
+     "category": "shoes",
+     "sub_category": "casual-shoes",
+     "colour": "brown",
+     "image_url": "/items/5f0c0100000000000000000e/image"
+    },
+    {
+     "id": "5f0c01000000000000000011",
+     "category": "bag",
+     "sub_category": "handbag",
+     "colour": "pink",
+     "image_url": "/items/5f0c01000000000000000011/image"
+    }
+   ],
+   "contributions": [
+    {
+     "part": "style",
+     "weight": 0.35,
+     "counted": true,
+     "value": 0.436,
+     "points": 15.3,
+     "max_points": 35.0,
+     "why_not": null
+    },
+    {
+     "part": "colour",
+     "weight": 0.3,
+     "counted": true,
+     "value": 0.867,
+     "points": 26.0,
+     "max_points": 30.0,
+     "why_not": null
+    },
+    {
+     "part": "pattern",
+     "weight": 0.15,
+     "counted": true,
+     "value": 1.0,
+     "points": 15.0,
+     "max_points": 15.0,
+     "why_not": null
+    },
+    {
+     "part": "structure",
+     "weight": 0.2,
+     "counted": true,
+     "value": 1.0,
+     "points": 20.0,
+     "max_points": 20.0,
+     "why_not": null
+    }
+   ],
+   "explanations": [
+    {
+     "code": "colour_pair",
+     "part": "colour",
+     "sign": "+",
+     "params": {
+      "a": "pink",
+      "b": "black"
+     }
+    },
+    {
+     "code": "pattern_one_bold",
+     "part": "pattern",
+     "sign": "+",
+     "params": {
+      "pattern": "printed"
+     }
+    },
+    {
+     "code": "structure_complete",
+     "part": "structure",
+     "sign": "+",
+     "params": {}
+    }
+   ]
+  }
+ },
+ "dress_look": {
+  "status": 200,
+  "body": {
+   "score": 75.0,
+   "parts": {
+    "style": 0.392,
+    "colour": 1.0,
+    "pattern": null,
+    "structure": 1.0
+   },
+   "reasons": [
+    "the pieces have quite different styles"
+   ],
+   "items": [
+    {
+     "id": "5f0c0100000000000000000a",
+     "category": "dress",
+     "sub_category": "dress",
+     "colour": "grey",
+     "image_url": "/items/5f0c0100000000000000000a/image"
+    },
+    {
+     "id": "5f0c0100000000000000000d",
+     "category": "shoes",
+     "sub_category": "heels",
+     "colour": "pink",
+     "image_url": "/items/5f0c0100000000000000000d/image"
+    },
+    {
+     "id": "5f0c01000000000000000010",
+     "category": "bag",
+     "sub_category": "laptop-bag",
+     "colour": "black",
+     "image_url": "/items/5f0c01000000000000000010/image"
+    }
+   ],
+   "contributions": [
+    {
+     "part": "style",
+     "weight": 0.35,
+     "counted": true,
+     "value": 0.392,
+     "points": 16.2,
+     "max_points": 41.2,
+     "why_not": null
+    },
+    {
+     "part": "colour",
+     "weight": 0.3,
+     "counted": true,
+     "value": 1.0,
+     "points": 35.3,
+     "max_points": 35.3,
+     "why_not": null
+    },
+    {
+     "part": "pattern",
+     "weight": 0.15,
+     "counted": false,
+     "value": null,
+     "points": 0.0,
+     "max_points": 0.0,
+     "why_not": "no_patterns"
+    },
+    {
+     "part": "structure",
+     "weight": 0.2,
+     "counted": true,
+     "value": 1.0,
+     "points": 23.5,
+     "max_points": 23.5,
+     "why_not": null
+    }
+   ],
+   "explanations": [
+    {
+     "code": "colour_pair",
+     "part": "colour",
+     "sign": "+",
+     "params": {
+      "a": "grey",
+      "b": "pink"
+     }
+    },
+    {
+     "code": "structure_complete",
+     "part": "structure",
+     "sign": "+",
+     "params": {}
+    },
+    {
+     "code": "style_mixed",
+     "part": "style",
+     "sign": "-",
+     "params": {}
+    }
+   ]
+  }
+ },
+ "clash_two_tops": {
+  "status": 422,
+  "body": {
+   "detail": "These pieces can't be worn together: 2 items of top (max 1)"
+  }
+ }
+}
