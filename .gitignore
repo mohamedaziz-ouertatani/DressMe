@@ -34,3 +34,6 @@ models/llm/
 
 # run logs of long scripts
 logs/
+
+# database backups (scripts\db_backup.ps1)
+backups/
