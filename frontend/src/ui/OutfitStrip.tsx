@@ -6,6 +6,7 @@ import { Swatch } from './controls'
 import { ItemPhoto } from './ItemPhoto'
 import { Stamp } from './Stamp'
 import { SecondLine, Serial, Ticket } from './ticket'
+import { IncompleteNote } from './IncompleteNote'
 import { ExplainLines, PointsBar, ScoreDetails } from './ScoreWhy'
 
 /** An outfit as a strip of perforated tickets, one per piece, with the score
@@ -62,6 +63,7 @@ export function OutfitStrip({ outfit, land = false, compact = false, photoOf, on
           label={`${t('score')} ${Math.round(outfit.score)} / 100`}
         />
       </div>
+      <IncompleteNote outfit={outfit} className="mt-3" />
       {outfit.contributions && <div className="mt-3"><PointsBar contributions={outfit.contributions} /></div>}
       <div className="mt-3">
         {outfit.explanations

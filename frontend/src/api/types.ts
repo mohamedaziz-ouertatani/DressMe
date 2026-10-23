@@ -96,6 +96,8 @@ export interface Outfit {
   confidence?: Confidence          // the same routes: how many things lower it (0 high, 1 medium, 2+ low)
   confidence_reasons?: ConfidenceReason[]   // what lowers it (step 2b)
   pick?: boolean                   // POST /outfits/build: the pieces you chose already make this outfit
+  complete?: boolean               // step 6b: a top + a bottom, or a dress (shoes not needed); the score is the same either way
+  missing?: 'bottom' | 'top' | 'core' | null   // what an incomplete outfit lacks
 }
 
 /** What lowers an outfit's confidence: small_wardrobe {owned, minimum}, guessed_field {item_id, field}. */

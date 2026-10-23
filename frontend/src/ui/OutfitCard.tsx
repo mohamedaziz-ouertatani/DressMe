@@ -9,6 +9,7 @@ import { CATEGORY_LABELS, SUB_LABELS, vocab } from '../i18n/vocab'
 import { DetailsSheet } from './DetailsSheet'
 import { ItemPhoto } from './ItemPhoto'
 import { ErrorNote } from './states'
+import { IncompleteNote } from './IncompleteNote'
 import { ExplainLines, PointsBar, ScoreDetails } from './ScoreWhy'
 import { WearButton } from './WearButton'
 
@@ -81,6 +82,7 @@ export function OutfitCard({ outfit, index, source, occasion, yourPick = false }
         {outfit.confidence && <ConfidenceDots level={outfit.confidence} />}
       </header>
       <Collage items={outfit.items} />
+      <IncompleteNote outfit={outfit} className="mt-3" />
       {shown.length > 0 && (
         <ul className="mt-4 space-y-1 text-[14px] text-carbon">
           {shown.map((l) => <li key={l.code}>{explainLine(l, lang)}</li>)}
@@ -127,6 +129,7 @@ function OutfitDetails({ outfit }: { outfit: Outfit }) {
       <section>
         <h3 className={heading}>{t('score')}</h3>
         <p className="text-[28px] font-bold leading-none text-carbon tabular">{Math.round(outfit.score)} <span className="text-[15px] font-medium text-carbon-soft">/ 100</span></p>
+        <IncompleteNote outfit={outfit} className="mt-2" />
         {outfit.contributions && <div className="mt-3"><PointsBar contributions={outfit.contributions} /></div>}
       </section>
 
