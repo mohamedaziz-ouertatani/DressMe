@@ -172,7 +172,7 @@ function OutfitDetails({ outfit }: { outfit: Outfit }) {
           ))}
         </div>
       </section>
-      {error ? <ErrorNote error={error} /> : null}
+      {error ? <ErrorNote error={error} message={t('dressActionFailed')} /> : null}
     </div>
   )
 }

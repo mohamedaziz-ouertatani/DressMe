@@ -121,7 +121,7 @@ function TodayMode() {
   }
 
   let body
-  if (data.error) body = <ErrorNote error={data.error} onRetry={data.reload} />
+  if (data.error) body = <ErrorNote error={data.error} onRetry={data.reload} message={t('dressLoadFailed')} />
   else if (!today) body = <CardsSkeleton />
   else if (today.outfits.length === 0) {
     body = chip === 'beach'
@@ -224,7 +224,7 @@ function BuildMode() {
   const done = state.kind === 'done' ? state.data : null
   useEffect(() => { if (done) results.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }, [done])
 
-  if (items.error) return <ErrorNote error={items.error} onRetry={items.reload} />
+  if (items.error) return <ErrorNote error={items.error} onRetry={items.reload} message={t('dressWardrobeFailed')} />
   if (!items.data) return <Skeleton className="h-64 rounded-card" />
   if (items.data.length === 0) {
     return <Empty title={t('wardrobeEmptyTitle')} body={t('wardrobeEmptyBody')} action={<AddLink />} />
@@ -277,7 +277,7 @@ function BuildMode() {
 
       <div ref={results} className="scroll-mt-4">
         {state.kind === 'loading' && <CardsSkeleton />}
-        {state.kind === 'error' && <ErrorNote error={state.error} onRetry={() => run(shuffle)} />}
+        {state.kind === 'error' && <ErrorNote error={state.error} onRetry={() => run(shuffle)} message={t('dressBuildFailed')} />}
         {done && (
           <div>
             {done.notes.length > 0 && (

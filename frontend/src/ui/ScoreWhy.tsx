@@ -96,7 +96,7 @@ export function ScoreDetails({ outfit, onSwap, startOpen = false }: { outfit: Ou
       </Button>
       {open && (
         <div className="mt-2 space-y-4 border-t border-perf/40 pt-3">
-          {error ? <ErrorNote error={error} /> : !data ? <Skeleton className="h-32" /> : (
+          {error ? <ErrorNote error={error} message={t('dressActionFailed')} /> : !data ? <Skeleton className="h-32" /> : (
             <>
               {weakest?.swap ? (
                 <div className="flex flex-wrap items-center gap-3">

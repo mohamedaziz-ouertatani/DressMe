@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { CircleAlert, WifiOff } from 'lucide-react'
 import { ApiError } from '../api/client'
 import { useI18n } from '../i18n'
@@ -19,11 +19,13 @@ export function Empty({ title, body, action }: { title: string; body: ReactNode;
   )
 }
 
-/** Error with its recovery. Offline gets its own message. */
-export function ErrorNote({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
+/** Error with its recovery. Offline gets its own message. With `message` (a translated sentence) the server's
+ *  own text is never shown: the technical detail goes to the console only. */
+export function ErrorNote({ error, onRetry, message }: { error: unknown; onRetry?: () => void; message?: string }) {
   const { t } = useI18n()
+  useEffect(() => { if (message) console.error(error) }, [error, message])
   const offline = error instanceof ApiError && error.status === 0
-  const text = offline ? t('offline') : error instanceof ApiError && error.message ? error.message : t('genericError')
+  const text = offline ? t('offline') : message ?? (error instanceof ApiError && error.message ? error.message : t('genericError'))
   const Icon = offline ? WifiOff : CircleAlert
   return (
     <div role="alert" className="flex items-start gap-3 border-[1.5px] border-carbon bg-paper px-4 py-3">

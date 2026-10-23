@@ -107,7 +107,7 @@ export function WearButton({ outfit, source, occasion, pill = false }: {
           {tooLate ? (
             <p role="alert" className="border-[1.5px] border-carbon bg-paper px-4 py-3 text-[14px] text-carbon">{t('wearUndoLate')}</p>
           ) : (
-            <ErrorNote error={failed.error} onRetry={() => (failed.action === 'undo' && failed.entry ? undo(failed.entry) : wear())} />
+            <ErrorNote message={t('dressActionFailed')} error={failed.error} onRetry={() => (failed.action === 'undo' && failed.entry ? undo(failed.entry) : wear())} />
           )}
         </div>
       )}
