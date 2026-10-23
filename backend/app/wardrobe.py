@@ -89,8 +89,10 @@ def outfit_out(result, docs_by_id, explain=False, rules=None):
         out["confidence_reasons"] = result.get("confidence_reasons", [])
     if explain:
         import compatibility
+        import dress
         import explain_outfit
         rules = rules or compatibility.RULES
+        out.update(dress.outfit_completeness(result.get("items", []), rules))      # step 6b: a flag, the score stays
         out["contributions"] = explain_outfit.contributions(result, rules.weights)
         out["explanations"] = (explain_outfit.strengths(result.get("items", []), result["parts"], rules)
                                + result.get("problems", []))

@@ -43,6 +43,8 @@
    "label": "bolder",
    "confidence": "high",
    "confidence_reasons": [],
+   "complete": true,
+   "missing": null,
    "contributions": [
     {
      "part": "style",
@@ -147,6 +149,8 @@
    "label": "bolder",
    "confidence": "high",
    "confidence_reasons": [],
+   "complete": true,
+   "missing": null,
    "contributions": [
     {
      "part": "style",

@@ -31,6 +31,8 @@
    "label": "bolder",
    "confidence": "high",
    "confidence_reasons": [],
+   "complete": true,
+   "missing": null,
    "contributions": [
     {
      "part": "style",
@@ -197,6 +199,8 @@
    "label": "experimental",
    "confidence": "high",
    "confidence_reasons": [],
+   "complete": true,
+   "missing": null,
    "contributions": [
     {
      "part": "style",
@@ -362,6 +366,8 @@
    "label": "experimental",
    "confidence": "high",
    "confidence_reasons": [],
+   "complete": false,
+   "missing": "bottom",
    "contributions": [
     {
      "part": "style",
@@ -514,6 +520,8 @@
    "label": "safe",
    "confidence": "high",
    "confidence_reasons": [],
+   "complete": true,
+   "missing": null,
    "contributions": [
     {
      "part": "style",
@@ -673,6 +681,8 @@
    "label": "safe",
    "confidence": "high",
    "confidence_reasons": [],
+   "complete": true,
+   "missing": null,
    "contributions": [
     {
      "part": "style",
@@ -841,6 +851,8 @@
    "label": "safe",
    "confidence": "high",
    "confidence_reasons": [],
+   "complete": true,
+   "missing": null,
    "contributions": [
     {
      "part": "style",
@@ -995,6 +1007,8 @@
    "label": "bolder",
    "confidence": "high",
    "confidence_reasons": [],
+   "complete": true,
+   "missing": null,
    "contributions": [
     {
      "part": "style",
@@ -1139,6 +1153,8 @@
    "label": "bolder",
    "confidence": "high",
    "confidence_reasons": [],
+   "complete": true,
+   "missing": null,
    "contributions": [
     {
      "part": "style",
@@ -1290,6 +1306,8 @@
    "label": "bolder",
    "confidence": "high",
    "confidence_reasons": [],
+   "complete": true,
+   "missing": null,
    "contributions": [
     {
      "part": "style",

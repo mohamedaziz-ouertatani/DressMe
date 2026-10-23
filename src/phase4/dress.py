@@ -234,12 +234,27 @@ def context_reasons(outfit, occasion, weather):
 
 
 # ------------------------------------------------------------------ the Build mode
-def is_complete(items, rules):
-    """A main piece (top + bottom, or a full piece) and shoes; a swimsuit needs no shoes."""
+def outfit_completeness(items, rules=C.RULES):
+    """Is it a wearable outfit? {"complete": bool, "missing": None | "bottom" | "top" | "core"}.
+    Complete = a top and a bottom, or a full piece (the slots of mappings/outfit_structure.csv: dress, traditional
+    and swimwear are full pieces). Shoes and accessories are not required. `missing`: "bottom" (an upper piece but
+    no lower one), "top" (a lower piece but no upper one), "core" (neither: only shoes, a layer, extras). Only a
+    flag: the score of the outfit is not changed by it."""
     slots = {rules.slot.get(i["category"]) for i in items}
-    main = "full" in slots or {"upper", "lower"} <= slots
+    if "full" in slots or {"upper", "lower"} <= slots:
+        return {"complete": True, "missing": None}
+    if "upper" in slots:
+        return {"complete": False, "missing": "bottom"}
+    if "lower" in slots:
+        return {"complete": False, "missing": "top"}
+    return {"complete": False, "missing": "core"}
+
+
+def is_complete(items, rules):
+    """A main piece (outfit_completeness) and shoes; a swimsuit needs no shoes. What the Build mode completes to."""
+    slots = {rules.slot.get(i["category"]) for i in items}
     swim = any(i["category"] == "swimwear" for i in items)
-    return main and ("feet" in slots or swim)
+    return outfit_completeness(items, rules)["complete"] and ("feet" in slots or swim)
 
 
 def resolve_clashes(items, rules):

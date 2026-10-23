@@ -312,7 +312,8 @@ def test_known_issue_bought_it_reanalyses_the_photo(client):
 
 
 def test_known_issue_incomplete_outfit_scores_high(client):
-    """KNOWN, EXPECTED TO CHANGE.
+    """KNOWN. Since step 6b the answer FLAGS it (`complete` false, `missing` "bottom", the app shows a note); the
+    score itself is kept on purpose.
 
     POST /outfits/score gives a top + shoes outfit (no bottom) a score ABOVE the good-outfit line:
     a part that cannot be computed is left out and the other weights are rescaled, so the missing
@@ -325,5 +326,6 @@ def test_known_issue_incomplete_outfit_scores_high(client):
     body = r.json()
     assert body["score"] == pytest.approx(86.0, abs=0.5)
     assert "missing a top or a bottom" in body["reasons"]
+    assert body["complete"] is False and body["missing"] == "bottom"
     assert body["score"] >= compatibility.rules_for("women").settings["good_outfit"], \
         "an outfit with no bottom is rated as a good one"

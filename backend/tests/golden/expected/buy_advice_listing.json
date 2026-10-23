@@ -156,6 +156,8 @@
       "image_url": "/items/5f0c0100000000000000000e/image"
      }
     ],
+    "complete": true,
+    "missing": null,
     "contributions": [
      {
       "part": "style",
