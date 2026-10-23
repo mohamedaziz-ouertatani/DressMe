@@ -92,6 +92,7 @@ def today(request: Request, occasion: str = "everyday", shuffle: int = Query(0, 
     labelled = labelled_outfits(dress.merge_candidates(lists), docs, first, rules, dress_rules)
     seed = dress.make_seed(user["_id"], day.isoformat(), chip["chip"], shuffle)
     picked = dress.pick_three(labelled, seed, dress_rules)
+    picked = dress.relabel_shown(picked, first["style_vector"], dress_rules)      # labels relative to what is shown
 
     missing = []
     if not picked:                      # what the wardrobe lacks: the same logic as GET /insights
@@ -130,8 +131,8 @@ def build(body: BuildIn, request: Request, user=Depends(gendered_user)):
     picked = dress.pick_three(candidates, seed, dress_rules, n=3 - (1 if pick_out else 0),
                               exclude_keys=[dress.outfit_key(pick_out)] if pick_out else (),
                               skip_labels=[pick_out["label"]] if pick_out and pick_out["label"] else ())
-    chosen_outfits = ([pick_out] if pick_out else []) + picked
-    extra = {id(pick_out): {"pick": True}} if pick_out else {}
+    chosen_outfits = dress.relabel_shown(([pick_out] if pick_out else []) + picked, first["style_vector"], dress_rules)
+    extra = {id(chosen_outfits[0]): {"pick": True}} if pick_out else {}
     outfits = shown(chosen_outfits, by_id, rules, chip["chip"] if chip else None, None, extra)
     outfits = [{"pick": False, **o} for o in outfits]
     return {"occasion": chip["chip"] if chip else None, "outfits": outfits, "notes": notes,

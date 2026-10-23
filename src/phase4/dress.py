@@ -11,6 +11,8 @@ MongoDB, no files except the rules CSVs. The scoring itself stays in compatibili
             "confidence_reasons"  the factors: [{"code": "small_wardrobe", "params": {owned, minimum}},
                                   {"code": "guessed_field", "params": {item_id, field}}, ...]
     pick_three(outfits, seed, rules) -> at most three outfits, one per label when the candidates allow it
+    relabel_shown(outfits, taste_vector, rules) -> the outfits that will be shown, labelled relative to each
+        other (closest third safe, middle bolder, furthest experimental)
     context_reasons(outfit, occasion, weather) -> [the "fits_context" line] for an outfit that passed the filters
     apply_wear_penalty(outfits, worn_ids, rules, n) -> the n best outfits after taking points off the
         pieces worn recently (only the ORDER changes, never a score)
@@ -112,6 +114,14 @@ def confidence_reasons(outfit, items_by_id, rules, usable):
     return reasons
 
 
+def taste_similarity(outfit, taste_vector):
+    """Cosine similarity of the outfit's picture vector to the taste vector; None when either is missing."""
+    vector = C.outfit_vector(outfit.get("items", []))
+    if taste_vector is None or vector is None:
+        return None
+    return float(np.dot(vector, np.asarray(taste_vector, np.float32)))
+
+
 def confidence_level(reasons):
     return {0: "high", 1: "medium"}.get(len(reasons), "low")
 
@@ -122,13 +132,30 @@ def label_outfits(outfits, items_by_id, taste_vector, rules, usable=None):
     usable = len(items_by_id) if usable is None else usable
     out = []
     for outfit in outfits:
-        vector = C.outfit_vector(outfit.get("items", []))
-        label = None
-        if taste_vector is not None and vector is not None:
-            label = label_for(float(np.dot(vector, np.asarray(taste_vector, np.float32))), rules)
+        similarity = taste_similarity(outfit, taste_vector)
+        label = None if similarity is None else label_for(similarity, rules)
         reasons = confidence_reasons(outfit, items_by_id, rules, usable)
         out.append({**outfit, "label": label, "confidence": confidence_level(reasons), "confidence_reasons": reasons})
     return out
+
+
+# TODO(step 6): tune the band sizes with real wardrobes (today: equal thirds of the outfits shown).
+def relabel_shown(outfits, taste_vector, rules):
+    """The outfits that WILL BE SHOWN with their label set relative to each other, so the three labels show
+    even when almost every outfit is close to the taste vector: ranked by similarity to it (closest first, ties
+    by the outfit's pieces), the closest third is "safe", the middle third "bolder", the furthest "experimental"
+    (three outfits: one each). With fewer than three ranked outfits the absolute cuts of dress_rules.csv
+    (safe_cut / bolder_cut, label_outfits) stay. Same outfits, same order; only `label` can change."""
+    ranked = []
+    for o in outfits:
+        similarity = taste_similarity(o, taste_vector)
+        if similarity is not None:
+            ranked.append((-similarity, outfit_key(o), id(o)))
+    if len(ranked) < len(LABELS):
+        return list(outfits)
+    ranked.sort()
+    label_of = {oid: LABELS[position * len(LABELS) // len(ranked)] for position, (_, _, oid) in enumerate(ranked)}
+    return [{**o, "label": label_of[id(o)]} if id(o) in label_of else o for o in outfits]
 
 
 # ------------------------------------------------------------------ the three outfits of the Dress page

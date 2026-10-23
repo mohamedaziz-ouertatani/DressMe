@@ -27,10 +27,9 @@ def test_today_is_stable_for_a_day_and_a_shuffle(golden):  # noqa: F811 (a fixtu
     assert shuffled.status_code == 200 and shuffled.json()["outfits"]
     assert c.get("/outfits/today", params={"occasion": "nonsense"}, headers=h).status_code == 422
 
-    # one outfit per label when the candidates allow it: as many different labels as the candidates have
-    candidates = c.get("/outfits/suggest", params={"season": body["season"], "occasion": "casual", "n": 20}, headers=h).json()
-    labels = [o["label"] for o in body["outfits"]]
-    assert len(set(labels)) == min(len(labels), len({o["label"] for o in candidates}))
+    # step 2c: three outfits shown = one of each label (fewer than three keep the absolute cuts)
+    if len(body["outfits"]) == 3:
+        assert {o["label"] for o in body["outfits"]} == {"safe", "bolder", "experimental"}
 
 
 def test_build_keeps_the_chosen_piece_and_refuses_other_users_pieces(golden):  # noqa: F811
@@ -42,6 +41,8 @@ def test_build_keeps_the_chosen_piece_and_refuses_other_users_pieces(golden):  #
     assert body["used_item_ids"] == [top] and 1 <= len(body["outfits"]) <= 3
     assert all(top in [i["id"] for i in o["items"]] for o in body["outfits"])           # the pick is in every outfit
     assert all(o["pick"] is False for o in body["outfits"])                                # one piece: no complete pick yet
+    if len(body["outfits"]) == 3:
+        assert {o["label"] for o in body["outfits"]} == {"safe", "bolder", "experimental"}
 
     # a complete set of pieces comes back first, as the pick
     full = c.post("/outfits/build", json={"item_ids": [golden.ids[k] for k in ("top_1", "bottom_1", "shoes_2")]}, headers=h).json()
