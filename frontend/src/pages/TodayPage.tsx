@@ -114,18 +114,28 @@ export function TodayPage() {
   const list = outfits.data ?? []
   const outfit = list[index]
   const tooFew = wardrobe.data !== null && wardrobe.data.length < 3
+  // no outfit at all: ask the existing GET /insights what is missing (its `missing` field is the one definition)
+  const emptyList = !beach && !outfits.loading && !outfits.error && outfits.data !== null && outfits.data.length === 0
+  const insights = useLoad(() => (emptyList ? api.insights() : Promise.resolve(null)), [emptyList])
 
   let body
   if (outfits.error) body = <ErrorNote error={outfits.error} onRetry={outfits.reload} />
   else if (outfits.loading && !outfits.data) body = <TodaySkeleton />
-  else if (tooFew && !outfit)
+  else if (!outfit && !beach && emptyList && (insights.loading || insights.error || insights.data === null)) {
+    body = insights.error ? <ErrorNote error={insights.error} onRetry={insights.reload} /> : <TodaySkeleton />
+  } else if (!outfit && insights.data && insights.data.missing.length > 0) {
     body = (
       <Empty
         title={t('todayEmptyTitle')}
-        body={t('todayEmptyBody')}
-        action={<Link to="/wardrobe" className="inline-flex min-h-11 items-center bg-ink px-4 text-[15px] font-medium text-paper">{t('addPieces')}</Link>}
+        body={(
+          <ul className="space-y-1">
+            {insights.data.missing.map((m) => <li key={m}>{t(`insightsMissing_${m}`)}</li>)}
+          </ul>
+        )}
+        action={<AddLink />}
       />
     )
+  } else if (tooFew && !outfit) body = <Empty title={t('todayEmptyTitle')} body={t('todayEmptyBody')} action={<AddLink />} />
   else if (!outfit) body = <Empty title={t('todayTitle')} body={t(beach ? 'todayNoBeach' : 'todayNoMatch')} />
   else
     body = (
@@ -140,6 +150,7 @@ export function TodayPage() {
           outfit={outfit}
           land
           explainable
+          wear={{ source: 'card', occasion }}
           feedback={feedback[outfit.items.map((item) => item.id).sort().join('|')]}
           onFeedback={(rating) => {
             const key = outfit.items.map((item) => item.id).sort().join('|')
@@ -186,6 +197,12 @@ export function TodayPage() {
       <div className="mt-8 lg:hidden">{filters}</div>
     </Page>
   )
+}
+
+/** The way out of an empty Today: the wardrobe, where pieces are added. */
+function AddLink() {
+  const { t } = useI18n()
+  return <Link to="/wardrobe" className="inline-flex min-h-11 items-center bg-ink px-4 text-[15px] font-medium text-paper">{t('addPieces')}</Link>
 }
 
 const CONDITION: Record<WeatherCondition, { icon: typeof Sun; label: StringKey }> = {

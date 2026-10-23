@@ -1,16 +1,20 @@
-import { ThumbsDown, ThumbsUp } from 'lucide-react'
-import type { Outfit, OutfitRating } from '../api/types'
+import { FlaskConical, Flame, Shield, ThumbsDown, ThumbsUp } from 'lucide-react'
+import type { Outfit, OutfitLabel, OutfitRating } from '../api/types'
 import { useI18n } from '../i18n'
 import { CATEGORY_LABELS, COLOUR_HEX, COLOUR_LABELS, SUB_LABELS, secondLine, vocab } from '../i18n/vocab'
 import { Swatch } from './controls'
+import { ConfidenceBadge } from './VerdictExtras'
+import { WearButton } from './WearButton'
 import { ItemPhoto } from './ItemPhoto'
 import { Stamp } from './Stamp'
 import { SecondLine, Serial, Ticket } from './ticket'
 import { ExplainLines, PointsBar, ScoreDetails } from './ScoreWhy'
 
+const LABEL_ICON: Record<OutfitLabel, typeof Shield> = { safe: Shield, bolder: Flame, experimental: FlaskConical }
+
 /** An outfit as a strip of perforated tickets, one per piece, with the score
  *  stamped across the top corner. */
-export function OutfitStrip({ outfit, land = false, compact = false, photoOf, onFeedback, feedback, explainable = false, onSwap }: {
+export function OutfitStrip({ outfit, land = false, compact = false, photoOf, onFeedback, feedback, explainable = false, onSwap, wear }: {
   outfit: Outfit
   land?: boolean
   compact?: boolean
@@ -19,11 +23,25 @@ export function OutfitStrip({ outfit, land = false, compact = false, photoOf, on
   feedback?: OutfitRating
   explainable?: boolean                            // show "Why this score?" (swaps + pair map)
   onSwap?: (from: string, to: string) => void      // Build: apply the suggested swap
+  wear?: { source: 'card' | 'build'; occasion?: string }   // show "I wore this" (Today and Build)
 }) {
   const { t, lang, reason } = useI18n()
   const size = compact ? 72 : 96
+  const Icon = outfit.label ? LABEL_ICON[outfit.label] : null
   return (
     <div className="relative">
+      {/* how far from the usual style, and a quiet note when the outfit is a weaker bet; hidden when unknown.
+          Kept clear of the score stamp on the other side. */}
+      {(outfit.label || outfit.confidence === 'low') && (
+        <div className="mb-3 flex max-w-[calc(100%-10rem)] flex-wrap items-center gap-2">
+          {outfit.label && Icon && (
+            <span className="inline-flex items-center gap-1.5 border-[1.5px] border-ink bg-paper px-2 py-0.5 text-[12px] font-medium text-ink">
+              <Icon className="size-3.5" aria-hidden /> {t(`labelChip_${outfit.label}`)}
+            </span>
+          )}
+          {outfit.confidence === 'low' && <ConfidenceBadge confidence="low" />}
+        </div>
+      )}
       <ol className="flex flex-col gap-2">
         {outfit.items.map((it, i) => (
           <Ticket
@@ -77,6 +95,7 @@ export function OutfitStrip({ outfit, land = false, compact = false, photoOf, on
             </ul>
           )}
       </div>
+      {wear && <WearButton key={outfit.items.map((i) => i.id).join('|')} outfit={outfit} source={wear.source} occasion={wear.occasion} />}
       {explainable && <ScoreDetails outfit={outfit} onSwap={onSwap} />}
       {onFeedback && (
         <div className="mt-4 flex items-center gap-2" aria-label={t('outfitFeedback')}>

@@ -66,6 +66,7 @@ export function BuildPage() {
             outfit={shownOutfit}
             compact
             explainable
+            wear={{ source: 'build' }}
             onSwap={(from, to) => setPicked((p) => p.map((x) => (x === from ? to : x)))}
             feedback={feedback}
             onFeedback={(rating) => {

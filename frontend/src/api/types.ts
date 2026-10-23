@@ -81,6 +81,9 @@ export interface OutfitItem {
   image_url: string
 }
 
+/** How far an outfit is from the user's usual style (src/phase4/dress.py). null/missing = no taste vector yet. */
+export type OutfitLabel = 'safe' | 'bolder' | 'experimental'
+
 export interface Outfit {
   score: number
   parts: Record<'style' | 'colour' | 'pattern' | 'structure', number | null>
@@ -88,6 +91,21 @@ export interface Outfit {
   items: OutfitItem[]
   contributions?: Contribution[]   // points per part (app routes only)
   explanations?: ExplainLine[]     // strengths (+) and problems (-) as codes
+  label?: OutfitLabel | null       // suggest / score / complete only (step 2)
+  confidence?: 'low' | 'high'      // the same routes: low = a small wardrobe or an unsure label
+}
+
+/** One entry of the wear log (POST /wear): what was worn on a day in Tunis. */
+export interface WearEntry {
+  id: string
+  item_ids: string[]
+  worn_on: string                  // YYYY-MM-DD, the date in Africa/Tunis
+  occasion: string | null
+  event_name: string | null
+  score_shown: number | null
+  label_shown: OutfitLabel | null
+  source: 'card' | 'build'
+  created_at: string
 }
 
 export type OutfitRating = 1 | -1
@@ -335,6 +353,7 @@ export interface DayStats {
   chat: number
   tryon?: number
   decision?: number            // "bought it" / "left it" answers (step 1)
+  wear?: number                // outfits marked as worn (step 2)
 }
 
 export interface Stats {

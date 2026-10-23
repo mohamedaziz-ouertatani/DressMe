@@ -4,7 +4,7 @@ import type {
   AdminXai, SourceCheck, AdminSource, Job, JobStart, ListingsOverview, AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Insights, Item, ItemPatch,
   Listing, ListingFilters, ListingPage, ListingPatch, ModelQuality, ReviewListing, SellForm, Occasion, Outfit, Season, Similar, Stats, User, Gender,
   ChatAttachment, ChatAction, TryOnResult, Weather, Explanation, GuessField, OutfitExplanation,
-  Decision, DecisionAnswer,
+  Decision, DecisionAnswer, OutfitLabel, WearEntry,
 } from './types'
 
 const BASE = '/api'
@@ -140,6 +140,18 @@ export const api = {
     request<{ item_ids: string[]; rating: 1 | -1 }>('/outfits/feedback', json('POST', { item_ids: itemIds, rating })),
   complete: (itemIds: string[], k = 5) =>
     request<Completion[]>('/outfits/complete', json('POST', { item_ids: itemIds, k })),
+  /** "I wore this": the same pieces on the same day are one entry (a second call returns the first). */
+  wear: (body: { item_ids: string[]; occasion?: string; event_name?: string; score_shown?: number;
+                 label_shown?: OutfitLabel; source: 'card' | 'build' }) =>
+    request<WearEntry>('/wear', json('POST', body)),
+  wearList: (range: { from?: string; to?: string } = {}) => {
+    const q = new URLSearchParams()
+    if (range.from) q.set('from', range.from)
+    if (range.to) q.set('to', range.to)
+    return request<WearEntry[]>(`/wear${q.size ? `?${q}` : ''}`)
+  },
+  /** Undo: only on the day it was worn (409 later). */
+  unwear: (id: string) => request<void>(`/wear/${id}`, { method: 'DELETE' }),
   similar: (ref: { itemId?: string; candidateId?: string }, k = 6, all = false) => {
     const q = new URLSearchParams({ k: String(k) })
     if (ref.itemId) q.set('item_id', ref.itemId)
