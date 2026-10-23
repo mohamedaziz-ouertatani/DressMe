@@ -1,11 +1,25 @@
 import type { Confidence, VerdictCode } from '../api/types'
 import { useI18n } from '../i18n'
 import { verdictCodeLine } from '../i18n/explain'
+import { useLook } from './look'
 
 /** How far to trust the verdict. Solid = high, outlined = medium, dashed = low (dashed means
  *  "guessed" everywhere else in the app). */
 export function ConfidenceBadge({ confidence }: { confidence: Confidence }) {
   const { t } = useI18n()
+  const softLook = useLook() === 'soft'
+  if (softLook) {           // step H: a pill; low = the unsure colour with a dashed edge, with its word
+    const soft = {
+      high: 'bg-surface text-carbon ring-1 ring-inset ring-line-strong',
+      medium: 'bg-surface text-carbon ring-1 ring-inset ring-line-strong',
+      low: 'border-[1.5px] border-dashed border-unsure bg-unsure-soft text-unsure',
+    }[confidence]
+    return (
+      <span className={`inline-flex min-h-8 items-center rounded-pill px-3 text-[13px] font-medium ${soft}`}>
+        {t('confidenceLabel')}: {t(`confidence_${confidence}`)}
+      </span>
+    )
+  }
   const look = {
     high: 'border-ink bg-ink text-paper',
     medium: 'border-ink bg-paper text-ink',

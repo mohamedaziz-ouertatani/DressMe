@@ -88,7 +88,7 @@ export function ScanPage() {
   const name = (it: Item) => vocab(SUB_LABELS, it.sub_category, lang) || vocab(CATEGORY_LABELS, it.category, lang)
 
   return (
-    <Page title={t('scanTitle')}>
+    <Page title={t('scanTitle')} look="soft">
       <div className="mx-auto max-w-[640px]">
         {!file && (
           <div className="ticket flex flex-col gap-5 px-5 py-6">

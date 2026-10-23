@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, CircleAlert, Search, Sparkles, X } from 'lucide-react'
+import { Check, CircleAlert, CircleHelp, Search, Sparkles, X } from 'lucide-react'
 import { ApiError, api } from '../api/client'
 import type { BuyAdvice, Decision, DecisionAnswer } from '../api/types'
 import { useI18n } from '../i18n'
@@ -8,7 +8,6 @@ import { verdictCodeLine } from '../i18n/explain'
 import { plural } from '../i18n/plurals'
 import { Button } from './controls'
 import { OutfitStrip } from './OutfitStrip'
-import { Stamp } from './Stamp'
 import { ErrorNote } from './states'
 import { ConfidenceBadge, CodeList } from './VerdictExtras'
 import { VerdictWhy } from './VerdictWhy'
@@ -98,6 +97,13 @@ function DecisionBlock({ candidateId, onDecided, restart }: {
   )
 }
 
+// The verdict's colour: buy / think / skip on their soft fills, always with a word and an icon (step H)
+const VERDICT_PILL = {
+  buy: { look: 'bg-buy-soft text-buy', icon: Check },
+  think: { look: 'bg-unsure-soft text-unsure', icon: CircleHelp },
+  skip: { look: 'bg-leave-soft text-leave', icon: X },
+} as const
+
 /** The verdict on a piece, shared by the "Should I buy this?" screen and a Shop listing: stamp and
  *  number of good outfits, how far to trust it, the reasons, the best outfits, the optional extras
  *  and the Bought it / Left it answer. `onDecided` lets a page react to the answer (the Scan page
@@ -115,13 +121,15 @@ export function VerdictCard({ advice, candidatePhoto, showTryOn = false, onDecid
   // the codes that lowered the confidence say why it is not higher; the others are "good to know"
   const lowered = advice.codes.filter((c) => LOWERING_CODES.includes(c.code))
   const info = advice.codes.filter((c) => !LOWERING_CODES.includes(c.code))
-  const linkClass = 'inline-flex min-h-11 items-center gap-2 border-[1.5px] border-ink bg-paper px-4 text-[15px] font-medium text-ink'
+  const linkClass = 'press inline-flex min-h-11 items-center gap-2 rounded-pill bg-surface px-4 text-[15px] font-semibold text-carbon ring-[1.5px] ring-inset ring-line-strong'
+  const pill = VERDICT_PILL[advice.verdict]
 
   return (
     <section aria-live="polite">
-      <div className="flex items-center gap-4">
-        <Stamp big={t(`verdict_${advice.verdict}`)} ring="DRESSME · VALIDÉ · مصادق · DRESSME · VALIDÉ ·"
-          size={96} angle={-11} land label={t(`verdict_${advice.verdict}`)} />
+      <div className="flex flex-col items-start gap-3">
+        <span className={`pop inline-flex h-10 items-center gap-2 rounded-pill pe-4 ps-3 text-[16px] font-semibold ${pill.look}`}>
+          <pill.icon className="size-5" strokeWidth={2.25} aria-hidden /> {t(`verdict_${advice.verdict}`)}
+        </span>
         <p className="min-w-0 text-[18px] font-medium leading-snug text-carbon">
           {t(`verdictLine_${advice.verdict}`, { outfits: plural('goodOutfits', advice.good_outfits, lang) })}
         </p>

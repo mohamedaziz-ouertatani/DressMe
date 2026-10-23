@@ -56,10 +56,10 @@ export function ShopPage() {
 
   const shown = [...(res.data?.items ?? []), ...extra]
   return (
-    <Page title={t('shopPageTitle')}>
+    <Page title={t('shopPageTitle')} look="soft">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <p className="max-w-[70ch] text-[13px] text-carbon-soft">{t('shopPageNote')}</p>
-        <Link to="/sell" className="inline-flex min-h-11 shrink-0 items-center gap-2 self-start border-[1.5px] border-ink bg-paper px-4 text-[15px] font-medium text-ink">
+        <Link to="/sell" className="press inline-flex min-h-11 shrink-0 items-center gap-2 self-start rounded-pill bg-surface px-4 text-[15px] font-semibold text-carbon ring-[1.5px] ring-inset ring-line-strong">
           <Tag className="size-4" aria-hidden /> {t('sellLink')}
         </Link>
       </div>
@@ -154,9 +154,9 @@ export function ListingPage() {
   const l = res.data
   const kind = l ? vocab(SUB_LABELS, l.sub_category, lang) || vocab(CATEGORY_LABELS, l.category, lang) : ''
   return (
-    <Page title={t('shopPageTitle')}>
+    <Page title={t('shopPageTitle')} look="soft">
       <div className="mx-auto max-w-[640px]">
-        <Link to="/shop" className="mb-4 inline-flex min-h-11 items-center gap-1.5 text-[15px] text-ink">
+        <Link to="/shop" className="mb-4 inline-flex min-h-11 items-center gap-1.5 text-[15px] font-semibold text-carbon underline decoration-1 underline-offset-4">
           <ArrowLeft className="size-4 mirror-rtl" aria-hidden /> {t('back')}
         </Link>
         {res.error ? (
@@ -196,7 +196,7 @@ export function ListingPage() {
             <div className="mt-4 flex flex-wrap gap-2">
               {l.url && (
                 <a href={l.url} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex min-h-11 items-center gap-2 border-[1.5px] border-ink bg-paper px-4 text-[15px] font-medium text-ink">
+                  className="press inline-flex min-h-11 items-center gap-2 rounded-pill bg-surface px-4 text-[15px] font-semibold text-carbon ring-[1.5px] ring-inset ring-line-strong">
                   <ExternalLink className="size-4" aria-hidden /> {t('openInShop', { brand: shopName(l) })}
                 </a>
               )}
