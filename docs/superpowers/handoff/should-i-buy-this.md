@@ -1,11 +1,11 @@
 # Hand-off: "Should I buy this?" (step 1)
 
 Skeleton, not a finished feature: the data model, the API contracts and the screens are final; the
-logic behind them is a first version, marked `TODO(<name>, step 1)` in the code.
+logic behind them is a first version, marked `TODO(step 1)` in the code.
 
-## 1. Owner
+## 1. Branch and plan
 
-`<name>`. Step 1 of the upgrade; branch `upgrade/step-1-buy-advice` (local, not pushed).
+Step 1 of the upgrade; branch `upgrade/step-1-buy-advice` (local, not pushed).
 Plan: `docs/superpowers/plans/2026-10-23-step-1-buy-advice.md`. Manual click-through:
 `docs/superpowers/manual-checks/step-1.md`.
 

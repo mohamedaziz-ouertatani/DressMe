@@ -13,7 +13,7 @@ import { ErrorNote } from './states'
 import { ConfidenceBadge, CodeList } from './VerdictExtras'
 import { VerdictWhy } from './VerdictWhy'
 
-// TODO(<name>, step 1): keep this list in step with `LOWERING` in src/phase4/verdict.py. Better: let the
+// TODO(step 1): keep this list in step with `LOWERING` in src/phase4/verdict.py. Better: let the
 // API say which codes lowered the confidence, so the app does not repeat the rule.
 /** The codes that lower the confidence (the others only inform). */
 const LOWERING_CODES = ['small_wardrobe', 'no_pairing_piece', 'guessed_field']

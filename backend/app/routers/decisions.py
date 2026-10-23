@@ -24,7 +24,7 @@ from .items import load_photo, own_item
 router = APIRouter(tags=["decisions"])
 
 
-# TODO(<name>, step 1): `price_paid` is accepted and saved but no screen asks for it yet, and a decision
+# TODO(step 1): `price_paid` is accepted and saved but no screen asks for it yet, and a decision
 # cannot be changed (a different answer is a 409). The full version: ask the price when the user taps
 # Bought it, allow changing a "Left it" later (a Left it today has nothing to undo, a Bought it has an item),
 # and read the log back for the step 6 / learning rules.
