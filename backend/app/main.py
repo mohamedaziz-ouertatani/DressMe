@@ -21,7 +21,7 @@ from .db import connect
 from .jobs import JobRunner
 from .listings import ListingIndex, backfill_gender
 from .routers import (admin, admin_xai, auth, chat, decisions, explain, insights, items, listings, outfits, tryon,
-                      vocab, weather)
+                      vocab, wear, weather)
 from .tryon import make_tryon
 from .weather import make_weather
 
@@ -54,7 +54,7 @@ def create_app(settings=None, analyzer=None, catalog=None, chat_engine=None, rem
     app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins,
                        allow_methods=["*"], allow_headers=["*"])
     for r in (auth.router, items.router, explain.router, outfits.router, decisions.router, insights.router, chat.router,
-              listings.router, tryon.router, weather.router, vocab.router, admin.router, admin_xai.router):
+              listings.router, tryon.router, weather.router, vocab.router, wear.router, admin.router, admin_xai.router):
         app.include_router(r)
 
     @app.get("/health")

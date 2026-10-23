@@ -102,5 +102,20 @@ class DecisionIn(BaseModel):
     price_paid: float | None = Field(None, gt=0, le=100000)      # optional: what they really paid
 
 
+class WearIn(BaseModel):
+    """"I wore this": the pieces worn today, and what the app showed for that outfit."""
+    item_ids: list[str] = Field(min_length=1, max_length=10)
+    occasion: str | None = None
+    event_name: str | None = Field(None, max_length=80)
+    score_shown: float | None = Field(None, ge=0, le=100)
+    label_shown: Literal["safe", "bolder", "experimental"] | None = None
+    source: Literal["card", "build"]
+
+    @field_validator("occasion")
+    @classmethod
+    def _occasion(cls, v):
+        return v if v is None else _one_of(USAGES, "usage")(v)
+
+
 class ChatMessage(BaseModel):
     message: str = Field(min_length=1, max_length=2000)
