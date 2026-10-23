@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { CalendarDays, LayoutGrid, LogOut, MessageCircle, ScanLine, Shapes, ShieldCheck, ShoppingBag, UserRound } from 'lucide-react'
@@ -45,7 +46,7 @@ export function Page({ title, children, aside, serial }: {
   serial?: string
 }) {
   return (
-    <div className="page-enter mx-auto w-full max-w-[1080px] px-4 pb-32 pt-3 lg:px-10 lg:pb-16 lg:pt-10">
+    <div className="page-enter mx-auto w-full max-w-[1080px] px-4 pb-6 pt-3 lg:px-10 lg:pb-16 lg:pt-10">
       <header className="ticket mb-5 flex">
         <h1 className="min-w-0 flex-1 self-center px-3 py-3 text-[22px] font-semibold leading-tight tracking-[-0.015em] text-carbon min-[420px]:px-4 min-[420px]:text-[24px] lg:px-6 lg:py-4 lg:text-[32px]">
           {title}
@@ -67,17 +68,36 @@ export function Page({ title, children, aside, serial }: {
   )
 }
 
+/** Keeps the CSS variable --tabbar-h equal to the phone tab bar's real height. The bar pads itself by
+ *  env(safe-area-inset-bottom), so the measured height already includes that inset. The content below
+ *  reads the variable instead of a fixed number, so it follows the bar if its height ever changes. */
+function useTabBarHeight() {
+  const root = useRef<HTMLDivElement>(null)
+  const bar = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const el = bar.current
+    if (!root.current || !el) return
+    const update = () => root.current?.style.setProperty('--tabbar-h', `${Math.ceil(el.getBoundingClientRect().height)}px`)
+    update()
+    const watcher = new ResizeObserver(update)
+    watcher.observe(el, { box: 'border-box' })     // padding (the safe-area inset) counts too
+    return () => watcher.disconnect()
+  }, [])
+  return { root, bar }
+}
+
 export function AppShell() {
   const { t } = useI18n()
   const { user, logout } = useAuth()
+  const { root, bar } = useTabBarHeight()
 
   return (
-    <div className="min-h-dvh lg:flex">
+    <div ref={root} className="min-h-dvh lg:flex">
       <a href="#main-content" className="sr-only fixed start-3 top-3 z-50 bg-ink px-4 py-2 text-sm text-paper focus:not-sr-only">
         Skip to content
       </a>
       {/* desktop rail: the nav as a column of ticket stubs */}
-      <nav aria-label="Main" className="sticky top-0 hidden h-dvh w-[236px] shrink-0 flex-col border-e border-perf/60 bg-stock-deep/60 px-4 py-6 lg:flex">
+      <nav aria-label="Main" className="sticky top-0 hidden h-dvh w-[264px] shrink-0 flex-col border-e border-perf/60 bg-stock-deep/60 px-4 py-6 lg:flex">
         <Wordmark className="mb-8 px-2" />
         <ul className="flex flex-col gap-2">
           {NAV.map(({ to, key, icon: Icon }) => (
@@ -139,13 +159,15 @@ export function AppShell() {
             </NavLink>
           </div>
         </div>
-        <main id="main-content" tabIndex={-1}>
+        {/* below lg the fixed tab bar covers the bottom: pad by its height (safe-area inset included) plus
+            2rem for the Scan button that sticks out above it, so the last element scrolls fully clear */}
+        <main id="main-content" tabIndex={-1} className="pb-[calc(var(--tabbar-h,57px)+2rem)] lg:pb-0">
           <Outlet />
         </main>
       </div>
 
       {/* phone tab bar: stubs torn along a perforation; Scan is the big centre slot */}
-      <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-20 border-t-[1.5px] border-dashed border-perf bg-paper pb-[env(safe-area-inset-bottom)] lg:hidden">
+      <nav ref={bar} aria-label="Main" className="fixed inset-x-0 bottom-0 z-20 border-t-[1.5px] border-dashed border-perf bg-paper pb-[env(safe-area-inset-bottom)] lg:hidden">
         <ul className="mx-auto grid max-w-md grid-cols-5 items-end">
           {NAV.filter((n) => n.phone !== false).map(({ to, key, short, icon: Icon }) => {
             const scan = to === '/scan'

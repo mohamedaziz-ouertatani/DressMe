@@ -51,10 +51,10 @@ const FIELD_WORDS: Record<string, T> = {
 
 // what the wardrobe lacks: the labels of wardrobe_insights ("main" = no top, bottom or dress at all)
 const SLOT_MISSING: Record<string, T> = {
-  top: { en: 'you have no top', fr: "tu n'as pas de haut", ar: 'ما عندك قطعة علوية' },
-  bottom: { en: 'you have no bottom', fr: "tu n'as pas de bas", ar: 'ما عندك قطعة سفلية' },
-  main: { en: 'you have no top, bottom or dress yet', fr: "tu n'as encore ni haut, ni bas, ni robe", ar: 'ما عندك بعد قطعة علوية أو سفلية أو فستان' },
-  shoes: { en: 'you have no shoes yet', fr: "tu n'as pas encore de chaussures", ar: 'ما عندك أحذية بعد' },
+  top: { en: 'you have no top', fr: "tu n'as pas de haut", ar: 'ليس لديك قطعة علوية' },
+  bottom: { en: 'you have no bottom', fr: "tu n'as pas de bas", ar: 'ليس لديك قطعة سفلية' },
+  main: { en: 'you have no top, bottom or dress yet', fr: "tu n'as encore ni haut, ni bas, ni robe", ar: 'ليس لديك بعد قطعة علوية أو سفلية أو فستان' },
+  shoes: { en: 'you have no shoes yet', fr: "tu n'as pas encore de chaussures", ar: 'ليس لديك أحذية بعد' },
 }
 
 export function verdictCodeLine(c: VerdictCode, l: Language): string {
@@ -65,7 +65,7 @@ export function verdictCodeLine(c: VerdictCode, l: Language): string {
     small_wardrobe: () => ({
       en: `You only have ${p.owned} usable pieces: DressMe needs about ${p.minimum} to judge well.`,
       fr: `Tu n'as que ${p.owned} pièces utilisables : DressMe en veut environ ${p.minimum} pour bien juger.`,
-      ar: `عندك ${p.owned} قطع فقط: DressMe يحتاج حوالي ${p.minimum} ليحكم جيدا.`,
+      ar: `لديك ${p.owned} قطع فقط: DressMe يحتاج حوالي ${p.minimum} ليحكم جيدا.`,
     }),
     no_pairing_piece: () => ({
       en: `Nothing to wear it with: ${slot('slot')}.`,
