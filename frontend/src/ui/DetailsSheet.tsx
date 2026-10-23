@@ -31,7 +31,7 @@ export function DetailsSheet({ title, onClose, children }: { title: string; onCl
         aria-modal="true"
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[88dvh] w-full overflow-y-auto rounded-t-sheet bg-paper p-card pb-[calc(env(safe-area-inset-bottom)+1.25rem)] sm:max-w-[560px] sm:rounded-sheet"
+        className="look-soft max-h-[88dvh] w-full overflow-y-auto rounded-t-sheet bg-surface p-card shadow-[var(--shadow-float)] pb-[calc(env(safe-area-inset-bottom)+1.25rem)] sm:max-w-[560px] sm:rounded-sheet"
       >
         <div className="mb-4 flex items-center justify-between gap-3">
           <h2 className="text-[20px] font-bold text-carbon">{title}</h2>

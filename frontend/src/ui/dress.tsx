@@ -9,14 +9,14 @@ export function PillButton({ variant = 'solid', busy, disabled, children, classN
   ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'solid' | 'outline'; busy?: boolean }) {
   const look = variant === 'solid'
     ? 'bg-pill text-pill-text border-[1.5px] border-pill disabled:opacity-50'
-    : 'bg-transparent text-pill border-[1.5px] border-pill-line disabled:opacity-50'
+    : 'bg-surface text-pill border-[1.5px] border-line-strong disabled:opacity-50'
   return (
     <button
       {...rest}
       type={rest.type ?? 'button'}
       disabled={disabled || busy}
       aria-busy={busy || undefined}
-      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-pill px-5 text-[15px] font-semibold transition-transform duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pill active:scale-[0.98] disabled:cursor-not-allowed ${look} ${className}`}
+      className={`press inline-flex min-h-button items-center justify-center gap-2 rounded-pill px-6 text-[16px] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pill disabled:cursor-not-allowed ${look} ${className}`}
     >
       {busy && <LoaderCircle className="size-4 animate-spin" aria-hidden />}
       {children}
@@ -37,8 +37,8 @@ export function PillChip({ selected, children, onClick, expanded }: {
       aria-pressed={expanded === undefined ? selected : undefined}
       aria-expanded={expanded}
       onClick={onClick}
-      className={`inline-flex min-h-10 items-center gap-1.5 rounded-pill border-[1.5px] px-4 text-[14px] font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pill ${
-        selected ? 'border-pill bg-pill text-pill-text' : 'border-pill-line bg-transparent text-pill hover:bg-tile/70'
+      className={`press inline-flex min-h-chip items-center gap-1.5 rounded-pill border-[1.5px] px-4 text-[14px] font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pill ${
+        selected ? 'border-pill bg-pill text-pill-text' : 'border-line-strong bg-surface text-pill'
       }`}
     >
       {children}
@@ -54,7 +54,7 @@ export function Segmented<T extends string>({ options, value, onChange, label }:
   label: string
 }) {
   return (
-    <div role="tablist" aria-label={label} className="inline-flex w-full rounded-pill border-[1.5px] border-pill-line p-1 sm:w-auto">
+    <div role="tablist" aria-label={label} className="inline-flex w-full rounded-pill bg-surface p-1 sm:w-auto">
       {options.map((o) => (
         <button
           key={o.value}
@@ -62,7 +62,7 @@ export function Segmented<T extends string>({ options, value, onChange, label }:
           role="tab"
           aria-selected={o.value === value}
           onClick={() => onChange(o.value)}
-          className={`min-h-10 flex-1 rounded-pill px-5 text-[14px] font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pill sm:flex-none ${
+          className={`min-h-11 flex-1 rounded-pill px-5 text-[14px] font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pill sm:flex-none ${
             o.value === value ? 'bg-pill text-pill-text' : 'text-pill'
           }`}
         >

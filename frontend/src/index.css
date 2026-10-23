@@ -29,9 +29,9 @@
      EVERY colour, radius and spacing of that look is here and nowhere else: the Dress page uses them through
      Tailwind (bg-label-safe, rounded-card, p-card, gap-card, ...). To give the whole app this look later,
      change these values and use the same utilities in the other pages. */
-  --color-label-safe: #d8eedb;          /* card of a "safe" outfit: green */
-  --color-label-bolder: #f6eeb4;        /* "bolder": yellow */
-  --color-label-experimental: #e4dbf4;  /* "experimental": lilac */
+  --color-label-safe: var(--color-tint-sage);                 /* card of a "safe" outfit: green */
+  --color-label-bolder: var(--color-tint-butter);             /* "bolder": yellow */
+  --color-label-experimental: var(--color-tint-lilac);        /* "experimental": lilac */
   --color-label-neutral: #ebeeec;       /* no label (no taste vector yet) */
   --color-pill: #111312;                /* the black primary button and the selected chip */
   --color-pill-text: #ffffff;
@@ -40,10 +40,39 @@
   --color-scrim: rgb(17 19 18 / 0.45);  /* behind the details sheet */
   --radius-card: 1.75rem;               /* an outfit card */
   --radius-sheet: 1.75rem;              /* the details sheet */
-  --radius-tile: 1rem;                  /* a piece in the collage */
+  --radius-tile: 0.75rem;               /* a piece in the collage (the prototype's radius-sm) */
   --radius-pill: 9999px;                /* buttons, chips, the switch */
   --spacing-card: 1.25rem;              /* padding inside a card or the sheet */
   --spacing-stack: 1.5rem;              /* space between the blocks of the page and between cards */
+
+  /* ---- Step H: the team prototype's tokens (docs/superpowers/design/dressme-prototype-tokens.json), for Home and
+     the "soft look" of the user pages (Page look="soft"). Where the prototype and the app share a name with another
+     meaning, the app keeps its own: `ink` stays ultramarine (the prototype's "accent" role: links, focus); the
+     prototype's near-black ink is `pill` above (primary button, selected chip, active tab) and `carbon` (text);
+     secondary text stays `carbon-soft`; the ground stays `stock` with its guilloché. Light theme only. */
+  --color-surface: #ffffff;             /* cards, the tab bar, unselected chips, on the ground */
+  --color-sunken: #e8e6e0;              /* tracks of bars, a disc behind an icon on a surface card */
+  --color-line: #dcd9d2;                /* hairline dividers inside a card (decorative only) */
+  --color-line-strong: #8a867e;         /* the ring of a secondary button or a text field (3:1) */
+  --color-tint-sage: #dce8d6;           /* the safe outfit, Today's pick */
+  --color-tint-butter: #f5eab8;         /* the bolder outfit */
+  --color-tint-lilac: #e5ddf7;          /* the experimental outfit, "Ask the stylist" */
+  --color-tint-peach: #fadfcc;          /* the gap card */
+  --color-tint-sky: #d6e6f0;            /* empty states: the icon disc */
+  --color-buy: #17633f;                 /* verdict buy: text and icons, always with a word or icon */
+  --color-buy-soft: #d8eedf;
+  --color-unsure: #7d4a00;              /* verdict think / low confidence */
+  --color-unsure-soft: #fae8c2;
+  --color-leave: #a02e1c;               /* verdict skip, delete */
+  --color-leave-soft: #f8dcd6;
+  --radius-photo: 1.25rem;              /* photo tiles, text fields, item cards (the prototype's radius-md) */
+  --shadow-float: 0 8px 24px #1514131f; /* the floating tab bar and a bottom sheet: nothing else casts a shadow */
+  --spacing-tap: 3rem;                  /* smallest touch target of an icon button / a tab */
+  --spacing-button: 3.5rem;             /* primary and secondary buttons */
+  --spacing-chip: 2.75rem;              /* chips (the prototype says 40px; 44px keeps the touch-target rule) */
+  --spacing-tabbar: 4rem;               /* the floating tab bar */
+  --font-display: "Bricolage Grotesque", "Figtree", system-ui, sans-serif;   /* one headline per screen */
+  --font-text: "Figtree", system-ui, sans-serif;                             /* text in the soft look */
 }
 
 @layer base {
@@ -158,6 +187,61 @@
     background-size: 200% 100%;
     animation: skeleton 1.4s linear infinite;
   }
+
+  /* ---- Step H: the soft look. `Page look="soft"` (and Home, the sign-in pages, the tab bar) put the page in a
+     .look-soft scope: the ticket cards become flat surface cards with the prototype radius, the perforations become
+     hairlines, and the text uses Figtree with Bricolage Grotesque headlines. Admin and the Assistant never opt in,
+     so they keep the ticket look. Utilities still win over these rules (same layer, written later). */
+  .look-soft {
+    font-family: var(--font-text);
+  }
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+  /* Bricolage Grotesque and Figtree have no Arabic glyphs: Arabic keeps Readex Pro, first in the stack */
+  html[lang="ar"] .look-soft,
+  html[lang="ar"] .font-display {
+    font-family: var(--font-sans);
+    letter-spacing: 0;
+  }
+  .look-soft .ticket {
+    background: var(--color-surface);
+    border-radius: var(--radius-card);
+    box-shadow: none;
+  }
+  .look-soft .perf-v {
+    border-inline-start: 1px solid var(--color-line);
+  }
+  .look-soft .perf-v::before,
+  .look-soft .perf-v::after {
+    display: none;
+  }
+  .look-soft .perf-h {
+    border-top: 1px solid var(--color-line);
+  }
+  .look-soft .skeleton {
+    border-radius: var(--radius-card);
+  }
+
+  /* press: things you tap shrink a little (off under reduced motion, below) */
+  .press {
+    transition: transform 160ms ease, background-color 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+  }
+  .press:active {
+    transform: scale(0.97);
+  }
+  /* pop: a small result (the verdict pill) appears */
+  .pop {
+    animation: pop 280ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
 }
 
 @keyframes stamp-land {
@@ -198,10 +282,23 @@
   .ticket button:hover {
     box-shadow: var(--shadow-lift);
   }
+  /* the soft look is flat: no lift on hover */
+  .look-soft .ticket[href]:hover,
+  .look-soft .ticket button:hover {
+    box-shadow: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .page-enter {
+    animation: none;
+  }
+  .press,
+  .press:active {
+    transition: none;
+    transform: none;
+  }
+  .pop {
     animation: none;
   }
   .stamp-land {
