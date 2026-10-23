@@ -39,6 +39,8 @@
      "image_url": "/items/5f0c0100000000000000000b/image"
     }
    ],
+   "label": "safe",
+   "confidence": "high",
    "contributions": [
     {
      "part": "style",
@@ -147,6 +149,8 @@
      "image_url": "/items/5f0c01000000000000000011/image"
     }
    ],
+   "label": "safe",
+   "confidence": "high",
    "contributions": [
     {
      "part": "style",
@@ -252,6 +256,8 @@
      "image_url": "/items/5f0c01000000000000000011/image"
     }
    ],
+   "label": "safe",
+   "confidence": "high",
    "contributions": [
     {
      "part": "style",
@@ -353,6 +359,8 @@
      "image_url": "/items/5f0c01000000000000000011/image"
     }
    ],
+   "label": "safe",
+   "confidence": "high",
    "contributions": [
     {
      "part": "style",
@@ -451,6 +459,8 @@
      "image_url": "/items/5f0c0100000000000000000f/image"
     }
    ],
+   "label": "safe",
+   "confidence": "high",
    "contributions": [
     {
      "part": "style",
@@ -552,6 +562,8 @@
      "image_url": "/items/5f0c01000000000000000011/image"
     }
    ],
+   "label": "safe",
+   "confidence": "high",
    "contributions": [
     {
      "part": "style",
@@ -641,6 +653,8 @@
      "image_url": "/items/5f0c0100000000000000000e/image"
     }
    ],
+   "label": "bolder",
+   "confidence": "high",
    "contributions": [
     {
      "part": "style",

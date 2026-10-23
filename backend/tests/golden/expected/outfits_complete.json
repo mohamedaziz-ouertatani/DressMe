@@ -28,6 +28,8 @@
      "image_url": "/items/5f0c01000000000000000006/image"
     }
    ],
+   "label": "bolder",
+   "confidence": "high",
    "contributions": [
     {
      "part": "style",
@@ -191,6 +193,8 @@
      "image_url": "/items/5f0c0100000000000000000a/image"
     }
    ],
+   "label": "experimental",
+   "confidence": "high",
    "contributions": [
     {
      "part": "style",
@@ -353,6 +357,8 @@
      "image_url": "/items/5f0c01000000000000000011/image"
     }
    ],
+   "label": "experimental",
+   "confidence": "high",
    "contributions": [
     {
      "part": "style",
@@ -502,6 +508,8 @@
      "image_url": "/items/5f0c0100000000000000000e/image"
     }
    ],
+   "label": "safe",
+   "confidence": "high",
    "contributions": [
     {
      "part": "style",
@@ -658,6 +666,8 @@
      "image_url": "/items/5f0c0100000000000000000b/image"
     }
    ],
+   "label": "safe",
+   "confidence": "high",
    "contributions": [
     {
      "part": "style",
@@ -823,6 +833,8 @@
      "image_url": "/items/5f0c01000000000000000011/image"
     }
    ],
+   "label": "safe",
+   "confidence": "high",
    "contributions": [
     {
      "part": "style",
@@ -974,6 +986,8 @@
      "image_url": "/items/5f0c01000000000000000002/image"
     }
    ],
+   "label": "bolder",
+   "confidence": "high",
    "contributions": [
     {
      "part": "style",
@@ -1115,6 +1129,8 @@
      "image_url": "/items/5f0c0100000000000000000b/image"
     }
    ],
+   "label": "bolder",
+   "confidence": "high",
    "contributions": [
     {
      "part": "style",
@@ -1263,6 +1279,8 @@
      "image_url": "/items/5f0c0100000000000000000e/image"
     }
    ],
+   "label": "bolder",
+   "confidence": "high",
    "contributions": [
     {
      "part": "style",

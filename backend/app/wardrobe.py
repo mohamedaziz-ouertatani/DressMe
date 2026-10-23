@@ -83,6 +83,9 @@ def outfit_out(result, docs_by_id, explain=False, rules=None):
            "parts": {k: (round(v, 3) if v is not None else None) for k, v in result["parts"].items()},
            "reasons": result["reasons"],
            "items": [describe(i, docs_by_id) for i in result.get("items", [])]}
+    if "label" in result:                    # step 2 (src/phase4/dress.py): only the routes that label outfits
+        out["label"] = result["label"]
+        out["confidence"] = result["confidence"]
     if explain:
         import compatibility
         import explain_outfit

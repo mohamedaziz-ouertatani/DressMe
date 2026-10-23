@@ -39,6 +39,8 @@
      "image_url": "/items/5f0c04000000000000000009/image"
     }
    ],
+   "label": "safe",
+   "confidence": "high",
    "contributions": [
     {
      "part": "style",
@@ -142,6 +144,8 @@
      "image_url": "/items/5f0c04000000000000000009/image"
     }
    ],
+   "label": "safe",
+   "confidence": "high",
    "contributions": [
     {
      "part": "style",
@@ -238,6 +242,8 @@
      "image_url": "/items/5f0c0400000000000000000c/image"
     }
    ],
+   "label": "bolder",
+   "confidence": "high",
    "contributions": [
     {
      "part": "style",
@@ -323,6 +329,8 @@
      "image_url": "/items/5f0c0400000000000000000e/image"
     }
    ],
+   "label": "experimental",
+   "confidence": "high",
    "contributions": [
     {
      "part": "style",
