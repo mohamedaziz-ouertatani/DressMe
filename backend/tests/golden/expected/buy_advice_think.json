@@ -2,6 +2,8 @@
  "verdict": "think",
  "good_outfits": 2,
  "reasons": [],
+ "confidence": "high",
+ "codes": [],
  "candidate": {
   "id": "5f0c02000000000000000002",
   "category": "top",

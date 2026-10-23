@@ -18,8 +18,9 @@ What is in it
   (modesty, season, occasion) a few fields are set by hand in CONFIRMATIONS, and an empty
   colour is filled with the model's guess when its confidence is >= COLOUR_CONFIRM_MIN.
   Those fields are listed in `corrected`, like in the app.
-- candidates: three scans (PolyVore pieces from other outfits) chosen so that today's
-  verdicts are skip (a near twin of an owned piece), think and buy.
+- candidates: four scans (PolyVore pieces from other outfits) chosen so that today's
+  verdicts are skip (a near twin of an owned piece), think, buy, and skip for a piece far from
+  the wardrobe's style (`far_style`, added in step 1 to exercise the far_from_style code).
 - listing: one shop product (an H&M article, labels from hm.csv) for POST
   /listings/{id}/candidate then /buy-advice.
 - scenarios: the fixed inputs of the golden tests.
@@ -76,6 +77,7 @@ CHOSEN = {
     "near_twin": "pv_top_161929959_1",     # a top, similarity 0.933 to the owned top_3: skip, 0 good outfits
     "think": "pv_top_60728884_1",          # a shirt that beats the owned tops in 2 good outfits
     "buy": "pv_outwear_205997829_2",       # a coat: the wardrobe has one jacket, the coat beats it in 12 outfits
+    "far_style": "pv_top_6903276_1",       # a t-shirt far from this wardrobe (similarity 0.36 to the taste vector): skip (step 1: far_from_style)
 }
 LISTING_ID = "hm_0735648002"            # a navy skirt ("Heather"): think, 1 good outfit
 
@@ -405,7 +407,7 @@ def main():
         return
 
     # --- the three scans and the shop listing: must give the verdicts we promise, stably
-    wanted = {"near_twin": "skip", "think": "think", "buy": "buy"}
+    wanted = {"near_twin": "skip", "think": "think", "buy": "buy", "far_style": "skip"}
     candidates, checked = [], {}
     for n, (name, verdict) in enumerate(wanted.items(), start=1):
         doc = scan_doc(t, CHOSEN[name], hex_id(2, n))

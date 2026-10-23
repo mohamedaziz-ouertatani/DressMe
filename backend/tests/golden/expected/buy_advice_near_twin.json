@@ -4,6 +4,8 @@
  "reasons": [
   "you already own 1 very similar top item(s)"
  ],
+ "confidence": "high",
+ "codes": [],
  "candidate": {
   "id": "5f0c02000000000000000001",
   "category": "top",

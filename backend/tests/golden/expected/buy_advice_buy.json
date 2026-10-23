@@ -2,6 +2,8 @@
  "verdict": "buy",
  "good_outfits": 12,
  "reasons": [],
+ "confidence": "high",
+ "codes": [],
  "candidate": {
   "id": "5f0c02000000000000000003",
   "category": "outerwear",

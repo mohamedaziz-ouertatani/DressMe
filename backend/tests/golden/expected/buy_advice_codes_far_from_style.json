@@ -1,0 +1,334 @@
+{
+ "verdict": "skip",
+ "good_outfits": 0,
+ "reasons": [],
+ "confidence": "high",
+ "codes": [
+  {
+   "code": "far_from_style",
+   "params": {
+    "similarity": 0.355
+   }
+  }
+ ],
+ "candidate": {
+  "id": "5f0c02000000000000000004",
+  "category": "top",
+  "sub_category": "t-shirt",
+  "pattern": "printed",
+  "colour": "green",
+  "coverage": null,
+  "season": [],
+  "usage": [],
+  "predicted": {
+   "category": {
+    "value": "top",
+    "conf": 0.976,
+    "alternatives": [
+     {
+      "value": "top",
+      "conf": 0.976
+     }
+    ],
+    "unsure": false
+   },
+   "sub_category": {
+    "value": "t-shirt",
+    "conf": 0.977,
+    "alternatives": [
+     {
+      "value": "t-shirt",
+      "conf": 0.977
+     }
+    ],
+    "unsure": false
+   },
+   "pattern": {
+    "value": "printed",
+    "conf": 0.988,
+    "alternatives": [
+     {
+      "value": "printed",
+      "conf": 0.988
+     }
+    ],
+    "unsure": false
+   },
+   "colour": {
+    "value": "green",
+    "conf": 0.93,
+    "alternatives": [
+     {
+      "value": "green",
+      "conf": 0.93
+     }
+    ],
+    "unsure": false
+   }
+  },
+  "corrected": [],
+  "image_url": "/candidates/5f0c02000000000000000004/image"
+ },
+ "best": [
+  {
+   "score": 75.3,
+   "parts": {
+    "style": 0.295,
+    "colour": 1.0,
+    "pattern": 1.0,
+    "structure": 1.0
+   },
+   "reasons": [
+    "the pieces have quite different styles"
+   ],
+   "items": [
+    {
+     "id": "5f0c02000000000000000004",
+     "category": "top",
+     "sub_category": "t-shirt",
+     "colour": "green",
+     "image_url": "/items/5f0c02000000000000000004/image"
+    },
+    {
+     "id": "5f0c01000000000000000006",
+     "category": "bottom",
+     "sub_category": "skirt",
+     "colour": "black",
+     "image_url": "/items/5f0c01000000000000000006/image"
+    },
+    {
+     "id": "5f0c0100000000000000000f",
+     "category": "shoes",
+     "sub_category": "heels",
+     "colour": "",
+     "image_url": "/items/5f0c0100000000000000000f/image"
+    },
+    {
+     "id": "5f0c01000000000000000010",
+     "category": "bag",
+     "sub_category": "laptop-bag",
+     "colour": "black",
+     "image_url": "/items/5f0c01000000000000000010/image"
+    }
+   ],
+   "contributions": [
+    {
+     "part": "style",
+     "weight": 0.35,
+     "counted": true,
+     "value": 0.295,
+     "points": 10.3,
+     "max_points": 35.0,
+     "why_not": null
+    },
+    {
+     "part": "colour",
+     "weight": 0.3,
+     "counted": true,
+     "value": 1.0,
+     "points": 30.0,
+     "max_points": 30.0,
+     "why_not": null
+    },
+    {
+     "part": "pattern",
+     "weight": 0.15,
+     "counted": true,
+     "value": 1.0,
+     "points": 15.0,
+     "max_points": 15.0,
+     "why_not": null
+    },
+    {
+     "part": "structure",
+     "weight": 0.2,
+     "counted": true,
+     "value": 1.0,
+     "points": 20.0,
+     "max_points": 20.0,
+     "why_not": null
+    }
+   ],
+   "explanations": [
+    {
+     "code": "colour_pair",
+     "part": "colour",
+     "sign": "+",
+     "params": {
+      "a": "green",
+      "b": "black"
+     }
+    },
+    {
+     "code": "pattern_one_bold",
+     "part": "pattern",
+     "sign": "+",
+     "params": {
+      "pattern": "printed"
+     }
+    },
+    {
+     "code": "structure_complete",
+     "part": "structure",
+     "sign": "+",
+     "params": {}
+    },
+    {
+     "code": "style_mixed",
+     "part": "style",
+     "sign": "-",
+     "params": {}
+    }
+   ]
+  },
+  {
+   "score": 62.4,
+   "parts": {
+    "style": 0.255,
+    "colour": 0.967,
+    "pattern": 0.3,
+    "structure": 1.0
+   },
+   "reasons": [
+    "the pieces have quite different styles",
+    "two bold patterns (printed + floral)"
+   ],
+   "items": [
+    {
+     "id": "5f0c02000000000000000004",
+     "category": "top",
+     "sub_category": "t-shirt",
+     "colour": "green",
+     "image_url": "/items/5f0c02000000000000000004/image"
+    },
+    {
+     "id": "5f0c01000000000000000007",
+     "category": "bottom",
+     "sub_category": "leggings",
+     "colour": "green",
+     "image_url": "/items/5f0c01000000000000000007/image"
+    },
+    {
+     "id": "5f0c0100000000000000000f",
+     "category": "shoes",
+     "sub_category": "heels",
+     "colour": "",
+     "image_url": "/items/5f0c0100000000000000000f/image"
+    },
+    {
+     "id": "5f0c01000000000000000010",
+     "category": "bag",
+     "sub_category": "laptop-bag",
+     "colour": "black",
+     "image_url": "/items/5f0c01000000000000000010/image"
+    }
+   ],
+   "contributions": [
+    {
+     "part": "style",
+     "weight": 0.35,
+     "counted": true,
+     "value": 0.255,
+     "points": 8.9,
+     "max_points": 35.0,
+     "why_not": null
+    },
+    {
+     "part": "colour",
+     "weight": 0.3,
+     "counted": true,
+     "value": 0.967,
+     "points": 29.0,
+     "max_points": 30.0,
+     "why_not": null
+    },
+    {
+     "part": "pattern",
+     "weight": 0.15,
+     "counted": true,
+     "value": 0.3,
+     "points": 4.5,
+     "max_points": 15.0,
+     "why_not": null
+    },
+    {
+     "part": "structure",
+     "weight": 0.2,
+     "counted": true,
+     "value": 1.0,
+     "points": 20.0,
+     "max_points": 20.0,
+     "why_not": null
+    }
+   ],
+   "explanations": [
+    {
+     "code": "colour_pair",
+     "part": "colour",
+     "sign": "+",
+     "params": {
+      "a": "green",
+      "b": "black"
+     }
+    },
+    {
+     "code": "structure_complete",
+     "part": "structure",
+     "sign": "+",
+     "params": {}
+    },
+    {
+     "code": "style_mixed",
+     "part": "style",
+     "sign": "-",
+     "params": {}
+    },
+    {
+     "code": "pattern_clash",
+     "part": "pattern",
+     "sign": "-",
+     "params": {
+      "a": "printed",
+      "b": "floral"
+     }
+    }
+   ]
+  }
+ ],
+ "explanation": {
+  "path": {
+   "good": 0,
+   "buy_min": 5,
+   "think_min": 1,
+   "verdict": "skip"
+  },
+  "beats": [],
+  "lost_to": [
+   {
+    "owned_id": "5f0c01000000000000000002",
+    "outfits": 1,
+    "owned": {
+     "id": "5f0c01000000000000000002",
+     "category": "top",
+     "sub_category": "top",
+     "colour": "pink",
+     "image_url": "/items/5f0c01000000000000000002/image"
+    }
+   },
+   {
+    "owned_id": "5f0c01000000000000000005",
+    "outfits": 1,
+    "owned": {
+     "id": "5f0c01000000000000000005",
+     "category": "top",
+     "sub_category": "top",
+     "colour": "",
+     "image_url": "/items/5f0c01000000000000000005/image"
+    }
+   }
+  ],
+  "near_misses": 0,
+  "to_next_verdict": 1,
+  "twins": []
+ }
+}

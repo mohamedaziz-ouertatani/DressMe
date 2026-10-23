@@ -196,10 +196,11 @@ def buy_advice(body: BuyAdvice, request: Request, user=Depends(gendered_user)):
                    "twins": [{"item": short_item(by_id[t["id"]]), "similarity": t["similarity"]}
                              for t in why["twins"]]}
     return {"verdict": advice["verdict"], "good_outfits": advice["good_outfits"],
-            "reasons": advice["reasons"], "candidate": item_out(cand, kind="candidates"),
+            "reasons": advice["reasons"],
+            "confidence": assessed["confidence"], "codes": assessed["codes"],      # new in step 1
+            "candidate": item_out(cand, kind="candidates"),
             "best": [outfit_out(o, by_id, explain=True, rules=rules) for o in advice["best"]],
-            "explanation": explanation,
-            "confidence": assessed["confidence"], "codes": assessed["codes"]}
+            "explanation": explanation}
 
 
 @router.get("/similar")

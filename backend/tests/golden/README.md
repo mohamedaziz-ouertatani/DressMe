@@ -13,12 +13,13 @@ answer recorded before the upgrade. If something changes, the test says exactly 
 
 | File | What it is |
 |---|---|
-| `wardrobe.json` | The frozen data. 17 items (the PolyVore pieces `python -m app.seed_demo` uses: 5 tops, 3 bottoms, 2 dresses, 1 jacket, 1 scarf, 3 pairs of shoes, 2 bags), each with its labels, the model's `predicted` answers, `corrected` fields and the vector; 3 scans (candidates); 1 shop listing; the user (a woman, modesty level 2); the fixed inputs (`scenarios`); and what the generator checked (`checked`). Every item has a fixed id, so ids and their order in the answers are stable. |
+| `wardrobe.json` | The frozen data. 17 items (the PolyVore pieces `python -m app.seed_demo` uses: 5 tops, 3 bottoms, 2 dresses, 1 jacket, 1 scarf, 3 pairs of shoes, 2 bags), each with its labels, the model's `predicted` answers, `corrected` fields and the vector; 4 scans (candidates: `near_twin`, `think`, `buy`, and `far_style` added in step 1); 1 shop listing; the user (a woman, modesty level 2); the fixed inputs (`scenarios`); and what the generator checked (`checked`). Every item has a fixed id, so ids and their order in the answers are stable. |
 | `make_wardrobe.py` | Builds `wardrobe.json` from `data/processed/`. Deterministic (running it twice gives the same bytes). `--search` shows how the scans were found. Run it in the container: `docker exec -w /app/backend dressme-backend-1 python tests/golden/make_wardrobe.py`. |
 | `expected/buy_advice_near_twin.json` | `/buy-advice` for a top that looks like one you own (similarity 0.93): **skip**, 0 good outfits, "you already own 1 very similar top". |
 | `expected/buy_advice_think.json` | `/buy-advice` for a shirt: **think**, 2 good outfits. |
 | `expected/buy_advice_buy.json` | `/buy-advice` for a coat (the wardrobe has one jacket): **buy**, 12 good outfits. |
 | `expected/buy_advice_listing.json` | The Shops path: `POST /listings/{id}/candidate`, then `/buy-advice`, for an H&M skirt: **think**, 1 good outfit. (The new candidate's id changes every run and is replaced by `<candidate>`.) |
+| `expected/buy_advice_codes_*.json` | Step 1, `tests/test_golden_codes.py`: `/buy-advice` on parts of the same frozen data, so that each confidence and reason code shows in a recorded answer: `small_wardrobe` (5 pieces, the coat gives **think** instead of **buy**, confidence **low**), `no_pairing_piece` (tops and shoes only, **medium**), `fills_gap` (the skirt listing, informs), `guessed_and_over_budget` (a flagged colour guess and a price over 30 % of the budget, **medium**), `far_from_style` (a t-shirt at similarity 0.36, informs). |
 | `expected/outfits_suggest.json` | `GET /outfits/suggest` for three fixed inputs: no filter, `season=summer&occasion=casual`, `occasion=formal`. |
 | `expected/outfits_score.json` | `POST /outfits/score` for two fixed outfits, and the 422 answer for two tops. |
 | `expected/outfits_complete.json` | `POST /outfits/complete` from a top, from a top + a bottom, and from a dress. |
@@ -101,5 +102,12 @@ today; the step that changes the behaviour updates them in its own pull request.
 
 | Test | Today | Changed by |
 |---|---|---|
-| `test_known_issue_bought_it_reanalyses_the_photo` | "Bought it" on the Scan page uploads the original photo again with `POST /items`: it is cleaned and analysed a second time, gets a new id, the scan stays until it expires after 24 h, and the log counts an extra `upload`. | Step 1 (add the scan to the wardrobe without a second analysis) |
+| `test_known_issue_bought_it_reanalyses_the_photo` | **(a) Fixed in step 1.** "Bought it" used to upload the original photo again with `POST /items`: cleaned and analysed a second time, a new id, the scan left to expire, an extra `upload` in the log. The Scan page and the Shop page now call `POST /decisions`, which saves the scan with `promote` (the scan's cleaned photo, labels, guesses and vector, no second analysis; `tests/test_promote_decisions.py::test_bought_it_reuses_the_scan_and_never_analyses_again`). The test stays as it was: it still shows what uploading the same photo again does, which is what an upload is. | Step 1 |
 | `test_known_issue_incomplete_outfit_scores_high` | `POST /outfits/score` rates a top + shoes outfit (no bottom) **86.0**, above the good-outfit line, because a part that cannot be computed is left out and the other weights are rescaled. `suggest` and `buy-advice` never build such outfits. | A later step on the formula, if the team decides |
+
+## History of the expected files
+
+| Step | What changed in `expected/` |
+|---|---|
+| 0 | Recorded. |
+| 1 | `buy_advice_near_twin|think|buy|listing.json` gained two keys, `confidence` and `codes` (+2 lines each, no line removed or changed). The 4 other files did not change. New: `buy_advice_codes_*.json`. `wardrobe.json` gained a fourth scan (`far_style`); nothing else in it changed. |

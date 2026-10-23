@@ -254,12 +254,16 @@ def test_insights(golden):
 
 # ---------------------------------------------------------------- KNOWN ISSUES (expected to change)
 def test_known_issue_bought_it_reanalyses_the_photo(client):
-    """KNOWN, EXPECTED TO CHANGE (step 1 of the upgrade replaces it).
+    """KNOWN, EXPECTED TO CHANGE (step 1 of the upgrade replaced it: see below).
 
-    "Bought it" on the Scan page (frontend ScanPage.addToWardrobe) does NOT turn the scan into a
-    wardrobe item: it uploads the original photo again with POST /items, which cleans and
-    analyses it a second time. So the item gets a new id, the scan stays until it expires after
-    24 h, and the log counts an extra `upload`."""
+    "Bought it" on the Scan page (frontend ScanPage.addToWardrobe) did NOT turn the scan into a
+    wardrobe item: it uploaded the original photo again with POST /items, which cleans and
+    analyses it a second time. So the item got a new id, the scan stayed until it expired after
+    24 h, and the log counted an extra `upload`.
+
+    FIXED IN STEP 1: the Scan and Shop pages now call POST /decisions, which saves the scan with
+    `promote` and no second analysis (tests/test_promote_decisions.py). This test is unchanged on
+    purpose: it still documents what uploading the same photo again through POST /items does."""
     headers = sign_up(client)
     scan = client.post("/analyze", files={"photo": photo(RED)}, headers=headers)
     assert scan.status_code == 201

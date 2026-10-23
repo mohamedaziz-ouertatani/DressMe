@@ -1291,6 +1291,67 @@
    "created_at": "2026-10-02T09:00:00Z",
    "vector_b64": "6ho/o/wr56jMpHOq4arXKBkiNSxeJh4fXal1KaqpsSmzJJCmJy3yqTcfEKQVrKioeSDKqZApQ57XGgaoPaRwIUaggapmpachvyMMKvyUxSjSo1Wkl6G3qPaiTCWWKV8d1aKAJBymk6LlosGi7TDPL3OqaiIlLFsiRpygn20rOifdIzEmRKG/rEocRaHCqE6YpCT9KU6gJao5LDYoiZx0pYgcn6axozaoYhtqlZCl3ItKqRGoJqesJeapkJpxliqbWCt6m4QpFqV/qmwbEai1oZggwqX3IQWq8yiIlpKlranmJKkkrB84KE4gKqSeKGspvCBUKcmazZwNJxqmrSmgqQEjViw4HGmYBB26pfGmzCESJg4p5SKuKZMk3ipToRSfXCYBI+ap8KR8qawqoaT3JVs2/Z3fpXucPx6lKoQlkJ+Oq1kc5KrPq8KhSSJ5JP6tBiAhnokoSKjGk4KmXSNXrmokuR6XqTUmkyfPpmUq3KM7KZgmzyShHNcomyDFmEsuSyS2HuYjhyRYKJ8p36dNKi4rWC48q0ucPCBYK2Ep7Kk1Iasf+aYWIeumlyMaqEOWbiB0KZekWSr2JR4qFyigJ7EoIif9oowf26kxpCsiTSD/Fg8bTaCCoo4d1yatJF8Yx5/tIBEpESF2pVWoxKpmqsIpbKUAKNMhtafCqC6qZ6jPJjMng6qqqeQplKa2H6UFbx1HJoIk/ya6qU6hZh43E58pZ6ChqD2iuyy8oVonKR/aHmyf4yIjKqmZVii+IVudkCTqgsso06VTpSSmR6RxoMojviliqc2rETE2pmsoISWXJeEWlSdZtr6qaxl5qw2cYSGNIk4o2p7LJsGj9Clan6CnZKWAp4UkZbJ8oFyoSKBAqUegEiDXmesrECQcIpwoRCAGoXKrlCU0KkonRiBGn7EozR8nLKikAbBTHQcm06V6lw6fCSb/HO4m2iY9lPMmaKuRlK6lfiRzohCijKRzK8ap1B0QHmipmKKap/QFQS1PrGeqMyWOpwsmdhxWp9ymoKNGnvupD6vEKsemKalCpnudLZK9rPmme6sdoaGnUCcJprOp7KEAp3el1CnhpRqoHRrEKDgoqh0ZJ3EhHaXunqGr7yJcpUms/iBiopSpnaTEJjElfw2ZpdaWk6nio3MseCVVKNcScyoJJDSiXihfpZ8ZiyQ4peuozyGmphqoHqaIH28kAB/kqjMcVaq8JQ+tUaVnqBWsEahUpfqkZ6hxHjsj96MaHW0hMKhSnpIhjqzxKE4h0h7Rp24q/COtGNEdJ6h+IAQcVCmPpmkgkaTBohQjth+CsgUmzS33K8ihuipamA4VUaXxK8eUPiALK92nuKA8IX4pEi4mpccm0qZkpQ==",
    "key": "buy"
+  },
+  {
+   "id": "5f0c02000000000000000004",
+   "dataset_id": "pv_top_6903276_1",
+   "category": "top",
+   "sub_category": "t-shirt",
+   "pattern": "printed",
+   "colour": "green",
+   "coverage": null,
+   "season": [],
+   "usage": [],
+   "predicted": {
+    "category": {
+     "value": "top",
+     "conf": 0.976,
+     "alternatives": [
+      {
+       "value": "top",
+       "conf": 0.976
+      }
+     ],
+     "unsure": false
+    },
+    "sub_category": {
+     "value": "t-shirt",
+     "conf": 0.977,
+     "alternatives": [
+      {
+       "value": "t-shirt",
+       "conf": 0.977
+      }
+     ],
+     "unsure": false
+    },
+    "pattern": {
+     "value": "printed",
+     "conf": 0.988,
+     "alternatives": [
+      {
+       "value": "printed",
+       "conf": 0.988
+      }
+     ],
+     "unsure": false
+    },
+    "colour": {
+     "value": "green",
+     "conf": 0.93,
+     "alternatives": [
+      {
+       "value": "green",
+       "conf": 0.93
+      }
+     ],
+     "unsure": false
+    }
+   },
+   "corrected": [],
+   "created_at": "2026-10-02T09:00:00Z",
+   "vector_b64": "kamasI2smyjILoGsZazvptQoG60VquQgu6qDqX6qJar/rU6po6x1pe6lwSk4JV4prKhIKL0juKicJnunXCZ3oTclpxwepHisyycALKecNqAkqhauFBZso2kpbikdrOAWzKmdp5irMaVnqSehsK0SLLoeixwAJj6oK6X4KXwp16FNIQekhyiYJRkWF6i+rFUV0CakpwSq7awZrZ8nySMpKLuZDZZ4qPIj/yxPq5KoQywzKH6p4adGqVMkmKZCIv4nyynULp4cPyhFq2gt1iiVKVwiLCTrLAoruKUbos6obyAYrjqtxCfjqJisZB/5IR6iNp2TKt0pKiW7HXiqtaewkFIlwS3Xoc0Zv6WMp7+mM6tXqnOZ1aszJ4SpYplRJeClYS3eopomXR/dKXItvqx0KKQu6qXWnV4UyimRHmUqcKcGpj0lyyiJoQwtGyzpKGilEZwuH/gpAxvxISWodadupRkplxQOqX6l6BU8KJeq96cnpjOo8S1bqFWqxh+arVKpSKgAJKMkbSa7qFIlKCRWnD6gFiPOpzcl1RvgJAimraiZqV+st6NAqikoeyBSoXslYazyJKQmcS+bLSwdEpRqIxssbigHKRcoG500o0wJFqqnLI+l6KWboicd9ID0p/4pZSypJtesAKInpFSk/h9JpnYqZaXVIt0p0ye9rMedIRUJquSoLCc7KCedn5zTJ3+piaHipaMomSw9oaIkRKyDqfEiVCdOnCEiGROPKU8dQJecKVcYGKtbJuEmYiOOJcOg9x+7GKSjUiXALH+lE6mBppWNz6TuJVKg+DDWrOQooaDfq2Ug1iyUrgupdaqnrGUooqxjJT8k8qt5JRitT6G/qe+ZQq0emDcqOa3PIdakaSPoquamuaFAp3Gn5B/LEbsqvR+fozEcYJsOFK4jGSu/qsgizKmNnhYlJRZbrhivwaVyKuWqVLA+K/UPoiS8krIrXBS6nusZeyiPpfQlKawApMOlSaoGJgeoRabHJNItaCoeKYUl3qYNq1EbHCpjKGqoHay/LcQq2qg8LCEifJ6NqlYrNSxWpx0neZ3LKteiWSa+pUqcrpcxLTOk5ab4LV6qEpyiKD8ozqBuH5SlOCpLJjmn9BzmqmqoBZ0wLJGkJKbZHM2feqN9IMamkaAKqWWm8aCBqVgoBSUop7ApmJ9MKNQp3pUvKemp3aWVKnqtQyomJJ0kEiiLpaIqWB9YnZCwxqE7qQyopQThKbQpNaaVqYusJqWnKcisSamPLIiljykgJhAc5xAWrtQYKhMfrO+chClSKs4fhCnVKkclJCB9qFQjNqWJsoWh4ihXkHemzi/CrM8lfqi4oVOeACSJIo8sIShUp3YncCqCrcGfwSwnGg==",
+   "key": "far_style"
   }
  ],
  "listing": {
@@ -1433,6 +1494,11 @@
     "verdict": "buy",
     "good_outfits": 12,
     "closest_to_good_line": 3.0
+   },
+   "far_style": {
+    "verdict": "skip",
+    "good_outfits": 0,
+    "closest_to_good_line": 2.4
    },
    "listing": {
     "verdict": "think",
