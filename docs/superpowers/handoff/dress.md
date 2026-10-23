@@ -115,7 +115,7 @@ computed by the server. Logs a `wear` event.
 | `dress.py` `pick_three` | One outfit per label, a seeded draw among the `pick_pool` best, no weighting by score, no memory of earlier days. |
 | `dress.py` `load_occasions` / `mappings/dress_occasions.csv` | A first mapping from a chip to usage values (university = everyday). |
 | `dress.py` `context_reasons` | One fixed sentence: right for <occasion> at <temp>. |
-| `dress.py` `label_for` | One similarity and two cuts; no per-piece label. |
+| `dress.py` `label_for` / `relabel_shown` | `label_for` = one similarity and two cuts, used to choose which outfits are shown and as the fallback below 3 outfits. The labels SHOWN come from `relabel_shown` (equal thirds by distance to the taste vector); band sizes are `TODO(step 6)`. |
 | `dress.py` `confidence_reasons` | Small wardrobe + every unsure label; no weighting. |
 | `dress.py` `apply_wear_penalty`, `routers/outfits.py` | Flat points per piece, values 0 (off). |
 | `routers/wear.py` | No history screen (step 5); `occasion` is the chip's usage, `event_name` is never asked; `GET /wear` stops at 500. |
@@ -124,7 +124,7 @@ computed by the server. Logs a `wear` event.
 
 ## 4. REVIEW rules
 
-`mappings/dress_rules.csv`: `safe_cut` 0.892, `bolder_cut` 0.777 (an outfit's similarity to the taste vector; each cut sits
+`mappings/dress_rules.csv`: `safe_cut` 0.892, `bolder_cut` 0.777 (since step 2c only the choice of candidates and the fallback when fewer than 3 outfits are shown; an outfit's similarity to the taste vector; each cut sits
 in the middle of the largest gap between values shown by the frozen wardrobe, so all three labels appear),
 `min_wardrobe_items` 8 (fewer usable pieces = a lowering reason), `wear_penalty_days` 0, `wear_penalty_points` 0,
 `pick_pool` 3. `mappings/dress_occasions.csv`: everyday casual; work work|formal; university casual;

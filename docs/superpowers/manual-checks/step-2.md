@@ -111,3 +111,15 @@ is written; anything else is a bug to report with the line number.
     `wear_penalty_points` to `20` (no restart: read at each call). Open `GET /outfits/suggest?n=5` in `/docs`:
     OK: the outfit worn today is no longer first (scores unchanged). Put both values back to `0`: the first
     outfit is back.
+
+## L. Step 2c: friendly errors and relative labels
+
+31. With the app open on **Dress** (For today), stop the backend (`docker stop dressme-backend-1`) and tap
+    **New outfits**, or reload. OK: a short sentence ("No connection..." when offline, else "Couldn't load outfits")
+    and a **Try again** button; no "Not Found", no JSON. The details are only in the browser console. Start the backend
+    (`docker start dressme-backend-1`, wait until healthy), tap **Try again**: the cards come back. Repeat in
+    **Build** (pick a piece, **Build outfits**: "Couldn't build outfits") and in French and Arabic.
+32. After any backend change run `docker compose up -d --build backend` and wait about a minute.
+33. On the demo account (17 pieces), For today and Build with 3 cards: OK: the labels are **Safe**, **Bolder** and
+    **Experimental**, one each (tints green, yellow, lilac). With fewer than 3 cards the labels follow the old
+    cuts (`dress_rules.csv`).
