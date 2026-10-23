@@ -85,6 +85,10 @@ def pairing_gap(candidate, advice, profile, insights, rules):
     return next((m for m in insights.get("missing", []) if m in ("bottom", "top", "main")), "main")
 
 
+# TODO(<name>, step 1): verdict-moving rules are NOT built. Today the codes only inform or lower the
+# confidence; they never change buy / think / skip. Step 6 decides if over_budget, far_from_style or a
+# repeated "left it" for similar pieces should move the verdict (that means a change in compatibility.py,
+# which step 1 leaves untouched), and later the verdict weights could be learned from `decisions`.
 def assess(advice, candidate, wardrobe, profile, insights, rules, settings=None):
     """Confidence and codes for one candidate (see the module docstring). `settings` = the
     verdict rules (default: read mappings/verdict_rules.csv)."""
@@ -93,6 +97,9 @@ def assess(advice, candidate, wardrobe, profile, insights, rules, settings=None)
     codes = []
 
     # ---- lowering codes
+    # TODO(<name>, step 1): the cut of each code is a first guess (mappings/verdict_rules.csv, all REVIEW;
+    # guessed_field relies on mappings/xai_settings.csv). Tune them on real scans once users have answered
+    # Bought it / Left it, and decide how many pieces are really "enough" per category, not in total.
     usable, _ = C.filter_items(wardrobe, profile, rules)
     minimum = int(settings["min_wardrobe_items"])
     if len(usable) < minimum:
@@ -123,6 +130,9 @@ def assess(advice, candidate, wardrobe, profile, insights, rules, settings=None)
                           share=round(float(price) / float(budget), 2)))
 
     lowering = [c for c in codes if c["code"] in LOWERING]
+    # TODO(<name>, step 1): first-version confidence rule (small_wardrobe = low, else 0 / 1 / 2+ lowering
+    # codes = high / medium / low). The full version could weigh the codes (a guessed colour matters less than
+    # a guessed category) and take the verdict's margin into account (a verdict close to a cut is less sure).
     if any(c["code"] == "small_wardrobe" for c in lowering):
         confidence = "low"
     else:

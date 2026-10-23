@@ -32,6 +32,8 @@ def item_out(doc, kind="items"):
     }
     if kind == "items":
         out["image_url"] = f"/items/{out['id']}/image"
+        if doc.get("promoted_from"):                         # only an item saved from a scan; uploads answer as before
+            out["promoted_from"] = doc["promoted_from"]
     elif kind == "candidates":
         out["image_url"] = f"/candidates/{out['id']}/image"
     return out
