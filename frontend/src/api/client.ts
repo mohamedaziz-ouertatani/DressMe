@@ -4,6 +4,7 @@ import type {
   AdminXai, SourceCheck, AdminSource, Job, JobStart, ListingsOverview, AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Insights, Item, ItemPatch,
   Listing, ListingFilters, ListingPage, ListingPatch, ModelQuality, ReviewListing, SellForm, Occasion, Outfit, Season, Similar, Stats, User, Gender,
   ChatAttachment, ChatAction, TryOnResult, Weather, Explanation, GuessField, OutfitExplanation,
+  Decision, DecisionAnswer, OutfitLabel, WearEntry, WearSummary, OccasionChip, TodayOutfits, BuildResult,
 } from './types'
 
 const BASE = '/api'
@@ -95,12 +96,16 @@ export function loadImage(path: string): Promise<string> {
 }
 
 export const api = {
-  register: (email: string, password: string, name: string, gender: Gender) =>
-    request<{ token: string; user: User }>('/auth/register', json('POST', { email, password, name, gender })),
+  register: (email: string, password: string, name: string, gender: Gender, consent: boolean) =>
+    request<{ token: string; user: User }>('/auth/register', json('POST', { email, password, name, gender, consent })),
   login: (email: string, password: string) =>
     request<{ token: string; user: User }>('/auth/login', json('POST', { email, password })),
   me: () => request<User>('/me'),
-  updateMe: (patch: Partial<Pick<User, 'name' | 'min_coverage' | 'language' | 'gender'>>) =>
+  /** The one-time consent dialog of an older account (idempotent: the first date is kept). */
+  consent: () => request<User>('/me/consent', { method: 'POST' }),
+  /** Deletes the account and everything it owns (403 = wrong password). */
+  deleteMe: (password: string) => request<void>('/me', json('DELETE', { password })),
+  updateMe: (patch: Partial<Pick<User, 'name' | 'min_coverage' | 'language' | 'gender' | 'budget_tnd'>>) =>
     request<User>('/me', json('PUT', patch)),
 
   items: () => request<Item[]>('/items'),
@@ -112,8 +117,13 @@ export const api = {
   insights: () => request<Insights>('/insights'),
 
   analyze: (file: Blob) => request<Item>('/analyze', { method: 'POST', body: photoForm(file) }),
-  buyAdvice: (candidateId: string, corrections?: ItemPatch) =>
-    request<BuyAdvice>('/buy-advice', json('POST', { candidate_id: candidateId, corrections })),
+  /** priceTnd = the price on the tag, optional (left out when unknown, never 0). */
+  buyAdvice: (candidateId: string, corrections?: ItemPatch, priceTnd?: number) =>
+    request<BuyAdvice>('/buy-advice', json('POST', { candidate_id: candidateId, corrections, price_tnd: priceTnd })),
+  /** "Bought it" saves the scan into the wardrobe (no second analysis); "Left it" only logs the answer. */
+  decide: (candidateId: string, answer: DecisionAnswer, pricePaid?: number) =>
+    request<Decision>('/decisions', json('POST', { candidate_id: candidateId, answer, price_paid: pricePaid })),
+  decisions: () => request<Decision[]>('/decisions'),
 
   suggest: (opts: { season?: Season; occasion?: Occasion; beach?: boolean; n?: number }) => {
     const q = new URLSearchParams()
@@ -134,6 +144,30 @@ export const api = {
     request<{ item_ids: string[]; rating: 1 | -1 }>('/outfits/feedback', json('POST', { item_ids: itemIds, rating })),
   complete: (itemIds: string[], k = 5) =>
     request<Completion[]>('/outfits/complete', json('POST', { item_ids: itemIds, k })),
+  /** The occasion chips of the Dress page, in the team's order. */
+  occasions: () => request<OccasionChip[]>('/outfits/occasions'),
+  /** Three outfits for today: the same day, occasion and shuffle give the same outfits. */
+  outfitsToday: (opts: { occasion: string; shuffle: number; at?: { lat: number; lon: number } }) => {
+    const q = new URLSearchParams({ occasion: opts.occasion, shuffle: String(opts.shuffle) })
+    if (opts.at) { q.set('lat', String(opts.at.lat)); q.set('lon', String(opts.at.lon)) }
+    return request<TodayOutfits>(`/outfits/today?${q}`)
+  },
+  /** Up to three outfits around the chosen pieces. */
+  buildOutfits: (itemIds: string[], shuffle = 0, occasion?: string) =>
+    request<BuildResult>('/outfits/build', json('POST', { item_ids: itemIds, shuffle, occasion })),
+  /** "I wore this": the same pieces on the same day are one entry (a second call returns the first). */
+  wear: (body: { item_ids: string[]; occasion?: string; event_name?: string; score_shown?: number;
+                 label_shown?: OutfitLabel; source: 'card' | 'build' }) =>
+    request<WearEntry>('/wear', json('POST', body)),
+  wearList: (range: { from?: string; to?: string } = {}) => {
+    const q = new URLSearchParams()
+    if (range.from) q.set('from', range.from)
+    if (range.to) q.set('to', range.to)
+    return request<WearEntry[]>(`/wear${q.size ? `?${q}` : ''}`)
+  },
+  wearSummary: () => request<WearSummary>('/wear/summary'),
+  /** Undo: only on the day it was worn (409 later). */
+  unwear: (id: string) => request<void>(`/wear/${id}`, { method: 'DELETE' }),
   similar: (ref: { itemId?: string; candidateId?: string }, k = 6, all = false) => {
     const q = new URLSearchParams({ k: String(k) })
     if (ref.itemId) q.set('item_id', ref.itemId)

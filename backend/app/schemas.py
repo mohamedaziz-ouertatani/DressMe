@@ -15,6 +15,12 @@ class Register(BaseModel):
     password: str = Field(min_length=8, max_length=128)
     name: str = Field(min_length=1, max_length=60)
     gender: Gender                       # required: shops, look-alikes and rules follow it
+    consent: bool | None = None          # the sign-up checkbox; true stamps users.consent_at (step 5)
+
+
+class DeleteMe(BaseModel):
+    """DELETE /me: the password is asked again before an account and everything it owns is deleted."""
+    password: str = Field(max_length=128)
 
 
 class Login(BaseModel):
@@ -27,6 +33,7 @@ class ProfileUpdate(BaseModel):
     min_coverage: int | None = Field(None, ge=1, le=5)   # modesty level, 1-5
     language: str | None = None
     gender: Gender | None = None
+    budget_tnd: float | None = Field(None, gt=0, le=1_000_000)   # optional; null clears it
 
     @field_validator("language")
     @classmethod
@@ -91,6 +98,36 @@ class Complete(BaseModel):
 class BuyAdvice(BaseModel):
     candidate_id: str
     corrections: ItemUpdate | None = None
+    price_tnd: float | None = Field(None, gt=0, le=100000)    # the price on the tag; missing = unknown (never 0)
+
+
+class DecisionIn(BaseModel):
+    """What the user did after a verdict: bought the piece, or left it."""
+    candidate_id: str
+    answer: Literal["bought", "left"]
+    price_paid: float | None = Field(None, gt=0, le=100000)      # optional: what they really paid
+
+
+class BuildIn(BaseModel):
+    """The Dress page, Build mode: the pieces picked so far, and what to dress for."""
+    item_ids: list[str] = Field(min_length=1, max_length=8)
+    occasion: str | None = Field(None, max_length=40)       # a chip of mappings/dress_occasions.csv
+    shuffle: int = Field(0, ge=0, le=1_000_000)             # "New outfits" counts up
+
+
+class WearIn(BaseModel):
+    """"I wore this": the pieces worn today, and what the app showed for that outfit."""
+    item_ids: list[str] = Field(min_length=1, max_length=10)
+    occasion: str | None = None
+    event_name: str | None = Field(None, max_length=80)
+    score_shown: float | None = Field(None, ge=0, le=100)
+    label_shown: Literal["safe", "bolder", "experimental"] | None = None
+    source: Literal["card", "build"]
+
+    @field_validator("occasion")
+    @classmethod
+    def _occasion(cls, v):
+        return v if v is None else _one_of(USAGES, "usage")(v)
 
 
 class ChatMessage(BaseModel):

@@ -1,0 +1,86 @@
+{
+ "verdict": "skip",
+ "good_outfits": 0,
+ "reasons": [],
+ "confidence": "medium",
+ "codes": [
+  {
+   "code": "no_pairing_piece",
+   "params": {
+    "slot": "bottom"
+   }
+  }
+ ],
+ "candidate": {
+  "id": "5f0c02000000000000000002",
+  "category": "top",
+  "sub_category": "shirt",
+  "pattern": "solid",
+  "colour": "black",
+  "coverage": null,
+  "season": [],
+  "usage": [],
+  "predicted": {
+   "category": {
+    "value": "top",
+    "conf": 0.95,
+    "alternatives": [
+     {
+      "value": "top",
+      "conf": 0.95
+     }
+    ],
+    "unsure": false
+   },
+   "sub_category": {
+    "value": "shirt",
+    "conf": 0.47,
+    "alternatives": [
+     {
+      "value": "shirt",
+      "conf": 0.47
+     }
+    ],
+    "unsure": false
+   },
+   "pattern": {
+    "value": "solid",
+    "conf": 0.961,
+    "alternatives": [
+     {
+      "value": "solid",
+      "conf": 0.961
+     }
+    ],
+    "unsure": false
+   },
+   "colour": {
+    "value": "black",
+    "conf": 0.955,
+    "alternatives": [
+     {
+      "value": "black",
+      "conf": 0.955
+     }
+    ],
+    "unsure": false
+   }
+  },
+  "corrected": [],
+  "image_url": "/candidates/5f0c02000000000000000002/image"
+ },
+ "best": [],
+ "explanation": {
+  "path": {
+   "good": 0,
+   "buy_min": 5,
+   "think_min": 1,
+   "verdict": "skip"
+  },
+  "beats": [],
+  "lost_to": [],
+  "near_misses": 0,
+  "to_next_verdict": 1,
+  "twins": []
+ }
+}

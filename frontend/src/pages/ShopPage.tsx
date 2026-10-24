@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, ExternalLink, MessageCircle, Search, Tag } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ExternalLink, MessageCircle, Tag } from 'lucide-react'
 import { api } from '../api/client'
 import type { BuyAdvice, Category, Item, Listing, ListingFilters } from '../api/types'
 import { useI18n } from '../i18n'
@@ -12,9 +12,7 @@ import { brandName, shopName, useListingFormat } from '../ui/listingText'
 import { Page } from '../shell'
 import { Button, Chip } from '../ui/controls'
 import { ItemPhoto } from '../ui/ItemPhoto'
-import { OutfitStrip } from '../ui/OutfitStrip'
-import { VerdictWhy } from '../ui/VerdictWhy'
-import { Stamp } from '../ui/Stamp'
+import { VerdictCard } from '../ui/VerdictCard'
 import { Empty, ErrorNote, Skeleton } from '../ui/states'
 import { Ticket } from '../ui/ticket'
 import { useLoad } from '../useLoad'
@@ -58,10 +56,10 @@ export function ShopPage() {
 
   const shown = [...(res.data?.items ?? []), ...extra]
   return (
-    <Page title={t('shopPageTitle')}>
+    <Page title={t('shopPageTitle')} look="soft">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <p className="max-w-[70ch] text-[13px] text-carbon-soft">{t('shopPageNote')}</p>
-        <Link to="/sell" className="inline-flex min-h-11 shrink-0 items-center gap-2 self-start border-[1.5px] border-ink bg-paper px-4 text-[15px] font-medium text-ink">
+        <Link to="/sell" className="press inline-flex min-h-11 shrink-0 items-center gap-2 self-start rounded-pill bg-surface px-4 text-[15px] font-semibold text-carbon ring-[1.5px] ring-inset ring-line-strong">
           <Tag className="size-4" aria-hidden /> {t('sellLink')}
         </Link>
       </div>
@@ -132,7 +130,7 @@ export function ShopPage() {
 /** One listing: picture, price, stock, a link to the shop, and the buy verdict. */
 export function ListingPage() {
   const { id = '' } = useParams()
-  const { t, lang, reason } = useI18n()
+  const { t, lang } = useI18n()
   const { price, day, name } = useListingFormat()
   const res = useLoad(() => api.listing(id), [id])
   // the verdict belongs to one listing: opening another one starts clean
@@ -156,9 +154,9 @@ export function ListingPage() {
   const l = res.data
   const kind = l ? vocab(SUB_LABELS, l.sub_category, lang) || vocab(CATEGORY_LABELS, l.category, lang) : ''
   return (
-    <Page title={t('shopPageTitle')}>
+    <Page title={t('shopPageTitle')} look="soft">
       <div className="mx-auto max-w-[640px]">
-        <Link to="/shop" className="mb-4 inline-flex min-h-11 items-center gap-1.5 text-[15px] text-ink">
+        <Link to="/shop" className="mb-4 inline-flex min-h-11 items-center gap-1.5 text-[15px] font-semibold text-carbon underline decoration-1 underline-offset-4">
           <ArrowLeft className="size-4 mirror-rtl" aria-hidden /> {t('back')}
         </Link>
         {res.error ? (
@@ -187,13 +185,6 @@ export function ListingPage() {
                   ) : null}
                 </div>
               </div>
-              {/* the stamp lands over the photo, so it never hides the price */}
-              {advice && (
-                <div className="pointer-events-none absolute -top-5 start-24">
-                  <Stamp big={t(`verdict_${advice.verdict}`)} ring="DRESSME · VALIDÉ · مصادق · DRESSME · VALIDÉ ·"
-                    size={110} angle={-11} land label={t(`verdict_${advice.verdict}`)} />
-                </div>
-              )}
             </Ticket>
 
             {l.seller && (
@@ -205,7 +196,7 @@ export function ListingPage() {
             <div className="mt-4 flex flex-wrap gap-2">
               {l.url && (
                 <a href={l.url} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex min-h-11 items-center gap-2 border-[1.5px] border-ink bg-paper px-4 text-[15px] font-medium text-ink">
+                  className="press inline-flex min-h-11 items-center gap-2 rounded-pill bg-surface px-4 text-[15px] font-semibold text-carbon ring-[1.5px] ring-inset ring-line-strong">
                   <ExternalLink className="size-4" aria-hidden /> {t('openInShop', { brand: shopName(l) })}
                 </a>
               )}
@@ -219,30 +210,11 @@ export function ListingPage() {
             {error ? <div className="mt-4"><ErrorNote error={error} onRetry={ask} /></div> : null}
 
             {advice && candidate && (
-              <section className="mt-6" aria-live="polite">
-                <p className="text-[18px] font-medium leading-snug text-carbon">
-                  {t(`verdictLine_${advice.verdict}`, { outfits: plural('goodOutfits', advice.good_outfits, lang) })}
-                </p>
-                {advice.reasons.length > 0 && (
-                  <ul className="mt-2 space-y-1 text-[15px] text-carbon-soft">
-                    {advice.reasons.map((r) => <li key={r}>{reason(r)}</li>)}
-                  </ul>
-                )}
-                {advice.explanation && <VerdictWhy explanation={advice.explanation} />}
-                <Link to={`/similar?candidate=${candidate.id}`} className="mt-5 inline-flex min-h-11 items-center gap-2 border-[1.5px] border-ink bg-paper px-4 text-[15px] font-medium text-ink">
-                  <Search className="size-4" aria-hidden /> {t('seeSimilar')}
-                </Link>
-                {advice.best.length > 0 && (
-                  <div className="mt-8">
-                    <h2 className="mb-4 text-[18px] font-semibold text-carbon">{t('bestOutfits')}</h2>
-                    <div className="grid gap-10 pt-4 sm:grid-cols-2">
-                      {advice.best.slice(0, 2).map((o, i) => (
-                        <OutfitStrip key={i} outfit={o} compact photoOf={(pid) => (pid === candidate.id ? l.image_url : undefined)} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </section>
+              <div className="mt-6">
+                {/* no onDecided: the card shows what was recorded and the user keeps browsing */}
+                <VerdictCard advice={advice} candidatePhoto={l.image_url} price={l.price_tnd}
+                  restart={{ label: t('checkAgain'), onClick: () => setState({ id }) }} />
+              </div>
             )}
           </>
         )}

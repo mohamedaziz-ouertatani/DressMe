@@ -8,7 +8,7 @@ Both first remove the photo's background (see background.py).
 import io
 from datetime import datetime, timezone
 
-from bson import Binary, ObjectId
+from bson import Binary
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import Response
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -20,6 +20,7 @@ from ..schemas import ItemUpdate
 from ..security import current_user
 from ..vocab import SUB_PARENT
 from ..wardrobe import fields_from_analysis, item_out
+from ..wardrobe_store import analysed_by, promote
 
 router = APIRouter(tags=["wardrobe"])
 
@@ -55,6 +56,7 @@ def analyse(img, user, request):
     return {"user_id": user["_id"], **fields, "predicted": predicted,
             "vector": vector_to_bson(analysis["vector"]),
             "coverage": None, "season": [], "usage": [], "corrected": [],
+            "analysed_by": analysed_by(request.app.state.analyzer),
             "created_at": datetime.now(timezone.utc)}
 
 
@@ -83,16 +85,10 @@ def apply_update(doc, body: ItemUpdate):
 
 @router.post("/items", status_code=201)
 async def add_item(request: Request, photo: UploadFile = File(...), user=Depends(current_user)):
-    settings = request.app.state.settings
     img = await read_photo(photo, request)
     doc = analyse(img, user, request)
-    doc["_id"] = ObjectId()
-    folder = settings.storage_dir / str(user["_id"])
-    folder.mkdir(parents=True, exist_ok=True)
-    img.save(folder / f"{doc['_id']}.jpg", quality=85)
-    request.app.state.db.items.insert_one(doc)
-    log_event(request.app.state.db, "upload", user["_id"], category=doc["category"])
-    return item_out(doc)
+    item, _ = promote(request.app.state.db, request.app.state.settings.storage_dir, user["_id"], doc=doc, image=img)
+    return item_out(item)
 
 
 @router.get("/items")

@@ -5,7 +5,7 @@ to the user's wardrobe and profile.
 """
 
 import io
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -13,16 +13,18 @@ from fastapi.responses import StreamingResponse
 
 from .. import ml  # noqa: F401  (puts src/ on the import path)
 import compatibility
+import dress
 import explain_outfit
 import explain_similarity
 import genders
+import verdict
 
 from ..db import vector_from_bson, vector_to_bson
 from ..events import log_event
 from ..schemas import BuyAdvice, Complete, ItemIds, OutfitFeedback
 from ..security import current_user, gendered_user, user_gender
 from ..vocab import SEASONS, USAGES
-from ..wardrobe import item_out, outfit_out, short_item, to_compat
+from ..wardrobe import candidate_view, item_out, outfit_out, short_item, to_compat
 from .items import apply_update, own_item
 
 router = APIRouter(tags=["outfits"])
@@ -69,6 +71,15 @@ def no_clash(items, rules):
         raise HTTPException(422, "These pieces can't be worn together: " + "; ".join(why))
 
 
+def labelled_outfits(outfits, docs, prof, rules, dress_rules=None):
+    """The outfits with `label` and `confidence` (src/phase4/dress.py). The taste vector is the one the
+    scoring already uses; "usable" is the wardrobe left after this request's filters."""
+    dress_rules = dress_rules or dress.load_rules()
+    usable, _ = compatibility.filter_items([to_compat(d) for d in docs], prof, rules)
+    return dress.label_outfits(outfits, {str(d["_id"]): candidate_view(d) for d in docs},
+                               prof["style_vector"], dress_rules, usable=len(usable))
+
+
 @router.get("/outfits/limits")
 def limits(user=Depends(gendered_user)):
     """Max pieces per category (mappings/outfit_structure.csv); a sub_category is
@@ -84,10 +95,10 @@ def score(body: ItemIds, request: Request, user=Depends(gendered_user)):
     items = [to_compat(d) for d in docs]
     no_clash(items, rules)
     all_docs, _ = wardrobe(request, user)
-    result = compatibility.score_outfit(
-        items, rules, style_profile=user_profile(user, all_docs, request)["style_vector"])
-    return outfit_out({**result, "items": items}, {str(d["_id"]): d for d in docs}, explain=True,
-                      rules=rules)
+    prof = user_profile(user, all_docs, request)
+    result = compatibility.score_outfit(items, rules, style_profile=prof["style_vector"])
+    labelled = labelled_outfits([{**result, "items": items}], all_docs, prof, rules)
+    return outfit_out(labelled[0], {str(d["_id"]): d for d in docs}, explain=True, rules=rules)
 
 
 @router.post("/outfits/explain")
@@ -132,6 +143,24 @@ Season = Literal[tuple(SEASONS)]       # only these values are accepted (else 42
 Occasion = Literal[tuple(USAGES)]
 
 
+def ranked_suggestions(request, user, docs, prof, rules, dress_rules, n):
+    """The `n` best outfits of the wardrobe for a profile (season, occasion, beach...), with the recent-wear
+    penalty when the team turned it on. The one place GET /outfits/suggest and GET /outfits/today read from."""
+    # TODO(step 2): wear_penalty_days and wear_penalty_points start at 0 (mappings/dress_rules.csv, REVIEW): the
+    # team picks the values, then the suggestions start to rotate the pieces worn recently.
+    penalty = dress.penalty_active(dress_rules)
+    # the penalty re-orders a longer list (the first n of it are the outfits asked for without it, as each
+    # piece is used in at most 2); with the penalty off nothing is fetched, re-ordered or changed
+    outfits = compatibility.suggest_outfits([to_compat(d) for d in docs], prof, n=max(n, 20) if penalty else n, rules=rules)
+    if penalty:
+        today = dress.tunis_date(datetime.now(timezone.utc))
+        recent = request.app.state.db.wear_log.find(
+            {"user_id": user["_id"], "worn_on": {"$gte": (today - timedelta(days=int(dress_rules["wear_penalty_days"]))).isoformat()}})
+        outfits = dress.apply_wear_penalty(outfits, dress.recently_worn(recent, today, dress_rules["wear_penalty_days"]),
+                                           dress_rules, n)
+    return outfits
+
+
 @router.get("/outfits/suggest")
 def suggest(request: Request, season: Season | None = None, occasion: Occasion | None = None,
             n: int = Query(5, ge=1, le=20), beach: bool = False, user=Depends(gendered_user)):
@@ -140,7 +169,9 @@ def suggest(request: Request, season: Season | None = None, occasion: Occasion |
     prof = user_profile(user, docs, request, season, occasion)
     prof["beach"] = beach
     rules = rules_of(user)
-    outfits = compatibility.suggest_outfits([to_compat(d) for d in docs], prof, n=n, rules=rules)
+    dress_rules = dress.load_rules()
+    outfits = ranked_suggestions(request, user, docs, prof, rules, dress_rules, n)
+    outfits = labelled_outfits(outfits, docs, prof, rules, dress_rules)
     return [outfit_out(o, by_id, explain=True, rules=rules) for o in outfits]
 
 
@@ -151,27 +182,42 @@ def complete(body: Complete, request: Request, user=Depends(gendered_user)):
     no_clash(chosen, rules)
     docs, by_id = wardrobe(request, user)
     candidates = [to_compat(d) for d in docs if str(d["_id"]) not in body.item_ids]
-    ranked = compatibility.complete_outfit(
-        chosen, candidates, user_profile(user, docs, request), k=body.k, rules=rules)
-    return [{**outfit_out({**r, "items": chosen + [r["item"]]}, by_id, explain=True, rules=rules),
-             "item": item_out(by_id[r["item"]["id"]])} for r in ranked]
+    prof = user_profile(user, docs, request)
+    ranked = compatibility.complete_outfit(chosen, candidates, prof, k=body.k, rules=rules)
+    labelled = labelled_outfits([{**r, "items": chosen + [r["item"]]} for r in ranked], docs, prof, rules)
+    return [{**outfit_out(o, by_id, explain=True, rules=rules), "item": item_out(by_id[r["item"]["id"]])}
+            for o, r in zip(labelled, ranked)]
 
 
 @router.post("/buy-advice")
 def buy_advice(body: BuyAdvice, request: Request, user=Depends(gendered_user)):
     """A candidate from /analyze (optionally corrected) vs the wardrobe."""
     cand = own_item(request, user, body.candidate_id, collection="candidates")
-    if body.corrections:
-        changes = apply_update(cand, body.corrections)
+    changes = apply_update(cand, body.corrections) if body.corrections else {}
+    if body.price_tnd is not None:
+        changes["price_tnd"] = body.price_tnd      # the price on the tag; not given = unknown, kept as it was
+    if changes:
         # saved, so /tryon and the chat's last scan see the corrected item too
         request.app.state.db.candidates.update_one({"_id": cand["_id"]}, {"$set": changes})
         cand = {**cand, **changes}
     docs, by_id = wardrobe(request, user)
     by_id[str(cand["_id"])] = cand
     rules = rules_of(user)
-    advice = compatibility.buy_advice(
-        to_compat(cand), [to_compat(d) for d in docs], user_profile(user, docs, request), rules)
+    owned = [to_compat(d) for d in docs]
+    prof = user_profile(user, docs, request)
+    advice = compatibility.buy_advice(to_compat(cand), owned, prof, rules)
     log_event(request.app.state.db, "verdict", user["_id"], verdict=advice["verdict"])
+    # how far to trust it, and why (src/phase4/verdict.py): reads the advice, never changes it
+    assessed = verdict.assess(
+        advice, candidate_view(cand), owned, {**prof, "budget_tnd": user["profile"].get("budget_tnd")},
+        compatibility.wardrobe_insights(owned, prof, rules), rules)
+    s = rules.settings
+    request.app.state.db.candidates.update_one({"_id": cand["_id"]}, {"$set": {"last_advice": {
+        "verdict": advice["verdict"], "good_outfits": advice["good_outfits"],
+        "codes": assessed["codes"], "confidence": assessed["confidence"],
+        "thresholds": {"good_outfit": s["good_outfit"], "buy_min": int(s["buy_min_outfits"]),
+                       "think_min": int(s["think_min_outfits"])},
+        "price_tnd": cand.get("price_tnd"), "computed_at": datetime.now(timezone.utc)}}})
     # why this verdict: owned ids become short items the app can show with their photo
     why = explain_outfit.buy_explanation(advice, rules)
     explanation = {**why,
@@ -181,7 +227,9 @@ def buy_advice(body: BuyAdvice, request: Request, user=Depends(gendered_user)):
                    "twins": [{"item": short_item(by_id[t["id"]]), "similarity": t["similarity"]}
                              for t in why["twins"]]}
     return {"verdict": advice["verdict"], "good_outfits": advice["good_outfits"],
-            "reasons": advice["reasons"], "candidate": item_out(cand, kind="candidates"),
+            "reasons": advice["reasons"],
+            "confidence": assessed["confidence"], "codes": assessed["codes"],      # new in step 1
+            "candidate": item_out(cand, kind="candidates"),
             "best": [outfit_out(o, by_id, explain=True, rules=rules) for o in advice["best"]],
             "explanation": explanation}
 

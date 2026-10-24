@@ -23,7 +23,6 @@ Admin dashboard API (admins only: python -m app.make_admin <email>).
 
 import csv
 import re
-import shutil
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 from typing import Literal
@@ -35,10 +34,10 @@ from .. import ml  # noqa: F401  (puts src/ on the import path)
 import check_shop_source
 import compatibility
 
+from ..accounts import delete_account
 from ..db import object_id
 from ..events import EVENT_TYPES
 from ..listings import SELLERS, SOURCES_FILE, last_run, listing_out, load_sources, usable
-from .listings import delete_seller_listings
 from ..jobs import JobBusy
 from ..ml import colour_min_confidence
 from ..security import current_admin
@@ -148,14 +147,7 @@ def update_user(user_id: str, body: UserUpdate, request: Request, admin=Depends(
 
 @router.delete("/users/{user_id}", status_code=204)
 def delete_user(user_id: str, request: Request, admin=Depends(current_admin)):
-    user = other_user(request, admin, user_id)
-    db = request.app.state.db
-    for coll in ("items", "candidates", "chats", "events", "outfit_feedback"):
-        db[coll].delete_many({"user_id": user["_id"]})
-    delete_seller_listings(db, request.app.state.settings.storage_dir, user["_id"])
-    request.app.state.listing_index.invalidate()
-    db.users.delete_one({"_id": user["_id"]})
-    shutil.rmtree(request.app.state.settings.storage_dir / str(user["_id"]), ignore_errors=True)
+    delete_account(request, other_user(request, admin, user_id))        # app/accounts.py, shared with DELETE /me
 
 
 # ------------------------------------------------------------------ formula

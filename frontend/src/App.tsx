@@ -7,18 +7,19 @@ import { AuthProvider, useAuth } from './auth'
 import { I18nProvider } from './i18n'
 import { AuthPage } from './pages/AuthPage'
 import { LandingPage } from './pages/LandingPage'
-import { BuildPage } from './pages/BuildPage'
+import { DressPage } from './pages/DressPage'
+import { HomePage } from './pages/HomePage'
 import { ChatPage } from './pages/ChatPage'
-import { InsightsPage } from './pages/InsightsPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { ScanPage } from './pages/ScanPage'
 import { ListingPage, ShopPage } from './pages/ShopPage'
 import { SellPage } from './pages/SellPage'
 import { SimilarPage } from './pages/SimilarPage'
-import { TodayPage } from './pages/TodayPage'
 import { TryOnPage } from './pages/TryOnPage'
+import { WardrobeViewPage } from './pages/WardrobeViewPage'
 import { ItemPage, WardrobePage } from './pages/WardrobePage'
 import { AppShell, Wordmark } from './shell'
+import { ConsentAsk } from './ui/ConsentAsk'
 import { GenderAsk } from './ui/GenderChoice'
 import { ErrorNote } from './ui/states'
 import { ApiError } from './api/client'
@@ -35,6 +36,7 @@ function Gate({ children, admin = false }: { children: ReactNode; admin?: boolea
   }
   if (!user) return <Navigate to="/welcome" replace />
   if (user.needs_gender) return <GenderAsk />
+  if (!user.consent_at) return <ConsentAsk />     // an account from before the checkbox: asked once
   if (admin && user.role !== 'admin') return <Navigate to="/" replace />
   return <>{children}</>
 }
@@ -64,12 +66,18 @@ export default function App() {
             <Route path="/login" element={<GuestOnly><AuthPage mode="login" /></GuestOnly>} />
             <Route path="/signup" element={<GuestOnly><AuthPage mode="signup" /></GuestOnly>} />
             <Route element={<Gate><AppShell /></Gate>}>
-              <Route index element={<TodayPage />} />
+              {/* Home is the landing page after login (step H); Today and Build became one page, Dress, and the
+                  old addresses still work */}
+              <Route index element={<HomePage />} />
+              <Route path="home" element={<Navigate to="/" replace />} />
+              <Route path="today" element={<Navigate to="/dress" replace />} />
+              <Route path="build" element={<Navigate to="/dress/build" replace />} />
+              <Route path="dress" element={<DressPage mode="today" />} />
+              <Route path="dress/build" element={<DressPage mode="build" />} />
               <Route path="scan" element={<ScanPage />} />
               <Route path="wardrobe" element={<WardrobePage />} />
               <Route path="wardrobe/:id" element={<ItemPage />} />
-              <Route path="insights" element={<InsightsPage />} />
-              <Route path="build" element={<BuildPage />} />
+              <Route path="insights" element={<WardrobeViewPage />} />      {/* was the Insights page */}
               <Route path="tryon" element={<TryOnPage />} />
               <Route path="chat" element={<ChatPage />} />
               <Route path="similar" element={<SimilarPage />} />

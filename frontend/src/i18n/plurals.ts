@@ -16,6 +16,12 @@ export const PLURALS = {
     fr: { one: '{n} bonne tenue', other: '{n} bonnes tenues' },
     ar: { zero: 'لا لبسة جيدة', one: 'لبسة جيدة واحدة', two: 'لبستين جيدتين', few: '{n} لبسات جيدة', many: '{n} لبسة جيدة', other: '{n} لبسة جيدة' },
   },
+  // the words under the verdict's big number (step H2): the count itself is printed apart
+  goodOutfitsUnit: {
+    en: { one: 'good outfit', other: 'good outfits' },
+    fr: { one: 'bonne tenue', other: 'bonnes tenues' },
+    ar: { one: 'إطلالة جيدة', two: 'إطلالتان جيدتان', few: 'إطلالات جيدة', other: 'إطلالة جيدة' },
+  },
   similarPieces: {
     en: { one: '{n} very similar {c} piece', other: '{n} very similar {c} pieces' },
     fr: { one: '{n} pièce très proche ({c})', other: '{n} pièces très proches ({c})' },

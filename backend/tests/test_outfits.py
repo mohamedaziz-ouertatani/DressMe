@@ -15,9 +15,16 @@ def test_score_outfit(client):
     body = r.json()
     assert 0 <= body["score"] <= 100 and body["parts"]["structure"] == 1.0
     assert [i["category"] for i in body["items"]] == ["top", "bottom", "shoes"]
+    assert body["complete"] is True and body["missing"] is None
+    # step 6b: a top and a bottom (no shoes) is still a complete outfit; a bottom alone misses a top
+    assert client.post("/outfits/score", json={"item_ids": [w["top"]["id"], w["jeans"]["id"]]},
+                       headers=headers).json()["complete"] is True
+    assert client.post("/outfits/score", json={"item_ids": [w["jeans"]["id"]]},
+                       headers=headers).json()["missing"] == "top"
     # a top alone is not a wearable outfit
     alone = client.post("/outfits/score", json={"item_ids": [w["top"]["id"]]}, headers=headers).json()
     assert "missing a top or a bottom" in alone["reasons"]
+    assert alone["complete"] is False and alone["missing"] == "bottom"
 
 
 def test_outfit_feedback_is_private_and_replaceable(client):

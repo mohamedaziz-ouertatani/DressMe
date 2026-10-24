@@ -8,7 +8,7 @@ import sys
 import pytest
 from pymongo import MongoClient
 
-from app.config import SRC_DIRS
+from app.config import SRC_DIRS, Settings
 
 sys.path[:0] = [str(d) for d in SRC_DIRS]
 import build_chat_dataset as B  # noqa: E402
@@ -24,7 +24,7 @@ def has_arabic(text):
 
 @pytest.fixture(scope="module")
 def rows():
-    client = MongoClient()
+    client = MongoClient(Settings().mongo_url)   # MONGO_URL, like the other tests (Docker: mongo:27017)
     try:
         yield B.build_split("val", 250, client["dressme_test_chatsft"])
     finally:
