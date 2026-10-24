@@ -1,11 +1,11 @@
 import { ThumbsDown, ThumbsUp } from 'lucide-react'
 import type { Outfit, OutfitRating } from '../api/types'
 import { useI18n } from '../i18n'
-import { CATEGORY_LABELS, COLOUR_HEX, COLOUR_LABELS, SUB_LABELS, secondLine, vocab } from '../i18n/vocab'
+import { CATEGORY_LABELS, COLOUR_HEX, COLOUR_LABELS, SUB_LABELS, vocab } from '../i18n/vocab'
 import { Swatch } from './controls'
 import { ItemPhoto } from './ItemPhoto'
 import { Stamp } from './Stamp'
-import { SecondLine, Serial, Ticket } from './ticket'
+import { Serial, Ticket } from './ticket'
 import { IncompleteNote } from './IncompleteNote'
 import { ExplainLines, PointsBar, ScoreDetails } from './ScoreWhy'
 
@@ -42,7 +42,6 @@ export function OutfitStrip({ outfit, land = false, compact = false, photoOf, on
                 <p className="text-[16px] font-semibold leading-tight text-carbon">
                   {vocab(SUB_LABELS, it.sub_category, lang) || vocab(CATEGORY_LABELS, it.category, lang)}
                 </p>
-                <SecondLine>{secondLine(SUB_LABELS, it.sub_category, lang) || secondLine(CATEGORY_LABELS, it.category, lang)}</SecondLine>
                 <p className="mt-1.5 flex items-center gap-1.5 text-[13px] text-carbon-soft">
                   {it.colour && <Swatch hex={COLOUR_HEX[it.colour]} size={11} />}
                   {it.colour ? vocab(COLOUR_LABELS, it.colour, lang) : ''}

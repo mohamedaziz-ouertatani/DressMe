@@ -24,13 +24,3 @@ export function Serial({ id, prefix = '№', className = '' }: { id: string; pre
     </span>
   )
 }
-
-/** The second print line in the other script (Arabic under Latin, Latin under Arabic). */
-export function SecondLine({ children }: { children: ReactNode }) {
-  if (!children) return null
-  return (
-    <span className="block text-[12px] leading-tight text-ink-soft" lang="mul">
-      {children}
-    </span>
-  )
-}

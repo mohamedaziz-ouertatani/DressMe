@@ -148,8 +148,3 @@ const INDEX: Record<Language, 0 | 1 | 2> = { en: 0, fr: 1, ar: 2 }
 export function vocab(table: Labels, value: string, lang: Language): string {
   return table[value]?.[INDEX[lang]] ?? value
 }
-
-/** The second print line of a ticket: Arabic under Latin text, English under Arabic. */
-export function secondLine(table: Labels, value: string, lang: Language): string {
-  return table[value]?.[lang === 'ar' ? 0 : 2] ?? ''
-}

@@ -4,7 +4,7 @@ import { ArrowRight, Lightbulb, ScanLine, ShoppingBag, Tag } from 'lucide-react'
 import { api } from '../api/client'
 import type { BuyAdvice, Decision, Item, ItemPatch } from '../api/types'
 import { useI18n } from '../i18n'
-import { CATEGORY_LABELS, SUB_LABELS, secondLine, vocab } from '../i18n/vocab'
+import { CATEGORY_LABELS, SUB_LABELS, vocab } from '../i18n/vocab'
 import { Page } from '../shell'
 import { Button, TextField } from '../ui/controls'
 import { ExplainPanel } from '../ui/ExplainPanel'
@@ -13,7 +13,7 @@ import { ItemPhoto } from '../ui/ItemPhoto'
 import { VerdictCard } from '../ui/VerdictCard'
 import { PhotoPicker } from '../ui/PhotoPicker'
 import { ErrorNote, Skeleton } from '../ui/states'
-import { SecondLine, Serial, Ticket } from '../ui/ticket'
+import { Serial, Ticket } from '../ui/ticket'
 
 const CHECK_FIELDS = ['category', 'sub_category', 'colour', 'pattern'] as const
 
@@ -120,7 +120,6 @@ export function ScanPage() {
                 {candidate ? (
                   <>
                     <p className="text-[20px] font-semibold leading-tight text-carbon">{name(candidate)}</p>
-                    <SecondLine>{secondLine(SUB_LABELS, candidate.sub_category, lang) || secondLine(CATEGORY_LABELS, candidate.category, lang)}</SecondLine>
                   </>
                 ) : busy === 'analyse' ? (
                   <p className="text-[15px] text-carbon-soft" aria-live="polite">{t('analysing')}</p>

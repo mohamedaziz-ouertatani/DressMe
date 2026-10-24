@@ -6,7 +6,7 @@ import type { Category, Item, ItemPatch } from '../api/types'
 import { useAuth } from '../auth'
 import { useI18n } from '../i18n'
 import { plural } from '../i18n/plurals'
-import { CATEGORY_LABELS, SUB_LABELS, secondLine, vocab } from '../i18n/vocab'
+import { CATEGORY_LABELS, SUB_LABELS, vocab } from '../i18n/vocab'
 import { Page } from '../shell'
 import { Button, Chip } from '../ui/controls'
 import { ExplainPanel } from '../ui/ExplainPanel'
@@ -14,7 +14,7 @@ import { FieldRow } from '../ui/Field'
 import { ItemPhoto } from '../ui/ItemPhoto'
 import { PhotoPicker } from '../ui/PhotoPicker'
 import { Empty, ErrorNote, Skeleton } from '../ui/states'
-import { SecondLine, Serial, Ticket } from '../ui/ticket'
+import { Serial, Ticket } from '../ui/ticket'
 import { useLoad } from '../useLoad'
 
 const ORDER: Category[] = ['top', 'bottom', 'dress', 'outerwear', 'shoes', 'bag', 'accessory', 'traditional', 'swimwear']
@@ -96,7 +96,6 @@ export function WardrobePage() {
                       <p className={`truncate pb-0.5 text-[15px] font-semibold text-carbon ${guessed ? 'field-guess' : 'field-sure'} inline-block max-w-full`}>
                         {vocab(SUB_LABELS, it.sub_category, lang) || vocab(CATEGORY_LABELS, it.category, lang)}
                       </p>
-                      <SecondLine>{secondLine(SUB_LABELS, it.sub_category, lang) || secondLine(CATEGORY_LABELS, it.category, lang)}</SecondLine>
                       <Serial id={it.id} className="mt-1 block" />
                     </div>
                   </Link>
@@ -166,9 +165,6 @@ export function ItemPage() {
             <Ticket stub={<Serial id={it.id} className="[writing-mode:vertical-rl]" />}>
               <div className="flex items-end gap-4 p-3">
                 <ItemPhoto src={it.image_url} alt={vocab(SUB_LABELS, it.sub_category, lang)} size={160} zoomable />
-                <div className="pb-1">
-                  <SecondLine>{secondLine(SUB_LABELS, it.sub_category, lang) || secondLine(CATEGORY_LABELS, it.category, lang)}</SecondLine>
-                </div>
               </div>
             </Ticket>
             {it.promoted_from && (
