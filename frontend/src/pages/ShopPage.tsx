@@ -212,7 +212,7 @@ export function ListingPage() {
             {advice && candidate && (
               <div className="mt-6">
                 {/* no onDecided: the card shows what was recorded and the user keeps browsing */}
-                <VerdictCard advice={advice} candidatePhoto={l.image_url}
+                <VerdictCard advice={advice} candidatePhoto={l.image_url} price={l.price_tnd}
                   restart={{ label: t('checkAgain'), onClick: () => setState({ id }) }} />
               </div>
             )}

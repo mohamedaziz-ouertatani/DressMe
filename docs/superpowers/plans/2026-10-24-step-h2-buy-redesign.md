@@ -72,6 +72,14 @@ f) **`VerdictCard`** is used by `ScanPage` (with `onDecided`, try-on) and `ShopP
 
 Undo: none exists, so the saved state shows no Undo (as the brief says).
 
+**Answers (2026-10-24):**
+1. The big number is `good_outfits` ("good outfits · price"), and the bars show the verdict path from
+   `explanation.path`: good outfits, what Buy needs (`buy_min`), what Think needs (`think_min`), on one scale. No
+   invented score.
+2. Buy? keeps the wavy ground, like Dress. Only the serial, stamps and stubs leave it.
+3. Scan shows the saved bar after a tap (check disc, "Saved", one line) with "Open the item" (bought) or "Scan
+   another" (left), instead of jumping away. Shops shows the same bar.
+
 ## Work (after the answers)
 
 1. `SecondLine` / `secondLine` print nothing in the current-language-only rule: removed from the shared component and
