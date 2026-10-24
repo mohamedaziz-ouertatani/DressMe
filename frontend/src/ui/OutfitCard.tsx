@@ -21,16 +21,22 @@ const DOTS = { high: 5, medium: 3, low: 1 } as const
 const SMALL = new Set(['shoes', 'bag', 'accessory'])
 
 /** Main pieces large (by how many there are, so the row always fits a 320 px phone), accessories small.
- *  Shared with Home's "Today's pick". */
-export function Collage({ items }: { items: OutfitItem[] }) {
+ *  Shared with Home's "Today's pick" and the verdict. `photoOf` gives a photo the outfit answer cannot point to
+ *  (the scanned piece is not in the wardrobe yet). `onSurface`: the card is white, so the pieces sit on the grey
+ *  `photo` tile instead of a white one. */
+export function Collage({ items, photoOf, onSurface = false }: {
+  items: OutfitItem[]
+  photoOf?: (id: string) => string | undefined
+  onSurface?: boolean
+}) {
   const { lang } = useI18n()
   const main = items.filter((i) => !SMALL.has(i.category))
   const small = items.filter((i) => SMALL.has(i.category))
   const size = main.length <= 1 ? 160 : main.length === 2 ? 120 : 88
   const name = (it: OutfitItem) => vocab(SUB_LABELS, it.sub_category, lang) || vocab(CATEGORY_LABELS, it.category, lang)
   const tile = (it: OutfitItem, px: number) => (
-    <div key={it.id} className="overflow-hidden rounded-tile bg-tile">
-      <ItemPhoto src={it.image_url} alt={name(it)} size={px} />
+    <div key={it.id} className={`overflow-hidden rounded-tile ${onSurface ? 'bg-photo' : 'bg-tile'}`}>
+      <ItemPhoto src={photoOf?.(it.id) ?? it.image_url} alt={name(it)} size={px} blend={onSurface} />
     </div>
   )
   return (
@@ -41,8 +47,8 @@ export function Collage({ items }: { items: OutfitItem[] }) {
   )
 }
 
-/** Five dots and a word: high ●●●●●, medium ●●●○○, low ●○○○○. */
-function ConfidenceDots({ level }: { level: 'high' | 'medium' | 'low' }) {
+/** Five dots and a word: high ●●●●●, medium ●●●○○, low ●○○○○. Shared with the verdict. */
+export function ConfidenceDots({ level }: { level: 'high' | 'medium' | 'low' }) {
   const { t } = useI18n()
   const word = t(`confidence_${level}`)
   return (
@@ -57,17 +63,20 @@ function ConfidenceDots({ level }: { level: 'high' | 'medium' | 'low' }) {
   )
 }
 
-export function OutfitCard({ outfit, index, source, occasion, yourPick = false }: {
+export function OutfitCard({ outfit, index, source, occasion, yourPick = false, photoOf }: {
   outfit: Outfit
   index: number                          // 0, 1, 2: the card is titled "Outfit n" when it has no label
-  source: 'card' | 'build'
+  source: 'card' | 'build' | 'verdict'   // verdict (step H2): a best outfit with a piece you do not own yet, so
+                                         // no "Wear this" and no details sheet; the score shows instead
   occasion?: string
   yourPick?: boolean                     // Build: the pieces you chose already make this outfit
+  photoOf?: (id: string) => string | undefined
 }) {
   const { t, lang } = useI18n()
   const [open, setOpen] = useState(false)
   const close = useCallback(() => setOpen(false), [])
-  const tone = outfit.label ? TONE[outfit.label] : 'bg-label-neutral'
+  const verdict = source === 'verdict'
+  const tone = outfit.label ? TONE[outfit.label] : verdict ? 'bg-surface' : 'bg-label-neutral'
   const title = outfit.label ? t(`labelChip_${outfit.label}`) : t('dressOutfitN', { n: index + 1 })
 
   // two reasons at most: the best positive one, and that it fits today
@@ -81,15 +90,20 @@ export function OutfitCard({ outfit, index, source, occasion, yourPick = false }
       <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <h3 className="text-[22px] font-bold leading-tight text-carbon">{title}</h3>
         {outfit.confidence && <ConfidenceDots level={outfit.confidence} />}
+        {verdict && (
+          <span className="text-[15px] font-semibold text-carbon">
+            {t('score')} <span className="tabular" dir="ltr">{Math.round(outfit.score)} / 100</span>
+          </span>
+        )}
       </header>
-      <Collage items={outfit.items} />
+      <Collage items={outfit.items} photoOf={photoOf} onSurface={verdict && !outfit.label} />
       <IncompleteNote outfit={outfit} className="mt-3" />
       {shown.length > 0 && (
         <ul className="mt-4 space-y-1 text-[14px] text-carbon">
           {shown.map((l) => <li key={l.code}>{explainLine(l, lang)}</li>)}
         </ul>
       )}
-      <div className="mt-4 flex items-center justify-between gap-3">
+      {source !== 'verdict' && <div className="mt-4 flex items-center justify-between gap-3">
         <WearButton key={outfit.items.map((i) => i.id).join('|')} outfit={outfit} source={source} occasion={occasion} pill />
         <button
           type="button"
@@ -100,8 +114,8 @@ export function OutfitCard({ outfit, index, source, occasion, yourPick = false }
         >
           <span aria-hidden>✦</span>
         </button>
-      </div>
-      {open && <DetailsSheet title={t('dressDetails')} onClose={close}><OutfitDetails outfit={outfit} /></DetailsSheet>}
+      </div>}
+      {open &&<DetailsSheet title={t('dressDetails')} onClose={close}><OutfitDetails outfit={outfit} /></DetailsSheet>}
     </article>
   )
 }

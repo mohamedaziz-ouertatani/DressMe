@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { House, LayoutGrid, LogOut, MessageCircle, ScanLine, Shirt, ShieldCheck, ShoppingBag, UserRound } from 'lucide-react'
@@ -6,6 +6,7 @@ import { useAuth } from './auth'
 import { useI18n } from './i18n'
 import type { StringKey } from './i18n/strings'
 import { LookContext } from './ui/look'
+import { TabBarContext } from './ui/tabBar'
 
 // The desktop rail lists every item, Home first. The phone tab bar (the prototype's floating pill) has five:
 // Home, Dress, Buy?, Wardrobe, Assistant; Shops is reached from Home and the rail.
@@ -42,19 +43,20 @@ function todaySerial(): string {
 
 /** Page frame: a header ticket (title on the face; date and serial on the
  *  perforated stub, like a validated fare), then the content. */
-export function Page({ title, children, aside, serial, look = 'ticket', kicker }: {
+export function Page({ title, children, aside, serial, look = 'ticket', kicker, header = true }: {
   title: string
   children: ReactNode
   aside?: ReactNode
   serial?: string
   look?: 'ticket' | 'soft'         // soft = the team prototype's look (step H): kicker + display headline, flat cards
   kicker?: ReactNode               // soft look only: the short line above the headline
+  header?: boolean                 // soft look only: false = the view draws its own heading (the verdict, step H2)
 }) {
   if (look === 'soft') {
     return (
       <LookContext.Provider value="soft">
         <div className="look-soft page-enter mx-auto w-full max-w-[1080px] px-5 pb-6 pt-4 lg:px-10 lg:pb-16 lg:pt-10">
-          <PageHeader title={title} kicker={kicker} />
+          {header && <PageHeader title={title} kicker={kicker} />}
           {aside ? (
             <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
               <div className="min-w-0">{children}</div>
@@ -131,6 +133,7 @@ export function AppShell() {
   const { t } = useI18n()
   const { user, logout } = useAuth()
   const { root, bar } = useTabBarHeight()
+  const [barHidden, setBarHidden] = useState(false)    // a view with its own bottom bar hides the tab bar (ui/tabBar.ts)
   const { pathname } = useLocation()
   const home = pathname === '/'                         // Home has its own header (greeting and avatar)
   const current = (to: string) => (to === '/' ? pathname === '/' : pathname === to || pathname.startsWith(`${to}/`))
@@ -203,7 +206,9 @@ export function AppShell() {
         {/* below lg the floating tab bar covers the bottom: pad by the room it takes (its height, its offset and the
             safe-area inset) plus a little air, so the last element scrolls fully clear */}
         <main id="main-content" tabIndex={-1} className="pb-[calc(var(--tabbar-h,88px)+1rem)] lg:pb-0">
-          <Outlet />
+          <TabBarContext.Provider value={setBarHidden}>
+            <Outlet />
+          </TabBarContext.Provider>
         </main>
       </div>
 
@@ -212,7 +217,7 @@ export function AppShell() {
       <nav
         ref={bar}
         aria-label="Main"
-        className="look-soft fixed inset-x-5 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] z-20 mx-auto flex h-tabbar max-w-[440px] items-center justify-between rounded-pill bg-surface p-2 shadow-[var(--shadow-float)] lg:hidden"
+        className={`look-soft fixed inset-x-5 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] z-20 mx-auto ${barHidden ? 'hidden' : 'flex'} h-tabbar max-w-[440px] items-center justify-between rounded-pill bg-surface p-2 shadow-[var(--shadow-float)] lg:hidden`}
       >
         {PHONE_NAV.map(({ to, key, short, icon: Icon }) => (
           <NavLink
