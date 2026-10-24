@@ -10,6 +10,7 @@ import { plural } from '../i18n/plurals'
 import { CATEGORY_LABELS, SUB_LABELS, vocab } from '../i18n/vocab'
 import { CONDITION_KEY, savedPlace, startChip } from '../dressPrefs'
 import { PageHeader } from '../shell'
+import { IncompleteNote } from '../ui/IncompleteNote'
 import { ItemPhoto } from '../ui/ItemPhoto'
 import { LookContext } from '../ui/look'
 import { Collage } from '../ui/OutfitCard'
@@ -96,6 +97,7 @@ function TodayPick({ today }: { today: Loaded<TodayOutfits> }) {
         {meta && <span className="text-[12px] font-medium leading-4 text-carbon-soft">{meta}</span>}
       </span>
       <Collage items={pick.items} />
+      <IncompleteNote outfit={pick} className="self-start" />
       <span className="flex items-end justify-between gap-3">
         <span className="flex min-w-0 flex-col gap-1">
           <span className="font-display text-[24px] font-semibold leading-7">{t('homePickTitle')}</span>
