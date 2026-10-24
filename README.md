@@ -17,6 +17,8 @@ ESPRIT · Advanced Data Science project · team of 6: Mohamed Khalil, Asma Driss
 - Models: EfficientNet (classification), FashionCLIP (embeddings and similarity), Gemini API or a local Qwen3 model served by Ollama (chat assistant).
 - Outfit compatibility: a custom weighted formula.
 
+**Just want the app running on your PC?** Follow [`SETUP.md`](SETUP.md): a step-by-step guide from a new Windows PC to the running app (Docker + Ollama).
+
 ## What this repository contains (Phase 3)
 
 A reproducible pipeline that turns three public fashion datasets into **one dataset with a shared label schema** and leak-free train / val / test splits. It also builds the Phase 3 report.
@@ -264,7 +266,7 @@ The same environment on every PC: `docker compose up` starts MongoDB, the backen
 - **Why the CPU:** the app runs the trained models on one photo at a time, which the CPU does in about a second, and PyTorch's CPU build is ~0.2 GB instead of ~3-4 GB. Training still needs the GPU setup above.
 - **Versions:** `docker/backend.Dockerfile` (Python, PyTorch) and `docker/constraints.txt` (every other package; `scikit-learn==1.6.1` because the colour model was saved with it). To change a version, edit those files and rebuild.
 
-Once per PC:
+Once per PC (the short version; [`SETUP.md`](SETUP.md) has every step with checks and troubleshooting):
 
 1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and [Ollama](https://ollama.com).
 2. Clone this repository and put the files from a teammate (never in git) in the same folders: `models/checkpoints/`, `data/processed/` (with `embeddings/`), `models/llm/dressme-chat-v4/` (the chat model) and, optionally, the pictures in `data/raw/`.
@@ -329,6 +331,7 @@ The datasets are used for non-commercial academic work only and are never redist
 
 ## More context
 
+- [`SETUP.md`](SETUP.md): setting up a PC from zero to the running app.
 - [`PRODUCT.md`](PRODUCT.md): users, purpose, constraints and principles of the app.
 - [`DESIGN.md`](DESIGN.md): the visual system (colours, type, components and their rules).
 - [`reports/`](reports/): every evaluation report (EDA, colours, embeddings, classifier, compatibility, explanations, chat models) and the Phase 4 and XAI PDF reports.
