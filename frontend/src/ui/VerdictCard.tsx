@@ -106,7 +106,7 @@ function DecisionBar({ candidateId, restart, again }: {
           ) : (
             <>
               {state.kind === 'failed' && (
-                <div className="mb-3"><ErrorNote error={state.error} onRetry={() => answer(state.answer)} /></div>
+                <div className="mb-3"><ErrorNote error={state.error} message={t('buyDecisionFailed')} onRetry={() => answer(state.answer)} /></div>
               )}
               <div className="flex gap-3">
                 <Button busy={sending === 'bought'} disabled={sending !== ''} onClick={() => answer('bought')} className="min-w-0 flex-[1.4]">

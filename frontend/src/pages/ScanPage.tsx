@@ -137,7 +137,10 @@ export function ScanPage() {
 
         <CameraFrame preview={preview} reading={busy === 'analyse'} />
 
-        {error ? <ErrorNote error={error} onRetry={candidate ? askVerdict : file ? () => analyse(file) : undefined} /> : null}
+        {error ? (
+          <ErrorNote error={error} message={t(candidate ? 'buyVerdictFailed' : 'buyAnalyseFailed')}
+            onRetry={candidate ? askVerdict : file ? () => analyse(file) : undefined} />
+        ) : null}
 
         {busy === 'analyse' && (
           <div role="status" className="flex flex-col gap-3 rounded-card bg-surface p-card">

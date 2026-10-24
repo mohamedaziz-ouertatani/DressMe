@@ -49,7 +49,7 @@ export function ErrorNote({ error, onRetry, message }: { error: unknown; onRetry
       <div className="min-w-0 flex-1 text-[14px] text-carbon">
         <p>{text}</p>
         {onRetry && (
-          <Button variant="quiet" className="mt-1 min-h-8 px-0" onClick={onRetry}>
+          <Button variant="quiet" className="mt-1 min-h-11 px-0" onClick={onRetry}>
             {t('retry')}
           </Button>
         )}
