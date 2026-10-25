@@ -40,7 +40,7 @@ Built for the friperie reality: a single photo of an unlabelled second-hand item
 
 ## Capabilities and Constraints
 
-- Backend endpoints: register / login (JWT), profile (name, `min_coverage` 1-5 modesty level, language), wardrobe CRUD with photo upload and per-field corrections, `/analyze` (photo not saved, candidate kept 24 h), `/buy-advice` (buy / think / skip, good outfits count, reasons, best outfits), `/outfits/score|suggest|complete`, `/similar` (wardrobe + dataset catalog), `/chat` (Gemini with tools; 503 when no API key is configured).
+- Backend endpoints: register / login (JWT), profile (name, `min_coverage` 1-5 modesty level, language), wardrobe CRUD with photo upload and per-field corrections, `/analyze` (photo not saved, candidate kept 24 h), `/buy-advice` (buy / think / skip, good outfits count, reasons, best outfits), `/outfits/score|suggest|complete`, `/similar` (wardrobe + dataset catalog).
 - Every model answer carries a confidence. Colour on phone photos is often below the 0.7 cut and arrives empty with a guess in `predicted`: confirming colour must be quick.
 - Schema vocabularies are fixed: 9 categories (top, bottom, dress, outerwear, shoes, bag, accessory, traditional, swimwear), sub_categories from `mappings/sub_category_vocabulary.csv`, 5 patterns, 21 palette colours, seasons (summer, winter, mid-season), occasions (casual, formal, sport, wedding, eid, work), coverage 1-5.
 - Languages: English by default; French and Arabic available; Arabic requires a right-to-left layout.
