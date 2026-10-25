@@ -1,0 +1,7 @@
+name,value,note
+text_cut,0.25,"REVIEW: start value until src/phase4/calibrate_search.py has run. A search by WORDS counts a piece as a close match from this cosine similarity (words are compared with pictures, so the numbers are low)."
+photo_cut,0.8,"REVIEW: start value until src/phase4/calibrate_search.py has run. A search by PHOTO counts a piece as a close match from this cosine similarity (a picture is compared with pictures, so the numbers are high)."
+target_precision,0.9,"REVIEW: how often the best result shown as close must be right when the cut is chosen on the validation split (calibrate_search.py picks the lowest cut that reaches it)."
+wardrobe_size,30,"REVIEW: pieces in each fake wardrobe of the calibration (a typical wardrobe in our survey is small; 30 is the start value)."
+default_limit,8,"REVIEW: results returned when the request gives no limit (the request may ask for 1 to 20)."
+closest_anyway,3,"REVIEW: when nothing is close, how many of the nearest pieces the app still shows, muted, under 'Closest anyway'."
