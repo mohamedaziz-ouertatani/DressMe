@@ -71,3 +71,23 @@ removed or retyped.
 - Drop the `chats` collection in `dressme` (2 documents, backed up) and in `dressme_test` if it exists; admin stats loaded by hand with an old `chat` event in `events`.
 - `git show pre-chat-removal:backend/app/chat_engine.py` still works.
 - Fast-forward the branch into local `main`.
+
+## As built
+
+| Commit | What |
+|---|---|
+| plan | this file |
+| `backend:` | the chat code, `resale.py`, two mappings, the wiring, **and the 109 chat tests + `test_trace_stats`** (one commit: the suite is red without them) |
+| `frontend:` | `ChatPage` and its API / types / 40 i18n keys out, `AssistantPage` in, `/chat` redirects |
+| `settings and Docker:` | `.env.example`, compose, `setup.ps1`, `check_demo.ps1`, 11 constraint pins, two comments |
+| `training scripts, chat reports and docs:` | 15 files deleted, 8 docs edited |
+| `docs for the step` | `manual-checks/step-3a.md`, `docs/learn/step-3a.md`, this section |
+
+Decisions taken inside the brief's room (listed in the final report): `check_demo.ps1` lost its Ollama check;
+`requirements-llm.txt` kept; the two chat figures and the three report builders kept; `extra_hosts` removed (only Ollama
+used it); `days` of `GET /admin/xai` kept as an unused parameter (TODO(step 3g)); two tests the brief did not list were
+edited (`test_promote_decisions.py` asserted a `chat` total, `test_outfits.py` had "chat" in a test name).
+
+Results: 302 collected (412 - 110), 299 passed, 3 skipped before and after the rebuild; goldens identical to the tag;
+`npm run lint` 0 warnings, `npm run build` passes; routes 70 -> 67 (only the 3 chat ones); `chats` dropped in `dressme`
+(2 documents) and absent in `dressme_test`.

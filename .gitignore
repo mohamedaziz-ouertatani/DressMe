@@ -18,7 +18,7 @@ __pycache__/
 venv/
 .ipynb_checkpoints/
 
-# Env / secrets (e.g. Gemini API key)
+# Env / secrets
 .env
 
 # Node / frontend
