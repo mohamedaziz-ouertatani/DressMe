@@ -1,15 +1,13 @@
 # Read-only check that the demo setup is up. Run it before the demo:
 #     powershell -ExecutionPolicy Bypass -File scripts\check_demo.ps1
 # It checks: the three containers (mongo, backend, frontend) are running and healthy,
-# the backend answers /health, the frontend page answers, and Ollama answers (only a
-# warning: the chat needs it, the rest of the app does not). It changes nothing.
+# the backend answers /health and the frontend page answers. It changes nothing.
 # Exit code: 0 = all required checks passed, 1 = at least one failed.
 
 param(
     [string]$Project = "dressme",           # docker compose project (the folder name)
     [string]$Backend = "http://localhost:8000",
-    [string]$Frontend = "http://localhost:5173",
-    [string]$Ollama = "http://127.0.0.1:11434"
+    [string]$Frontend = "http://localhost:5173"
 )
 
 $results = New-Object System.Collections.ArrayList
@@ -59,10 +57,6 @@ Add-Result $(if ($r.Ok) { "PASS" } else { "FAIL" }) "backend /health" "$Backend/
 
 $r = Test-Http $Frontend $null
 Add-Result $(if ($r.Ok) { "PASS" } else { "FAIL" }) "frontend page" "${Frontend}: $($r.Detail)"
-
-# Ollama is the chat model's server: its absence only turns the chat off
-$r = Test-Http $Ollama $null
-Add-Result $(if ($r.Ok) { "PASS" } else { "WARN" }) "Ollama (chat model)" "${Ollama}: $($r.Detail)$(if (-not $r.Ok) { ' - the chat will not work; start Ollama (tray icon)' })"
 
 # --- 3. summary ----------------------------------------------------------------------------
 Write-Host ""

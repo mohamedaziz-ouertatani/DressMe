@@ -1,7 +1,7 @@
 # DressMe with one command: MongoDB + backend + frontend (README "Run with Docker").
 # A DEVELOPMENT setup (live code, dev server), not for putting the app on the internet.
 # The images hold the environment only; this folder is mounted, so code, data/, models/
-# and backend/.env come from your PC. Ollama (the chat model) runs on your PC, not here.
+# and backend/.env come from your PC.
 # The backend runs the models on the CPU (small image, enough for the app). To use an
 # NVIDIA GPU instead: docker compose -f docker-compose.yml -f docker-compose.gpu.yml up
 name: dressme
@@ -26,10 +26,8 @@ services:
     environment:
       # these win over backend/.env, so the same .env works with and without Docker
       MONGO_URL: mongodb://mongo:27017
-      OLLAMA_URL: http://host.docker.internal:11434
       HF_HOME: /cache/huggingface
       U2NET_HOME: /cache/u2net
-    extra_hosts: ["host.docker.internal:host-gateway"]
     ports: ["8000:8000"]
     depends_on:
       mongo: {condition: service_healthy}
