@@ -26,8 +26,9 @@ function failureKey(error: unknown, via: Via): StringKey {
 
 /** Search the user's own pieces by words or by a photo (POST /search, step 3b). A photo search saves nothing.
  *  The box shows its own results under itself; `onActive(true)` tells the page a search is on screen (so it can hide
- *  what the results replace), `onActive(false)` that it was cleared. No numbers are shown: only "Close match",
- *  and an honest "Nothing close" followed by the nearest few, faded. */
+ *  what the results replace), `onActive(false)` that it was cleared (the Clear button, or the box emptied by hand).
+ *  No numbers are shown. Only the close pieces are listed, each marked "Close match"; when none is close it says
+ *  "No sure match" and lists the nearest few, faded, under "Closest pieces in your wardrobe:". */
 export function SearchBox({ onActive }: { onActive?: (active: boolean) => void }) {
   const { t } = useI18n()
   const inputId = useId()
@@ -43,6 +44,7 @@ export function SearchBox({ onActive }: { onActive?: (active: boolean) => void }
     const mine = ++latest.current
     const via: Via = 'photo' in input ? 'photo' : 'text'
     setPreview('photo' in input ? URL.createObjectURL(input.photo) : null)
+    if ('photo' in input) setText('')                           // the results belong to the photo, not to words left in the box
     setState({ phase: 'loading' })
     onActive?.(true)
     try {
@@ -87,7 +89,10 @@ export function SearchBox({ onActive }: { onActive?: (active: boolean) => void }
             type="text"
             name="q"
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => {
+              setText(e.target.value)
+              if (e.target.value === '' && state.phase !== 'idle') clear()   // emptying the box ends the search
+            }}
             maxLength={120}
             autoComplete="off"
             enterKeyHint="search"
@@ -107,6 +112,12 @@ export function SearchBox({ onActive }: { onActive?: (active: boolean) => void }
       </form>
 
       <div aria-live="polite" className="mt-4">
+        {state.phase !== 'idle' && (
+          <div className="mb-3 flex items-center justify-between gap-3">
+            {preview ? <img src={preview} alt={t('searchPhotoAlt')} className="size-14 rounded-photo object-cover" /> : <span />}
+            <Button variant="quiet" onClick={clear}>{t('searchClear')}</Button>
+          </div>
+        )}
         {state.phase === 'loading' && (
           <>
             <p role="status" className="mb-3 text-[15px] text-carbon-soft">{t('searchLoading')}</p>
@@ -118,13 +129,10 @@ export function SearchBox({ onActive }: { onActive?: (active: boolean) => void }
         )}
         {state.phase === 'done' && (
           <>
-            <div className="mb-3 flex items-center justify-between gap-3">
-              {preview ? <img src={preview} alt={t('searchPhotoAlt')} className="size-14 rounded-photo object-cover" /> : <span />}
-              <Button variant="quiet" onClick={clear}>{t('searchClear')}</Button>
-            </div>
+            {/* the server also sends the next nearest pieces; they are listed only when none is close */}
             {state.data.nothing_close ? (
               <>
-                <Empty icon={SearchX} title={t('searchNothingTitle')} body={t('searchNothingBody')} />
+                <Empty icon={SearchX} title={t('searchNoSure')} body={t('searchNothingBody')} />
                 {state.data.results.length > 0 && (
                   <>
                     <h2 className="mb-3 mt-6 text-[15px] font-semibold text-carbon-soft">{t('searchClosest')}</h2>
@@ -136,16 +144,15 @@ export function SearchBox({ onActive }: { onActive?: (active: boolean) => void }
               </>
             ) : (
               <ul className={GRID}>
-                {state.data.results.map((r) => (
+                {state.data.results.filter((r) => r.close).map((r) => (
                   <li key={r.item.id}>
                     <ItemCard
                       item={r.item}
-                      muted={!r.close}
-                      badge={r.close && (
+                      badge={
                         <span className="inline-flex items-center gap-1 rounded-pill bg-buy-soft px-2 py-0.5 text-[12px] font-semibold text-buy">
                           <Check className="size-3.5" strokeWidth={2.25} aria-hidden /> {t('searchClose')}
                         </span>
-                      )}
+                      }
                     />
                   </li>
                 ))}
