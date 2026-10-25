@@ -19,7 +19,7 @@ from .config import Settings
 from .db import connect
 from .jobs import JobRunner
 from .listings import ListingIndex, backfill_gender
-from .routers import (admin, admin_xai, auth, decisions, dress, explain, insights, items, listings, outfits,
+from .routers import (admin, admin_xai, auth, decisions, dress, explain, insights, items, listings, outfits, search,
                       tryon, vocab, wear, weather)
 from .tryon import make_tryon
 from .weather import make_weather
@@ -51,7 +51,7 @@ def create_app(settings=None, analyzer=None, catalog=None, remover=None,
     app = FastAPI(title="DressMe API", version="0.1", lifespan=lifespan)
     app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins,
                        allow_methods=["*"], allow_headers=["*"])
-    for r in (auth.router, items.router, explain.router, outfits.router, dress.router, decisions.router, insights.router,
+    for r in (auth.router, items.router, explain.router, outfits.router, dress.router, decisions.router, insights.router, search.router,
               listings.router, tryon.router, weather.router, vocab.router, wear.router, admin.router, admin_xai.router):
         app.include_router(r)
 

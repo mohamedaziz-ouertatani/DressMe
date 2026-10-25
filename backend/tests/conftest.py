@@ -44,6 +44,14 @@ class FakeAnalyzer:
                 "colour": {"value": colour, "conf": 0.9},
                 "vector": fake_vector(sum(rgb))}
 
+    def embed_image(self, img):
+        """The vector analyze() gives the same picture, so a photo search finds the piece of the same colour."""
+        return fake_vector(sum(int(c) for c in np.asarray(img).reshape(-1, 3).mean(0).round()))
+
+    def embed_text(self, text):
+        """A fixed fake vector per text."""
+        return fake_vector(sum(map(ord, text)))
+
     def concept_vectors(self, gender=None):
         """{concept: vector} for the team's concepts (fixed fakes, like the real text vectors)."""
         import explain_similarity
