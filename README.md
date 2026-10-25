@@ -215,7 +215,7 @@ pip install -r backend/requirements.txt
 cp backend/.env.example backend/.env      # then set JWT_SECRET
 cd backend
 uvicorn app.main:create_app --factory --port 8000    # docs: http://localhost:8000/docs
-python -m pytest                                      # ~300 fast tests (fake models, dressme_test database)
+python -m pytest                                      # ~310 fast tests (fake models, dressme_test database)
 ```
 
 | endpoint | what it does |
@@ -226,6 +226,7 @@ python -m pytest                                      # ~300 fast tests (fake mo
 | `POST /outfits/score`, `GET /outfits/suggest`, `POST /outfits/complete` | outfits from your wardrobe |
 | `GET /insights` | wardrobe insights: good outfits, most versatile and unmatched pieces, what to add next, near twins, colour / category / pattern mix, fields left empty |
 | `GET /similar` | look-alikes in your wardrobe + dataset inspiration + H&M products to buy (`shop`) |
+| `POST /search` | search your own pieces by words (English, French, Arabic) or by a photo, with FashionCLIP; a photo search saves nothing |
 | `GET /listings`, `POST /listings/sell`, `GET /listings/mine` | clothes for sale now: Tunisian shops and friperie sellers (approved by an admin); see [`LISTINGS.md`](LISTINGS.md) |
 | `GET /items/{id}/explain`, `POST /outfits/explain` | why a piece got its labels (heatmaps, confidence) and why an outfit got its score (points, weakest piece) |
 | `GET /weather` | today's weather and the season to dress for (Open-Meteo) |

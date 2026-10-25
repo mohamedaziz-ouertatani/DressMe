@@ -51,3 +51,22 @@ only (its colours are real labels, so "right" is not a guess).
 `docker compose up -d --build backend`, wait about a minute, run the suite in the container; `npm run build`, `npm run lint`;
 goldens unchanged (`git diff` on `backend/tests/golden` is empty); median of 5 text and 5 photo searches on the golden wardrobe;
 the pages checked in a headless browser at 390 px in en / fr / ar; fast-forward into local `main`.
+
+## As built
+
+| Commit | What |
+|---|---|
+| plan | this file |
+| `search:` the pure logic | `search.py`, the two CSVs (start cuts), 6 unit tests |
+| `backend:` POST /search | `Analyzer.embed_text / embed_image`, the route, the `search` event, fakes, 6 contract tests |
+| `search:` the calibration | the script, its run, the cuts in `search_rules.csv`, `reports/phase4/search_calibration.csv` |
+| `frontend:` the search box | `SearchBox`, `ItemCard`, types, API call, 14 words x 3 languages, Wardrobe + Assistant |
+| docs | manual check, learning note, CLAUDE.md, README, this section |
+
+Results: 314 collected (302 + 12), 311 passed, 3 skipped; goldens unchanged; `npm run lint` clean, `npm run build` passes;
+median on the golden wardrobe: words 22 ms, photo 2.9 s (first photo 4.6 s while the cleaning model warms up).
+Calibration (300 queries per mode per split, seed 0): words cut 0.297, test precision 0.872; photo cut 0.823, test precision 0.800.
+
+Decisions inside the brief: the table is `reports/phase4/search_calibration.csv` (reports are kept per phase); the calibration pool
+is Fashion Product only; with no close piece the answer keeps only `closest_anyway` pieces; when some pieces are close, the
+others of the top `limit` are shown faded under them; `limit` out of range answers 422, the other bad requests 400 with a code.
