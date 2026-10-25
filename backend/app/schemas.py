@@ -128,7 +128,3 @@ class WearIn(BaseModel):
     @classmethod
     def _occasion(cls, v):
         return v if v is None else _one_of(USAGES, "usage")(v)
-
-
-class ChatMessage(BaseModel):
-    message: str = Field(min_length=1, max_length=2000)

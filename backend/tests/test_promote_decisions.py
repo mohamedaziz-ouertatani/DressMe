@@ -302,7 +302,7 @@ def test_the_decision_event_is_counted_by_the_admin_stats(client):
     decide(client, headers, shown(client, headers)["id"], "left")
     stats = client.get("/admin/stats", headers=boss).json()
     assert stats["totals"]["decision"] == 1 and stats["per_day"][0]["decision"] == 1
-    assert {"upload", "scan", "verdict", "correction", "chat", "tryon"} <= set(stats["totals"])    # nothing removed
+    assert {"upload", "scan", "verdict", "correction", "tryon"} <= set(stats["totals"])    # nothing removed (the chat count went in step 3a, on purpose)
 
 
 def test_deleting_the_account_deletes_its_decisions(client):

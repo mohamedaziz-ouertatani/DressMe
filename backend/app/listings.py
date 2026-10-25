@@ -220,7 +220,7 @@ _SHOP_NAMES = None     # (by source_id, by brand), read once from the sources ta
 def shop_name(doc):
     """The shop's display name ("Hamadi Abid"): the sources table's shop_name for the listing's
     source, else for its brand (snapshot rows carry zara / bershka / pullandbear), else the brand.
-    The connectors store the source's brand slug ("hamadiabid"), which the chat showed to users."""
+    The connectors store the source's brand slug ("hamadiabid"), which is not a name to show to users."""
     global _SHOP_NAMES
     if _SHOP_NAMES is None:
         from .config import ROOT
@@ -293,7 +293,7 @@ class ListingIndex:
 
     def search(self, db, vector, k=6, category=None, exclude_seller=None, genders=None):
         """The k nearest listings. exclude_seller: leave out that seller's own listings
-        (the Seller assistant's price hint must not quote the user's own prices).
+        (a price estimate must not quote the user's own prices).
         genders: keep only these item genders (None = all)."""
         self._refresh(db)
         if not self._docs:

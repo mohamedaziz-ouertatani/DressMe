@@ -66,7 +66,7 @@ def user_gender(user):
 
 
 def gendered_user(user=Depends(current_user)):
-    """Endpoints whose answer depends on the gender (outfit rules, shops, look-alikes, chat).
+    """Endpoints whose answer depends on the gender (outfit rules, shops, look-alikes).
     An older account without one gets 409 until the app has asked it (PUT /me)."""
     if user_gender(user) is None:
         raise HTTPException(409, "gender_required")

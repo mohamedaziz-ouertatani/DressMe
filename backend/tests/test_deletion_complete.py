@@ -17,8 +17,7 @@ from bson import ObjectId
 from tests.conftest import BLACK, BLUE, GREEN, RED, photo, sign_up
 
 # the places that must really hold the user's data before the deletion, or the test proves nothing
-MUST_HOLD_DATA = {"users", "items", "candidates", "chats", "events", "outfit_feedback", "listings", "decisions",
-                  "wear_log"}
+MUST_HOLD_DATA = {"users", "items", "candidates", "events", "outfit_feedback", "listings", "decisions", "wear_log"}
 
 
 def mentions(value, user_id):
@@ -72,8 +71,6 @@ def leave_data_everywhere(client, headers):
     assert client.post("/wear", json={"item_ids": [top["id"], bottom["id"]], "source": "card"},
                        headers=headers).status_code == 201
     assert client.post("/outfits/feedback", json={"item_ids": [top["id"], bottom["id"]], "rating": 1},
-                       headers=headers).status_code == 200
-    assert client.post("/chat", json={"message": "how many items are in my wardrobe?"},
                        headers=headers).status_code == 200
     r = client.post("/tryon", files={"photo": photo(BLACK, size=(60, 100))},
                     data={"item_ids": [top["id"], bottom["id"]]}, headers=headers)

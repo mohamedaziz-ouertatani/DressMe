@@ -5,7 +5,6 @@ action worth counting is written here once:
     scan        a photo analysed with /analyze
     verdict     a buy-advice answer        (extra: verdict = buy / think / skip)
     correction  a user corrected an item   (extra: fields = [...])
-    chat        a chat message answered
     tryon       a virtual try-on picture made (extra: garments = how many)
     decision    "bought it" / "left it" after a verdict (extra: answer, verdict)
     wear        an outfit marked as worn (extra: source = card / build, pieces = how many)
@@ -13,7 +12,7 @@ action worth counting is written here once:
 
 from datetime import datetime, timezone
 
-EVENT_TYPES = ["upload", "scan", "verdict", "correction", "chat", "tryon", "decision", "wear"]
+EVENT_TYPES = ["upload", "scan", "verdict", "correction", "tryon", "decision", "wear"]
 
 
 def log_event(db, kind, user_id, **extra):
