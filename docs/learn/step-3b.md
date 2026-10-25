@@ -2,8 +2,9 @@
 
 ## What was built
 A search box on the Wardrobe page (and under the Assistant placeholder). Type words ("black jeans", "pantalon noir",
-"جينز أسود") or take a photo: your own pieces come back in order of how much they look like it. It says **Close match**
-only when sure enough, and **Nothing close** when not. A photo search saves nothing.
+"جينز أسود") or take a photo: your own pieces come back in order of how much they look like it. It lists only the pieces
+it is sure about, each marked **Close match**. When none is sure enough it says **No sure match** and shows the closest
+pieces, faded, under "Closest pieces in your wardrobe:". A photo search saves nothing.
 
 ## The path of a query
 ```
@@ -39,15 +40,26 @@ questions it was tuned on would be marking my own homework.
 | validation | photo | 0.823 | 300 | 0.907 | 0.973 | 0.988 |
 | test | photo | 0.823 | 300 | 0.800 | 0.969 | 0.953 |
 
-Precision = how often the best result shown as close is right (target 0.9). Words get close; photos do not (0.80): with other
-random draws the photo cut moves (0.82 to 0.86), and look-alike labels (blue / navy) fool it. The fake wardrobes use catalogue
-pictures, so a real wardrobe will be harder.
+Precision = how often the best result shown as close is right (target 0.9).
+
+## Honest results
+- **Test is lower than validation.** The cut is the lowest value that reaches 0.9 on validation, so it sits right at the edge of
+  the target; on questions it never saw the number varies, and here it falls to 0.872 (words) and 0.800 (photos). With other
+  random draws the photo cut moves between 0.82 and 0.86.
+- **Photo mistakes are neighbouring colours**: a purple shirt for a blue one, white heels for silver ones. The pieces look
+  alike, so their vectors are close and the cut cannot separate them.
+- **Real wardrobes score lower than the calibration.** It uses clean catalogue photos; your pieces are phone photos. Example:
+  the "dress" in the golden wardrobe scores 0.27 for the words "dress", under the cut of 0.297, so the app says **No sure
+  match** (the dress is still the first of the closest pieces). The cut protects against wrong "matches", and it costs some
+  right ones.
+- **Known limits.** French and Arabic queries keep their word order ("trousers black"), while the calibration used the English
+  order. Photo cleaning runs on the CPU in Docker and takes about 2.3 s of the 2.9 s a photo search needs; words take 22 ms.
 
 ## Five teacher questions
 - **Why not search the labels?** They can be wrong or empty, and a photo has none; vectors compare what pieces look like.
 - **Why two cuts?** The two kinds of query score in different ranges.
 - **How do you know it shows only your pieces and saves nothing?** The user filter is in the database query; tests check it, that items, scans and files are unchanged after a photo search, and that the log holds no words.
-- **Why say "Nothing close"?** A wrong piece shown as a match is worse; with no right piece in the wardrobe, 91-95% of queries said so.
+- **Why say "No sure match"?** A wrong piece shown as a match is worse; with no right piece in the wardrobe, 91-95% of queries said so.
 - **Why only 0.80 precision for photos?** Look-alike pieces with another label rank first and the cut cannot tell them apart.
 
 ## Left out, and why

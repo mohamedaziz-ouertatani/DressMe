@@ -70,3 +70,10 @@ Calibration (300 queries per mode per split, seed 0): words cut 0.297, test prec
 Decisions inside the brief: the table is `reports/phase4/search_calibration.csv` (reports are kept per phase); the calibration pool
 is Fashion Product only; with no close piece the answer keeps only `closest_anyway` pieces; when some pieces are close, the
 others of the top `limit` are shown faded under them; `limit` out of range answers 422, the other bad requests 400 with a code.
+
+### Fix (2026-10-26, frontend and docs only)
+Two decisions above changed after the first review: the app now lists **only the close pieces** (a display filter; the answer of
+`POST /search` is the same), and with none close it says **"No sure match"** over "Closest pieces in your wardrobe:" and the
+nearest `closest_anyway` pieces, faded. **Clear search** now also shows during a loading or failed search, and emptying the
+box by hand ends the search; both bring the Wardrobe's upload bar and chips back. A photo search empties the box, so the
+words left in it never sit over a photo's results. Learning note: "Honest results"; manual check updated.
