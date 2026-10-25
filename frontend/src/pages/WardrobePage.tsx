@@ -11,8 +11,10 @@ import { Page } from '../shell'
 import { Button, Chip } from '../ui/controls'
 import { ExplainPanel } from '../ui/ExplainPanel'
 import { FieldRow } from '../ui/Field'
+import { ItemCard } from '../ui/ItemCard'
 import { ItemPhoto } from '../ui/ItemPhoto'
 import { PhotoPicker } from '../ui/PhotoPicker'
+import { SearchBox } from '../ui/SearchBox'
 import { Empty, ErrorNote, Skeleton } from '../ui/states'
 import { Serial, Ticket } from '../ui/ticket'
 import { useLoad } from '../useLoad'
@@ -32,6 +34,7 @@ export function WardrobePage() {
   const [filter, setFilter] = useState<Category | null>(null)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<unknown>(null)
+  const [searching, setSearching] = useState(false)
 
   const add = async (file: File) => {
     setUploading(true)
@@ -51,6 +54,10 @@ export function WardrobePage() {
 
   return (
     <Page title={t('wardrobeTitle')} look="soft" kicker={items.data ? plural('pieces', all.length, lang) : undefined}>
+      {/* TODO(step 3f): this is the "Search or ask" bar; for now it only searches. The "ask" half will open the chat. */}
+      <SearchBox onActive={setSearching} />
+      {/* while a search is on screen its results replace the upload bar and the grid */}
+      {!searching && <>
       <section className="ticket mb-6 flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center justify-between gap-4 sm:justify-start">
           <p className="text-[15px] text-carbon">
@@ -86,25 +93,11 @@ export function WardrobePage() {
             ))}
           </div>
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {shown.map((it) => {
-              const guessed = guessedCount(it)
-              return (
-                <li key={it.id}>
-                  <Link to={`/wardrobe/${it.id}`} className="ticket block p-2 transition-shadow duration-150 hover:[box-shadow:var(--shadow-lift)]">
-                    <div className="flex justify-center"><ItemPhoto src={it.image_url} alt={vocab(SUB_LABELS, it.sub_category, lang)} size={128} /></div>
-                    <div className="perf-h mt-2 pt-2">
-                      <p className={`truncate pb-0.5 text-[15px] font-semibold text-carbon ${guessed ? 'field-guess' : 'field-sure'} inline-block max-w-full`}>
-                        {vocab(SUB_LABELS, it.sub_category, lang) || vocab(CATEGORY_LABELS, it.category, lang)}
-                      </p>
-                      <Serial id={it.id} className="mt-1 block" />
-                    </div>
-                  </Link>
-                </li>
-              )
-            })}
+            {shown.map((it) => <li key={it.id}><ItemCard item={it} /></li>)}
           </ul>
         </>
       )}
+      </>}
     </Page>
   )
 }

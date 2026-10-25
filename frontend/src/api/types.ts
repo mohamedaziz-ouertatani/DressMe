@@ -72,6 +72,21 @@ export interface Item {
   promoted_from?: { kind: string; id: string } | null
 }
 
+/** One piece of a wardrobe search: how close it is, and whether it counts as a close match (the cut is the team's). */
+export interface SearchResult {
+  item: Item
+  similarity: number
+  close: boolean
+}
+
+/** POST /search. When nothing_close is true, results holds the nearest few anyway, none of them close. */
+export interface SearchResponse {
+  mode: 'text' | 'photo'
+  results: SearchResult[]
+  nothing_close: boolean
+  skipped_no_vector: number
+}
+
 export type ItemPatch = Partial<Pick<Item, 'category' | 'sub_category' | 'pattern' | 'colour' | 'coverage' | 'season' | 'usage'>>
 
 export interface OutfitItem {
@@ -361,6 +376,7 @@ export interface DayStats {
   verdict: number
   correction: number
   chat?: number                 // only on days with events logged by the old chat (removed in step 3a)
+  search?: number               // wardrobe searches (step 3b)
   tryon?: number
   decision?: number            // "bought it" / "left it" answers (step 1)
   wear?: number                // outfits marked as worn (step 2)

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { MessageCircle } from 'lucide-react'
 import { useI18n } from '../i18n'
 import { Page } from '../shell'
+import { SearchBox } from '../ui/SearchBox'
 import { Empty } from '../ui/states'
 
 /** The Assistant while it is rebuilt: step 3a removed the old chat, and the new Ask flow and assistant arrive in steps
@@ -21,6 +22,8 @@ export function AssistantPage() {
           </Link>
         }
       />
+      {/* search only for now (step 3b); TODO(step 3f): the conversation goes with it */}
+      <div className="mt-6"><SearchBox /></div>
     </Page>
   )
 }

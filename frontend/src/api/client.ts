@@ -4,7 +4,7 @@ import type {
   AdminXai, SourceCheck, AdminSource, Job, JobStart, ListingsOverview, AdminUser, BuyAdvice, Category, Completion, Formula, Insights, Item, ItemPatch,
   Listing, ListingFilters, ListingPage, ListingPatch, ModelQuality, ReviewListing, SellForm, Occasion, Outfit, Season, Similar, Stats, User, Gender,
   TryOnResult, Weather, Explanation, GuessField, OutfitExplanation,
-  Decision, DecisionAnswer, OutfitLabel, WearEntry, WearSummary, OccasionChip, TodayOutfits, BuildResult,
+  Decision, DecisionAnswer, OutfitLabel, WearEntry, WearSummary, OccasionChip, TodayOutfits, BuildResult, SearchResponse,
 } from './types'
 
 const BASE = '/api'
@@ -115,6 +115,13 @@ export const api = {
   deleteItem: (id: string) => request<void>(`/items/${id}`, { method: 'DELETE' }),
 
   insights: () => request<Insights>('/insights'),
+
+  /** Search the user's own pieces by words or by a photo. A photo search saves nothing. */
+  search: (input: { text: string } | { photo: Blob }) => {
+    const form = 'photo' in input ? photoForm(input.photo) : new FormData()
+    if ('text' in input) form.append('text', input.text)
+    return request<SearchResponse>('/search', { method: 'POST', body: form })
+  },
 
   analyze: (file: Blob) => request<Item>('/analyze', { method: 'POST', body: photoForm(file) }),
   /** priceTnd = the price on the tag, optional (left out when unknown, never 0). */
