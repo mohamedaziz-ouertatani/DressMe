@@ -125,7 +125,7 @@ function DecisionBar({ candidateId, restart, again }: {
 }
 
 // The verdict's colour: buy / think / skip on their soft fills, always with a word and an icon (step H)
-const VERDICT_PILL = {
+export const VERDICT_PILL = {
   buy: { look: 'bg-buy-soft text-buy', icon: Check },
   think: { look: 'bg-unsure-soft text-unsure', icon: CircleHelp },
   skip: { look: 'bg-leave-soft text-leave', icon: X },
