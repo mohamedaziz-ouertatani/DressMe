@@ -1,9 +1,9 @@
 // One small fetch wrapper for every API call. The log-in token lives in
 // localStorage; a 401 anywhere logs the user out (see AuthProvider).
 import type {
-  AdminXai, SourceCheck, AdminSource, Job, JobStart, ListingsOverview, AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Insights, Item, ItemPatch,
+  AdminXai, SourceCheck, AdminSource, Job, JobStart, ListingsOverview, AdminUser, BuyAdvice, Category, Completion, Formula, Insights, Item, ItemPatch,
   Listing, ListingFilters, ListingPage, ListingPatch, ModelQuality, ReviewListing, SellForm, Occasion, Outfit, Season, Similar, Stats, User, Gender,
-  ChatAttachment, ChatAction, TryOnResult, Weather, Explanation, GuessField, OutfitExplanation,
+  TryOnResult, Weather, Explanation, GuessField, OutfitExplanation,
   Decision, DecisionAnswer, OutfitLabel, WearEntry, WearSummary, OccasionChip, TodayOutfits, BuildResult,
 } from './types'
 
@@ -208,13 +208,6 @@ export const api = {
     if (candidateId) form.append('candidate_id', candidateId)
     return request<TryOnResult>('/tryon', { method: 'POST', body: form })
   },
-
-  chat: (message: string) =>
-    request<{ reply: string; tools_used: string[]; agent: string; agent_title: string;
-              attachments: ChatAttachment[]; actions?: ChatAction[];
-              routed_by: ChatTurn['routed_by']; trace: ChatTurn['trace'] }>('/chat', json('POST', { message })),
-  chatHistory: () => request<ChatTurn[]>('/chat/history'),
-  clearChat: () => request<void>('/chat/history', { method: 'DELETE' }),
 
   admin: {
     stats: (days = 30) => request<Stats>(`/admin/stats?days=${days}`),
