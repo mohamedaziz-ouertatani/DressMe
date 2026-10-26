@@ -29,6 +29,9 @@ services:
       HF_HOME: /cache/huggingface
       U2NET_HOME: /cache/u2net
     ports: ["8000:8000"]
+    # the assistant's model runs in Ollama on the PC (not in Docker): this name reaches it. Docker Desktop
+    # (Windows / Mac) knows it already; Linux needs this line
+    extra_hosts: ["host.docker.internal:host-gateway"]
     depends_on:
       mongo: {condition: service_healthy}
     healthcheck:                    # "healthy" = the models are loaded and /health answers

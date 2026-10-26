@@ -31,6 +31,18 @@ class Limits(Strict):
     max_tokens: int = Field(gt=0)
 
 
+class ModelSettings(Strict):
+    """How the model is asked (step 3d): the sampling knobs, the context window, how long it stays loaded."""
+    temperature: float = Field(ge=0, le=2)
+    top_p: float = Field(gt=0, le=1)
+    top_k: int = Field(ge=1)
+    presence_penalty: float = Field(ge=-2, le=2)
+    num_ctx: int = Field(ge=512, le=262144)           # the context window, in tokens (more = more GPU memory)
+    keep_alive: str = Field(pattern=r"^(-1|0|\d+[smh])$")   # e.g. "10m"; -1 = keep it loaded, 0 = unload at once
+    timeout_s: float = Field(gt=0, le=600)
+    think: bool
+
+
 class Agent(Strict):
     job: str
     instructions: str
@@ -42,6 +54,7 @@ class Agent(Strict):
 
 class AgentsFile(Strict):
     limits: Limits
+    model: ModelSettings
     shared_rules: str
     agents: dict[str, Agent]
 

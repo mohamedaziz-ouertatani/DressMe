@@ -50,3 +50,15 @@ def test_an_agent_above_the_global_limit_is_refused(tmp_path):
     path = broken(tmp_path, lambda d: d["agents"]["stylist"].update(max_rounds=7))
     with pytest.raises(AgentsConfigError, match=r"agent 'stylist', field 'max_rounds': 7 is above limits.max_rounds"):
         load_agents(path, TOOLS)
+
+
+def test_the_model_settings_load():
+    model = load_agents(REAL_FILE, TOOLS).model
+    assert (model.temperature, model.top_p, model.top_k, model.presence_penalty) == (0.7, 0.8, 20, 1.5)
+    assert (model.num_ctx, model.keep_alive, model.timeout_s, model.think) == (8192, "10m", 90, False)
+
+
+def test_a_model_setting_out_of_range_is_refused(tmp_path):
+    path = broken(tmp_path, lambda d: d["model"].update(top_p=1.5))
+    with pytest.raises(AgentsConfigError, match=r"field 'model.top_p': Input should be less than or equal to 1"):
+        load_agents(path, TOOLS)

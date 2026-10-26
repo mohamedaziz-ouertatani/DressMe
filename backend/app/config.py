@@ -18,6 +18,9 @@ Settings, read from environment variables (or backend/.env, never committed).
     WEATHER_LAT / WEATHER_LON / WEATHER_PLACE   place used when the app sends no position
                      (default Tunis: 36.81, 10.18)
     CORS_ORIGINS     comma-separated, default http://localhost:5173 (React dev server)
+    CHAT_MODEL       the assistant's model in Ollama (default qwen3.5:4b; teammates may use dressme-chat-v4,
+                     which is not evaluated: docs/superpowers/handoff/assistant-model.md)
+    OLLAMA_URL       where Ollama answers (default http://host.docker.internal:11434 = the PC, seen from Docker)
 """
 
 import os
@@ -54,7 +57,9 @@ class Settings:
     weather_place: str = field(default_factory=lambda: os.getenv("WEATHER_PLACE", "Tunis"))
     cors_origins: list = field(default_factory=lambda: os.getenv(
         "CORS_ORIGINS", "http://localhost:5173").split(","))
-    mappings_dir: Path = field(default_factory=lambda: ROOT / "mappings")   # formula CSVs
+    chat_model: str = field(default_factory=lambda: os.getenv("CHAT_MODEL", "qwen3.5:4b"))
+    ollama_url: str = field(default_factory=lambda: os.getenv("OLLAMA_URL", "http://host.docker.internal:11434"))
+    mappings_dir: Path =field(default_factory=lambda: ROOT / "mappings")   # formula CSVs
     max_upload_mb: int = 10
     max_image_side: int = 1024     # uploads are shrunk to save disk
     remove_background: bool = field(default_factory=lambda: os.getenv("REMOVE_BACKGROUND", "1") != "0")

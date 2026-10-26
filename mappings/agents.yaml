@@ -10,6 +10,18 @@ limits:
   max_rounds: 6       # most model calls (tool rounds) in one turn
   max_tokens: 600     # longest model reply, in tokens
 
+# How the model is asked (step 3d; the model's name is the CHAT_MODEL setting, not here).
+# REVIEW (team): start values, the ones Qwen recommends for its models with thinking off.
+model:
+  temperature: 0.7        # randomness: 0 = always the likeliest word
+  top_p: 0.8              # choose only among the words that make up the top 80% of the chances
+  top_k: 20               # ... and among at most the 20 likeliest words
+  presence_penalty: 1.5   # discourages repeating the same words
+  num_ctx: 8192           # context window in tokens (instructions + tools + results + answer); more = more GPU memory
+  keep_alive: "10m"       # how long Ollama keeps the model in the GPU after the last call (the next call is then fast)
+  timeout_s: 90           # a model call that takes longer counts as "model unavailable" (503)
+  think: false            # no hidden reasoning step: faster, and the answer is only the answer
+
 # Added to the instructions of EVERY agent.
 shared_rules: |
   Rules for every answer:
