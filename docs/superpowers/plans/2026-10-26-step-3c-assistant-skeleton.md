@@ -66,3 +66,19 @@ Decisions made inside the brief (it was silent):
 `docker compose up -d --build backend`, wait about a minute, the whole suite in the container; `npm run build`,
 `npm run lint`; `git diff main -- backend/tests/golden` is empty (goldens identical); `compatibility.py` untouched;
 fast-forward into local `main`.
+
+## As built
+
+Suite after the step: 333 collected, 330 passed, 3 skipped (+19 tests: 9 engine, 5 agents.yaml, 4 chat, the deletion test
+extended). Goldens and `compatibility.py` unchanged (`git diff main` empty). `npm run build` and `oxlint` pass. Brief
+deviations: `run_turn` takes a `shared_rules` argument (the brief's signature had nowhere to put them); `ToolResult`
+has a `for_model()` helper; PyYAML added to `backend/requirements.txt` (already installed and pinned).
+Live check: a broken `agents.yaml` stops the start-up with the agent and field named; `POST /chat` answers 503 `assistant_unavailable`.
+
+## As built
+
+Suite after the step: 333 collected, 330 passed, 3 skipped (+19 tests: 9 engine, 5 agents.yaml, 4 chat, the deletion test
+extended). Goldens and `compatibility.py` unchanged (`git diff main` empty). `npm run build` and `oxlint` pass. Brief
+deviations: `run_turn` takes a `shared_rules` argument (the brief's signature had nowhere to put them); `ToolResult`
+has a `for_model()` helper; PyYAML added to `backend/requirements.txt` (already installed and pinned).
+Live check: a broken `agents.yaml` stops the start-up with the agent and field named; `POST /chat` answers 503 `assistant_unavailable`.
