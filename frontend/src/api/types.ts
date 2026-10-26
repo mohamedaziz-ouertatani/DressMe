@@ -87,7 +87,29 @@ export interface SearchResponse {
   skipped_no_vector: number
 }
 
-export type ItemPatch = Partial<Pick<Item, 'category' | 'sub_category' | 'pattern' | 'colour' | 'coverage' | 'season' | 'usage'>>
+/** One line of what the assistant did in a turn (a tool call). */
+export interface ChatTraceLine {
+  round: number
+  tool: string
+  args: Record<string, unknown>
+  ok: boolean
+  error_code: string | null
+  n_pieces: number
+  ms: number
+}
+
+/** POST /chat (step 3c; the screen comes in step 3f). The answer names pieces as {n}; `pieces` holds the user's items behind the numbers used. */
+export interface ChatResponse {
+  chat_id: string
+  agent: string
+  answer: string
+  pieces: Record<string, Item>
+  trace: ChatTraceLine[]
+  stop_reason: 'answered' | 'max_rounds' | 'repeat'
+  model: string
+}
+
+export type ItemPatch =Partial<Pick<Item, 'category' | 'sub_category' | 'pattern' | 'colour' | 'coverage' | 'season' | 'usage'>>
 
 export interface OutfitItem {
   id: string
@@ -377,6 +399,7 @@ export interface DayStats {
   correction: number
   chat?: number                 // only on days with events logged by the old chat (removed in step 3a)
   search?: number               // wardrobe searches (step 3b)
+  assistant?: number            // assistant turns (step 3c)
   tryon?: number
   decision?: number            // "bought it" / "left it" answers (step 1)
   wear?: number                // outfits marked as worn (step 2)
