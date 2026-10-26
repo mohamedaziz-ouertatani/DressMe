@@ -26,6 +26,8 @@ class ToolContext:
     user_id: Any                    # the logged-in user's _id (from the login, never from the model)
     db: Any
     ledger: PieceLedger
+    user: dict | None = None        # step 3d: the logged-in user's document (gender rules, profile)
+    request: Any = None             # step 3d: the /chat request, for the screens' functions (they read .app.state)
 
 
 @dataclass

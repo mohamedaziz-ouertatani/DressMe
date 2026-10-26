@@ -48,6 +48,8 @@ def run_turn(agent, user_text, model, registry, ctx, shared_rules=""):
     while rounds < agent.max_rounds:
         rounds += 1
         reply = model.chat(messages, schemas, agent.max_tokens)
+        if reply.thinking_stripped:                       # step 3d: only the loop sees every reply, so it notes it
+            trace.append({"round": rounds, "note": "thinking_stripped"})
         if not reply.tool_calls:
             stop_reason = "answered"
             break
@@ -73,5 +75,7 @@ def run_turn(agent, user_text, model, registry, ctx, shared_rules=""):
 
     if stop_reason != "answered":                         # the last chance: no tools, so it must answer
         reply = model.chat(messages, [], agent.max_tokens)
+        if reply.thinking_stripped:
+            trace.append({"round": rounds + 1, "note": "thinking_stripped"})
     answer, refs, unknown = resolve(reply.text or "", ctx.ledger)
     return TurnResult(answer, refs, unknown, trace, stop_reason, rounds)

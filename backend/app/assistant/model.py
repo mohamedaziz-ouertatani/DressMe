@@ -2,7 +2,7 @@
 The language model, seen from the assistant (step 3c).
 
 The loop only knows this small interface, so the model behind it can change: a scripted FakeModel in the tests
-(this step), a real model served by Ollama (step 3d), our own fine-tune (step 3h).
+(step 3c), a real model served by Ollama (step 3d, ollama.py), our own fine-tune (step 3h).
 
     chat(messages, tools, max_tokens) -> ModelReply
         messages   the conversation so far, as a list of {"role": ..., "content": ...} dicts
@@ -25,6 +25,7 @@ class ToolCall:
 class ModelReply:
     text: str | None = None
     tool_calls: list[ToolCall] = field(default_factory=list)
+    thinking_stripped: bool = False      # a <think>...</think> block was removed from the text (step 3d)
 
 
 class ModelUnavailable(Exception):
@@ -35,6 +36,8 @@ class ModelClient(Protocol):
     name: str          # saved with every chat turn, so we know which model said what
 
     def chat(self, messages: list[dict], tools: list[dict], max_tokens: int) -> ModelReply: ...
+
+    def available(self) -> bool: ...   # GET /assistant/status (step 3d)
 
 
 class FakeModel:
@@ -51,10 +54,16 @@ class FakeModel:
             raise AssertionError("FakeModel: the script has no reply left for this call")
         return self.script.pop(0)
 
+    def available(self):
+        return True
+
 
 class NoModel:
-    """The default until a real model is plugged in (step 3d): every call says it is unavailable."""
+    """No model at all (the tests' default since step 3d plugged in Ollama): every call says it is unavailable."""
     name = "none"
 
     def chat(self, messages, tools, max_tokens):
         raise ModelUnavailable("no language model is set up")
+
+    def available(self):
+        return False

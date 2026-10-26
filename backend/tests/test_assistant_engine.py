@@ -92,6 +92,11 @@ def test_max_rounds_forces_a_final_answer_without_tools():
     assert len(model.received) == 3
 
 
+def test_a_stripped_think_block_is_noted_in_the_trace():
+    result, _ = turn([ModelReply(text="Hi!", thinking_stripped=True)])
+    assert result.trace == [{"round": 1, "note": "thinking_stripped"}] and result.answer == "Hi!"
+
+
 # ---------------------------------------------------------------- the {n} rule
 def test_known_placeholders_stay_and_unknown_ones_are_removed_and_reported():
     ledger = PieceLedger()

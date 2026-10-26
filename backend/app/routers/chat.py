@@ -1,8 +1,10 @@
 """
-POST /chat: one turn with the assistant (step 3c, the walking skeleton; the real model comes in step 3d).
+POST /chat: one turn with the assistant (step 3c; the real model, Ollama, since step 3d).
 
     body    {message: 1-1000 characters, chat_id?: text, agent?: a name from mappings/agents.yaml}
     answer  {chat_id, agent, answer, pieces: {"<n>": item}, trace, stop_reason, model}
+
+GET /assistant/status: {available, model}, so the app can say early that the assistant is off (step 3d).
 
 The answer names pieces as {n}; `pieces` holds the user's OWN items behind the numbers the answer uses, so the app
 can show their photos. Each turn is saved as one document in `chats` (the message and the answer live only there).
@@ -45,7 +47,8 @@ def chat(body: ChatBody, request: Request, user=Depends(current_user)):
         raise HTTPException(422, "unknown_agent")
 
     started = time.perf_counter()
-    ctx = ToolContext(user_id=user["_id"], db=state.db, ledger=PieceLedger())
+    # the tools reuse the screens' functions, which read the request (app state) and the user document (step 3d)
+    ctx = ToolContext(user_id=user["_id"], db=state.db, ledger=PieceLedger(), user=user, request=request)
     try:
         turn = run_turn(agents.agents[name], body.message, state.chat_model, state.registry, ctx,
                         shared_rules=agents.shared_rules)
@@ -64,7 +67,14 @@ def chat(body: ChatBody, request: Request, user=Depends(current_user)):
         "message": body.message, "answer": turn.answer, "item_ids": item_ids, "unknown_refs": turn.unknown_refs,
         "trace": turn.trace, "stop_reason": turn.stop_reason, "model": state.chat_model.name})
     log_event(state.db, "assistant", user["_id"], agent=name, rounds=turn.rounds, stop_reason=turn.stop_reason,
-              n_tool_calls=len(turn.trace), n_unknown_refs=len(turn.unknown_refs),
+              n_tool_calls=sum(1 for line in turn.trace if "tool" in line), n_unknown_refs=len(turn.unknown_refs),
               ms=round((time.perf_counter() - started) * 1000))      # never the message text
     return {"chat_id": chat_id, "agent": name, "answer": turn.answer, "pieces": pieces, "trace": turn.trace,
             "stop_reason": turn.stop_reason, "model": state.chat_model.name}
+
+
+@router.get("/assistant/status")
+def status(request: Request, user=Depends(current_user)):
+    """Is the model there? (Ollama's /api/show, 3 s at most, remembered for a minute.)"""
+    model = request.app.state.chat_model
+    return {"available": bool(model.available()), "model": model.name}

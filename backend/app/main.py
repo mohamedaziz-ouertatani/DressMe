@@ -16,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .assistant import default_registry
 from .assistant.agents import load_agents
-from .assistant.model import NoModel
+from .assistant.ollama import make_ollama
 from .background import load_remover
 from .config import Settings
 from .db import connect
@@ -40,7 +40,7 @@ def create_app(settings=None, analyzer=None, catalog=None, remover=None,
     async def lifespan(app):
         app.state.settings = settings
         app.state.registry, app.state.agents = registry, agents
-        app.state.chat_model = chat_model or NoModel()       # step 3d plugs in the real model
+        app.state.chat_model = chat_model or make_ollama(settings, agents.model)   # Ollama (step 3d)
         app.state.db = connect(settings)
         settings.storage_dir.mkdir(parents=True, exist_ok=True)
         if analyzer is None or catalog is None:

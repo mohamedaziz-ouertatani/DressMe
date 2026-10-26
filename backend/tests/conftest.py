@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 from PIL import Image
 from pymongo import MongoClient
 
+from app.assistant.model import NoModel
 from app.config import Settings
 from app.main import create_app
 from app.weather import OpenMeteo
@@ -173,7 +174,7 @@ def make_client(settings):
     def make(remover=None, tryon=None, weather=None, chat_model=None):
         app = create_app(settings, analyzer=FakeAnalyzer(), catalog=FakeCatalog(),
                          remover=remover, tryon_engine=tryon or FakeTryOn(), weather_engine=weather or FakeWeather(),
-                         chat_model=chat_model)      # None = NoModel (the assistant answers 503)
+                         chat_model=chat_model or NoModel())      # never the real Ollama: the assistant answers 503
         c = TestClient(app)
         c.__enter__()            # runs the start-up (database connection)
         clients.append(c)
