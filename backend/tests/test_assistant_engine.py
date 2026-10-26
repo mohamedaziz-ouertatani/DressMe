@@ -92,6 +92,14 @@ def test_max_rounds_forces_a_final_answer_without_tools():
     assert len(model.received) == 3
 
 
+def test_a_tool_the_agent_was_not_given_is_refused():
+    model = FakeModel([call("echo", word="red"), say("Done.")])
+    ctx = ToolContext(user_id="u1", db=None, ledger=PieceLedger())
+    agent = Agent(job="test", instructions="Be brief.", tools=["wear"], keywords={}, max_rounds=3, max_tokens=100)
+    result = run_turn(agent, "hello", model, make_registry(), ctx)
+    assert [(t["tool"], t["ok"], t["error_code"]) for t in result.trace] == [("echo", False, "unknown_tool")]
+
+
 def test_a_stripped_think_block_is_noted_in_the_trace():
     result, _ = turn([ModelReply(text="Hi!", thinking_stripped=True)])
     assert result.trace == [{"round": 1, "note": "thinking_stripped"}] and result.answer == "Hi!"

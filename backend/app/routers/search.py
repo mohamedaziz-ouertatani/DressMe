@@ -2,8 +2,8 @@
 POST /search: find pieces of the user's OWN wardrobe by words or by a photo (step 3b).
 
 The pure logic is src/phase4/search.py (normalise the words, cosine similarity, the cut); this route only
-loads the user's items, asks FashionCLIP for the query vector and answers. The chat tool of step 3d calls the
-same logic.
+loads the user's items, asks FashionCLIP for the query vector and answers. The assistant's search_wardrobe tool
+(step 3d) calls the same `find_owned` (one function, two callers).
 
     multipart form: exactly one of `text` (1 to 120 characters) or `photo`; optional `limit` (1 to 20)
     answer: {mode, results: [{item, similarity, close}], nothing_close, skipped_no_vector}
@@ -27,6 +27,17 @@ from .items import read_photo
 
 router = APIRouter(tags=["search"])
 MAX_TEXT = 120
+
+
+def find_owned(db, user_id, vector, cut, limit, rules, category=None):
+    """The user's own pieces nearest to `vector` (search.rank_owned). When none is close, only the nearest
+    `closest_anyway` are kept. Only this user's pieces are ever loaded: the user filter is in the query itself."""
+    query = {"user_id": user_id, **({"category": category} if category else {})}
+    pieces = [{**d, "vector": vector_from_bson(d.get("vector"))} for d in db.items.find(query)]
+    ranked = search.rank_owned(vector, pieces, cut, limit)
+    if ranked["nothing_close"]:                          # say so, and still show the nearest few
+        ranked["results"] = ranked["results"][:int(rules["closest_anyway"])]
+    return ranked
 
 
 @router.post("/search")
@@ -54,13 +65,8 @@ async def search_own_pieces(request: Request, text: str | None = Form(None), pho
         mode, cut = "photo", rules["photo_cut"]
         vector = analyzer.embed_image(await read_photo(photo, request))      # cleaned, never saved
 
-    # only this user's pieces are ever loaded: the user filter is in the query itself
-    docs = request.app.state.db.items.find({"user_id": user["_id"]})
-    pieces = [{**d, "vector": vector_from_bson(d.get("vector"))} for d in docs]
-    ranked = search.rank_owned(vector, pieces, cut, limit or int(rules["default_limit"]))
+    ranked = find_owned(request.app.state.db, user["_id"], vector, cut, limit or int(rules["default_limit"]), rules)
     results = ranked["results"]
-    if ranked["nothing_close"]:                          # say so, and still show the nearest few
-        results = results[:int(rules["closest_anyway"])]
 
     log_event(request.app.state.db, "search", user["_id"], mode=mode, results=len(results),
               nothing_close=ranked["nothing_close"], ms=round((time.perf_counter() - started) * 1000))

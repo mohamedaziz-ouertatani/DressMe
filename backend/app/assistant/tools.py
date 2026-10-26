@@ -52,6 +52,15 @@ class ToolResult:
         return self.data if self.ok else {"error": self.error_code, "message": self.message}
 
 
+class ToolError(Exception):
+    """An expected refusal inside a tool (step 3d): pieces that clash, no words to search, the weather off...
+    The registry turns it into an error result with this code, which the model reads."""
+
+    def __init__(self, code, message=""):
+        super().__init__(message or code)
+        self.code, self.message = code, message or code
+
+
 def failed(code, message, started):
     return ToolResult(False, error_code=code, message=message, ms=round((time.perf_counter() - started) * 1000))
 
@@ -87,6 +96,8 @@ class Registry:
             return failed("unknown_piece", f"Piece {unknown} was not shown in this conversation turn.", started)
         try:
             data = tool.fn(ctx, args)
+        except ToolError as error:                        # a refusal the tool expected
+            return failed(error.code, error.message, started)
         except Exception as error:                        # a tool must never break the turn
             return failed("tool_failed", f"{type(error).__name__}: {error}", started)
         return ToolResult(True, data=data, ms=round((time.perf_counter() - started) * 1000))

@@ -17,6 +17,7 @@ import json
 from dataclasses import dataclass
 
 from .placeholders import resolve
+from .tools import ToolResult
 
 
 @dataclass
@@ -64,7 +65,9 @@ def run_turn(agent, user_text, model, registry, ctx, shared_rules=""):
                 content = {"error": "repeat", "message": "You already made this call. Answer with what you have."}
             else:
                 seen.add(key)
-                result = registry.run(call, ctx)
+                # step 3d: a tool this agent was not given is refused, even if another agent has it
+                result = (registry.run(call, ctx) if call.name in agent.tools else
+                          ToolResult(False, error_code="unknown_tool", message=f"You have no tool called {call.name!r}."))
                 content = result.for_model()
                 trace.append({"round": rounds, "tool": call.name, "args": call.arguments, "ok": result.ok,
                               "error_code": result.error_code, "n_pieces": n_pieces(result), "ms": result.ms})

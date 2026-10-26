@@ -23,7 +23,8 @@ def broken(tmp_path, change):
 def test_the_real_file_loads():
     config = load_agents(REAL_FILE, TOOLS)
     stylist = config.agents["stylist"]
-    assert stylist.tools == ["list_wardrobe"] and set(stylist.keywords) == {"en", "fr", "ar"}
+    assert stylist.tools == ["list_wardrobe", "search_wardrobe", "get_weather", "suggest_outfits", "build_outfit",
+                            "score_outfit"] and set(stylist.keywords) == {"en", "fr", "ar"}
     assert (config.limits.max_tools, config.limits.max_rounds, config.limits.max_tokens) == (9, 6, 600)
     assert "{n}" in config.shared_rules
 
