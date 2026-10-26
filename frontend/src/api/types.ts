@@ -87,8 +87,8 @@ export interface SearchResponse {
   skipped_no_vector: number
 }
 
-/** One line of what the assistant did in a turn (a tool call). */
-export interface ChatTraceLine {
+/** One line of what the assistant did in a turn: a tool call... */
+export interface ChatToolLine {
   round: number
   tool: string
   args: Record<string, unknown>
@@ -96,6 +96,20 @@ export interface ChatTraceLine {
   error_code: string | null
   n_pieces: number
   ms: number
+}
+
+/** ...or a note (step 3d: the model wrote a <think> block, which was removed). */
+export interface ChatNoteLine {
+  round: number
+  note: 'thinking_stripped'
+}
+
+export type ChatTraceLine = ChatToolLine | ChatNoteLine
+
+/** GET /assistant/status (step 3d): is the model there? */
+export interface AssistantStatus {
+  available: boolean
+  model: string
 }
 
 /** POST /chat (step 3c; the screen comes in step 3f). The answer names pieces as {n}; `pieces` holds the user's items behind the numbers used. */
