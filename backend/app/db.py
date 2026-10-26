@@ -13,6 +13,7 @@ MongoDB access (pymongo). Collections:
     source_checks the read-only shop checks run from Admin > Listings
     wear_log    what the user wore, per day in Tunis (routers/wear.py): item_ids, worn_on, the label and
                 score that were shown
+    chats       one document per assistant turn (routers/chat.py): message, answer, pieces, trace, model
     decisions   "bought it" / "left it" after a verdict: the labels, a copy of what was shown
                 (last_advice) and the item made, never the photo (routers/decisions.py)
 
@@ -26,7 +27,7 @@ from pymongo import ASCENDING, MongoClient
 
 # The collections whose documents belong to ONE user (they carry `user_id`): deleting an account
 # empties all of them. A new per-user collection goes here, nowhere else.
-USER_COLLECTIONS = ("items", "candidates", "events", "outfit_feedback", "decisions", "wear_log")
+USER_COLLECTIONS = ("items", "candidates", "events", "outfit_feedback", "decisions", "wear_log", "chats")
 
 
 def connect(settings):
@@ -39,6 +40,7 @@ def connect(settings):
                           partialFilterExpression={"promoted_from.id": {"$exists": True}})
     db.decisions.create_index([("user_id", ASCENDING), ("candidate_id", ASCENDING)], unique=True)
     db.wear_log.create_index([("user_id", ASCENDING), ("worn_on", ASCENDING)])
+    db.chats.create_index([("user_id", ASCENDING), ("created_at", ASCENDING)])
     db.candidates.create_index("created_at", expireAfterSeconds=24 * 3600)
     db.events.create_index([("at", ASCENDING), ("type", ASCENDING)])
     db.outfit_feedback.create_index(

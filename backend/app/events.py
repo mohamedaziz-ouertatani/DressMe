@@ -9,11 +9,12 @@ action worth counting is written here once:
     decision    "bought it" / "left it" after a verdict (extra: answer, verdict)
     wear        an outfit marked as worn (extra: source = card / build, pieces = how many)
     search      a wardrobe search (extra: mode = text / photo, results, nothing_close, ms; never the words or the photo)
+    assistant   one assistant turn (extra: agent, rounds, stop_reason, n_tool_calls, n_unknown_refs, ms; never the message)
 """
 
 from datetime import datetime, timezone
 
-EVENT_TYPES = ["upload", "scan", "verdict", "correction", "tryon", "decision", "wear", "search"]
+EVENT_TYPES = ["upload", "scan", "verdict", "correction", "tryon", "decision", "wear", "search", "assistant"]
 
 
 def log_event(db, kind, user_id, **extra):

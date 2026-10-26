@@ -14,10 +14,11 @@ so this test keeps covering "every place the API allows".
 
 from bson import ObjectId
 
+from app.assistant.model import FakeModel, ModelReply, ToolCall
 from tests.conftest import BLACK, BLUE, GREEN, RED, photo, sign_up
 
 # the places that must really hold the user's data before the deletion, or the test proves nothing
-MUST_HOLD_DATA = {"users", "items", "candidates", "events", "outfit_feedback", "listings", "decisions", "wear_log"}
+MUST_HOLD_DATA = {"users", "items", "candidates", "events", "outfit_feedback", "listings", "decisions", "wear_log", "chats"}
 
 
 def mentions(value, user_id):
@@ -76,6 +77,9 @@ def leave_data_everywhere(client, headers):
                     data={"item_ids": [top["id"], bottom["id"]]}, headers=headers)
     assert r.status_code == 200, r.text
 
+    # step 3c: an assistant turn is saved in `chats`
+    assert client.post("/chat", json={"message": "What can I wear?"}, headers=headers).status_code == 200
+
     sold = client.post("/listings/sell", files={"photo": photo(RED)},
                        data={"price_tnd": "25", "size": "M", "city": "Tunis", "contact": "@leaver"},
                        headers=headers)
@@ -83,8 +87,14 @@ def leave_data_everywhere(client, headers):
     return {"listing_id": sold.json()["id"]}
 
 
+def chat_script(turns):
+    """What the fake assistant says for `turns` chat turns: look at the wardrobe, then answer."""
+    return [reply for _ in range(turns)
+            for reply in (ModelReply(tool_calls=[ToolCall("list_wardrobe", {})]), ModelReply(text="Try {1}."))]
+
+
 def test_deleting_an_account_leaves_nothing_behind(make_client, settings):
-    client = make_client()
+    client = make_client(chat_model=FakeModel(chat_script(2)))      # one turn for the admin-deleted user, one for the self-deleted
     db = client.app.state.db
     leaver = sign_up(client, "leaver@example.com", "Leaver")
     stayer = sign_up(client, "stayer@example.com", "Stayer")

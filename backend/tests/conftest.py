@@ -170,9 +170,10 @@ def make_client(settings):
     MongoClient(settings.mongo_url).drop_database(TEST_DB)
     clients = []
 
-    def make(remover=None, tryon=None, weather=None):
+    def make(remover=None, tryon=None, weather=None, chat_model=None):
         app = create_app(settings, analyzer=FakeAnalyzer(), catalog=FakeCatalog(),
-                         remover=remover, tryon_engine=tryon or FakeTryOn(), weather_engine=weather or FakeWeather())
+                         remover=remover, tryon_engine=tryon or FakeTryOn(), weather_engine=weather or FakeWeather(),
+                         chat_model=chat_model)      # None = NoModel (the assistant answers 503)
         c = TestClient(app)
         c.__enter__()            # runs the start-up (database connection)
         clients.append(c)
