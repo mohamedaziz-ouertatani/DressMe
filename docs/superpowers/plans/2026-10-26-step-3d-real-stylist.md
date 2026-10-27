@@ -79,3 +79,16 @@ tools use the default place and say `"location": "default city"`. Chat and Dress
 Suite in the container after `docker compose up -d --build backend`; `npm run build`, `npm run lint`; `git diff main` on the
 goldens and `compatibility.py` empty; the live check on a throwaway golden user (deleted after); Ollama stopped -> 503 and
 `available: false`, the app keeps running; fast-forward into local `main`.
+
+## As built
+
+Suite: 355 collected, 352 passed, 3 skipped (+22: 10 Ollama client and status, 8 Stylist tools, 2 engine, 2 agents.yaml). Goldens and `compatibility.py` unchanged. `npm run build` and `oxlint` pass.
+
+The loop changed in two small places, both explained in its comments: a `thinking_stripped` trace note (only the loop sees
+every reply) and the refusal of a tool the agent was not given (3c ran any registered tool; with five agents in 3e that
+would let one agent use another's tools).
+
+Live check (golden wardrobe, throwaway user deleted after; first question cold): 25.0 s, then 3.1 to 10.0 s.
+7 of 8 answered with the right tools or rightly without; the French interview question called no tool and invented pieces
+(4 invented refs removed by the `{n}` rule, the invented words stayed). Not tuned (3g measures it). Ollama stopped:
+`/assistant/status` false, `/chat` 503, `/health` ok.

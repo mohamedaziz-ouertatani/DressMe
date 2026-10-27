@@ -31,10 +31,12 @@ A **git tag** is a name pinned to one commit. `pre-chat-removal` is pinned just 
 - **What happens to old chat events?** They stay in the `events` log. The admin overview shows an "Old chat" column only on days that have some. The two saved messages (`chats` collection) were dropped after the backup.
 
 ## 6. Not reused, in any later step
-The old chat's code, prompts, tool designs, training data and the `dressme-chat-v4` model are not used again. The new
-assistant uses the base `qwen3:4b`, which I fine-tune myself in 3h.
+The old chat's code, prompts, tool designs and training data are not used again. Since step 3d the chat model is a
+setting (`CHAT_MODEL`): the default and the only model evaluated is the base `qwen3.5:4b`, which I fine-tune myself in 3h.
+A teammate short of disk space may set `CHAT_MODEL=dressme-chat-v4` (the old fine-tune, already on their PC) to run the
+app; its answers are not evaluated (`docs/superpowers/handoff/assistant-model.md`).
 
 ## 7. What comes back in 3b to 3h
 - 3b: searching the wardrobe by words. 3c and 3d: other parts of Ask (not written in the repository yet).
 - 3e: my own price logic for selling. 3f: the new assistant's conversation page.
-- 3g: the Explainability page shows the new chat's groundedness rate and tool-call counts. 3h: fine-tuning `qwen3:4b`.
+- 3g: the Explainability page shows the new chat's groundedness rate and tool-call counts. 3h: fine-tuning `qwen3.5:4b`.
