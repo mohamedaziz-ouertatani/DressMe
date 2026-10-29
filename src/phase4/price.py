@@ -161,12 +161,19 @@ class PriceModel:
         if high < median:
             high = median
 
-        used_fallback = category is not None and \
-            category not in self.reference[channel]
         # the error of THIS channel: the overall figure is inflated by the
         # classified ads' 5-1800 DT spread and describes no user's prices
         by_channel = self.meta.get("error_factor_by_channel") or {}
         error_factor = by_channel.get(channel, self.meta.get("error_factor"))
+        # never claim more precision than the model has: a tight reference
+        # distribution can give "40 to 50 TND" (about x1.1) while the model is
+        # typically off by x1.5, so the band is at least median / err to median * err
+        if error_factor and error_factor > 1:
+            low = min(low, _round_to(median / error_factor, step))
+            high = max(high, _round_to(median * error_factor, step))
+
+        used_fallback = category is not None and \
+            category not in self.reference[channel]
         return {
             "low": low,
             "median": median,

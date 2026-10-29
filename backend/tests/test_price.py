@@ -36,6 +36,29 @@ def test_error_factor_falls_back_to_the_overall_one():
     assert partial.estimate(v, channel="classified", rules=RULES)["typical_error_factor"] == 1.94
 
 
+def test_band_is_never_narrower_than_the_typical_error():
+    """A tight reference distribution (every price 38-42 TND) would give a band of about x1.05;
+    the band must still span at least median / err to median * err."""
+    model = price.PriceModel(coef=[1, -1, 0.5, 0], intercept=0, mean=[0] * 4, scale=[1] * 4,
+                             train_logp=np.random.default_rng(0).normal(size=50),
+                             reference={"friperie": {"*": [38, 39, 40, 40, 41, 42]}},
+                             meta={"error_factor_by_channel": {"friperie": 1.53}})
+    for v in ([0.5, 0.2, 0.1, 0.8], [-1, 1, 0, 0], [1, -1, 1, 0]):
+        band = model.estimate(v, channel="friperie", rules=RULES)
+        m = band["median"]
+        assert 38 <= m <= 42
+        assert band["low"] <= round(m / 1.53) and band["high"] >= round(m * 1.53)
+        assert band["low"] <= m <= band["high"]
+
+
+def test_band_is_not_widened_without_an_error_factor():
+    model = price.PriceModel(coef=[1, -1, 0.5, 0], intercept=0, mean=[0] * 4, scale=[1] * 4,
+                             train_logp=np.random.default_rng(0).normal(size=50),
+                             reference={"friperie": {"*": [38, 39, 40, 40, 41, 42]}}, meta={})
+    band = model.estimate([0.5, 0.2, 0.1, 0.8], channel="friperie", rules=RULES)
+    assert 38 <= band["low"] and band["high"] <= 42
+
+
 def scan(client, headers, rgb=RED):
     r = client.post("/analyze", files={"photo": photo(rgb)}, headers=headers)
     assert r.status_code == 201, r.text
