@@ -1,8 +1,39 @@
-"""GET /price-estimate: the trained price model's band (a fake here, never the real file)."""
+"""GET /price-estimate: the trained price model's band (a fake here, never the real file),
+and PriceModel.estimate itself on a tiny model built in memory."""
 
+import numpy as np
+
+from app import ml  # noqa: F401  (puts src/ on the import path)
+import price
 from tests.conftest import BLUE, RED, FakePriceModel, photo, sign_up, upload
 
 FIELDS = {"low", "median", "high", "channel", "based_on", "count", "typical_error_factor", "note"}
+RULES = {"band_low_pct": 25, "band_high_pct": 75, "min_category_items": 8, "examples": 5, "round_to": 1}
+
+
+def tiny_model(meta):
+    """A 4-d PriceModel with no artifact: two channels, one reference distribution each."""
+    rng = np.random.default_rng(0)
+    return price.PriceModel(coef=[1, -1, 0.5, 0], intercept=0, mean=[0] * 4, scale=[1] * 4,
+                            train_logp=rng.normal(size=50),
+                            reference={"friperie": {"*": [10, 20, 25, 30, 40]},
+                                       "classified": {"*": [40, 70, 100, 150, 300]}},
+                            meta=meta)
+
+
+def test_error_factor_is_the_channels_own():
+    model = tiny_model({"error_factor": 1.94, "error_factor_by_channel": {"friperie": 1.53, "classified": 1.99}})
+    v = [0.5, 0.2, 0.1, 0.8]
+    assert model.estimate(v, channel="friperie", rules=RULES)["typical_error_factor"] == 1.53
+    assert model.estimate(v, channel="classified", rules=RULES)["typical_error_factor"] == 1.99
+
+
+def test_error_factor_falls_back_to_the_overall_one():
+    v = [0.5, 0.2, 0.1, 0.8]
+    only_overall = tiny_model({"error_factor": 1.94})
+    assert only_overall.estimate(v, channel="friperie", rules=RULES)["typical_error_factor"] == 1.94
+    partial = tiny_model({"error_factor": 1.94, "error_factor_by_channel": {"friperie": 1.53}})
+    assert partial.estimate(v, channel="classified", rules=RULES)["typical_error_factor"] == 1.94
 
 
 def scan(client, headers, rgb=RED):

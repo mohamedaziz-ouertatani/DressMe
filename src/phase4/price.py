@@ -163,6 +163,10 @@ class PriceModel:
 
         used_fallback = category is not None and \
             category not in self.reference[channel]
+        # the error of THIS channel: the overall figure is inflated by the
+        # classified ads' 5-1800 DT spread and describes no user's prices
+        by_channel = self.meta.get("error_factor_by_channel") or {}
+        error_factor = by_channel.get(channel, self.meta.get("error_factor"))
         return {
             "low": low,
             "median": median,
@@ -171,7 +175,7 @@ class PriceModel:
             "based_on": "category" if not used_fallback and category else "all",
             "count": int(len(prices)),
             "percentile": round(pct, 3),
-            "typical_error_factor": self.meta.get("error_factor"),
+            "typical_error_factor": error_factor,
             "note": _note(channel, used_fallback),
         }
 
