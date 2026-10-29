@@ -468,6 +468,21 @@ export interface Weather {
   lon: number
 }
 
+/** GET /price-estimate (backend/app/routers/price.py, src/phase4/price.py): a second-hand price band in TND.
+ *  The band fields are null (never 0) when the model cannot price this channel; `note` is always set and
+ *  must be shown with the band, which is a range, never a single price. */
+export type PriceChannel = 'friperie' | 'classified'
+export interface PriceEstimate {
+  low: number | null
+  median: number | null
+  high: number | null
+  channel: string
+  based_on: 'category' | 'all' | null   // the piece's own category, or all categories (too few of its kind)
+  count: number | null                  // priced items the band comes from
+  typical_error_factor: number | null   // e.g. 1.53 = typically off by x1.53 either way
+  note: string                          // which prices it was estimated against (English, from the server)
+}
+
 /** A collector run started from Admin > Listings (backend/app/jobs.py). */
 export type JobStatus = 'running' | 'stopping' | 'finished' | 'failed' | 'stopped' | 'lost'
 export interface Job {

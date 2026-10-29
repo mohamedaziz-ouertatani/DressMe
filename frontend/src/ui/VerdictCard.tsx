@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Check, CircleAlert, CircleHelp, Minus, Plus, Search, Sparkles, X } from 'lucide-react'
 import { ApiError, api } from '../api/client'
@@ -139,12 +139,13 @@ type WhyRow = { pro: boolean; text: string; thumbs: Pick<OutfitItem, 'id' | 'ima
  *  verdict (good outfits against what Buy and Think need), how far to trust it, a banner when that is low, the
  *  reasons for and against, "Why this verdict?", the best outfits as Dress cards, and the Bought it / Left it bar.
  *  `price` = the price the verdict was asked with (null = none given). `restart` is offered when the scan has
- *  expired (404); `again` after "Left it". */
-export function VerdictCard({ advice, candidatePhoto, price = null, showTryOn = false, restart, again }: {
+ *  expired (404); `again` after "Left it". `aside` is shown right under the verdict (the Scan page's price band). */
+export function VerdictCard({ advice, candidatePhoto, price = null, showTryOn = false, restart, again, aside }: {
   advice: BuyAdvice
   candidatePhoto?: string
   price?: number | null
   showTryOn?: boolean
+  aside?: ReactNode
   restart: { label: string; onClick: () => void }
   again?: { label: string; onClick: () => void }
 }) {
@@ -216,6 +217,8 @@ export function VerdictCard({ advice, candidatePhoto, price = null, showTryOn = 
           <ConfidenceDots level={advice.confidence} />
         </div>
       </section>
+
+      {aside}
 
       {advice.confidence === 'low' && (
         <section aria-label={t('lowConfTitle')} className="pop flex items-start gap-3 rounded-card bg-unsure-soft p-4 text-unsure">

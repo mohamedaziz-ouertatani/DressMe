@@ -11,6 +11,7 @@ import { ExplainPanel } from '../ui/ExplainPanel'
 import { FieldRow } from '../ui/Field'
 import { VerdictCard } from '../ui/VerdictCard'
 import { PhotoPicker } from '../ui/PhotoPicker'
+import { PriceBand } from '../ui/PriceBand'
 import { ErrorNote, Skeleton } from '../ui/states'
 
 const CHECK_FIELDS = ['category', 'sub_category', 'colour', 'pattern'] as const
@@ -124,7 +125,8 @@ export function ScanPage() {
             <h1 className="min-w-0 text-[18px] font-semibold leading-6 text-carbon">{name(candidate)}</h1>
           </div>
           <VerdictCard advice={advice} candidatePhoto={candidate.image_url} price={askedPrice} showTryOn
-            restart={{ label: t('scanAgain'), onClick: reset }} again={{ label: t('newScan'), onClick: reset }} />
+            restart={{ label: t('scanAgain'), onClick: reset }} again={{ label: t('newScan'), onClick: reset }}
+            aside={<PriceBand candidateId={candidate.id} />} />
         </div>
       </Page>
     )
