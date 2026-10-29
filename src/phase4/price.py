@@ -3,8 +3,8 @@ A price for a second-hand garment, from its FashionCLIP vector.
 
 `resale.py` prices a garment from look-alike LISTINGS: the 25th-75th percentile
 of what similar things are currently advertised at. That needs no training and
-was the right call when there was no priced data. There is now: 1,658 tayara
-classified ads and 183 friperie garments, collected and hand-checked.
+was the right call when there was no priced data. There is now: 1,523 everyday
+tayara classified ads and 183 friperie garments, collected and hand-checked.
 
 On the same embeddings and the same folds, a trained model ranks better than
 the percentile rule (0.585 against 0.507 on tayara; the error reduction has a
@@ -24,12 +24,12 @@ same market:
     clothing   tayara  70 DT   friperie 25 DT     2.8x
 
 So the estimate is produced in two steps: the model gives a RANK, and that rank
-is mapped onto the price distribution of the channel being priced for. That is
-what takes typical error from x2.37 to x1.56. It also means the model cannot
-price for a channel it has no reference distribution for, and `estimate()`
-says so rather than guessing.
+is mapped onto the price distribution of the channel being priced for. That
+mapping is what brings typical error down to x1.53 on friperie (x1.99 on
+classified ads). It also means the model cannot price for a channel it has no
+reference distribution for, and `estimate()` says so rather than guessing.
 
-Typical error is still **x1.56**. This is a hint worth a look, not a valuation.
+Typical error is still **x1.53** on friperie. This is a hint worth a look, not a valuation.
 `estimate()` always returns a band, never a bare number, for that reason.
 
     rules = load_rules()
