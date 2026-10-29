@@ -3,6 +3,7 @@ import { Banknote } from 'lucide-react'
 import { ApiError, api } from '../api/client'
 import type { PriceEstimate } from '../api/types'
 import { useI18n } from '../i18n'
+import { plural } from '../i18n/plurals'
 import type { StringKey } from '../i18n/strings'
 
 // which prices the band was estimated against, per channel (the translated form of the server's English `note`)
@@ -45,7 +46,7 @@ export function PriceBand({ candidateId }: { candidateId: string }) {
             )}
             {band.count !== null && (
               <p className="text-[14px] text-carbon-soft">
-                {t(band.based_on === 'category' ? 'priceBandBasis' : 'priceBandBasisAll', { count: number.format(band.count) })}
+                {plural(band.based_on === 'category' ? 'pricedPieces' : 'pricedPiecesAll', band.count, lang)}
               </p>
             )}
           </>
