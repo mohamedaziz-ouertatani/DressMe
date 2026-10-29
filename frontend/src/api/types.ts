@@ -480,7 +480,7 @@ export interface PriceEstimate {
   based_on: 'category' | 'all' | null   // the piece's own category, or all categories (too few of its kind)
   count: number | null                  // priced items the band comes from
   typical_error_factor: number | null   // e.g. 1.53 = typically off by x1.53 either way
-  note: string                          // which prices it was estimated against (English, from the server)
+  note: string                          // English, for other consumers: the app builds its own from `channel`
 }
 
 /** A collector run started from Admin > Listings (backend/app/jobs.py). */

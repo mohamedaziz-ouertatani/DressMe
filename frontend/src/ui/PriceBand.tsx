@@ -3,10 +3,14 @@ import { Banknote } from 'lucide-react'
 import { ApiError, api } from '../api/client'
 import type { PriceEstimate } from '../api/types'
 import { useI18n } from '../i18n'
+import type { StringKey } from '../i18n/strings'
+
+// which prices the band was estimated against, per channel (the translated form of the server's English `note`)
+const NOTE: Record<string, StringKey> = { friperie: 'priceNoteFriperie', classified: 'priceNoteClassified' }
 
 /** The usual second-hand price of a scan (GET /price-estimate, the trained price model). The model is typically off
- *  by about x1.5, so this is ALWAYS a range with the server's note and the typical error, never a single price.
- *  No model on the server (503) or a failed call: nothing is shown, the verdict stands on its own. */
+ *  by about x1.5, so this is ALWAYS a range with the channel it was estimated against and the typical error, never a
+ *  single price. No model on the server (503) or a failed call: nothing is shown, the verdict stands on its own. */
 export function PriceBand({ candidateId }: { candidateId: string }) {
   const { t, lang } = useI18n()
   const [band, setBand] = useState<PriceEstimate | null>(null)
@@ -48,7 +52,12 @@ export function PriceBand({ candidateId }: { candidateId: string }) {
         ) : (
           <p className="text-[14px] text-carbon-soft">{t('priceBandNone')}</p>
         )}
-        <p className="text-[13px] text-carbon-soft" lang="en">{band.note}</p>
+        {/* the server's `note` is English only: the same sentence is built here from the channel */}
+        {NOTE[band.channel] && (
+          <p className="text-[13px] text-carbon-soft">
+            {t(NOTE[band.channel])}{known && band.based_on === 'all' ? ` ${t('priceNoteFallback')}` : ''}
+          </p>
+        )}
       </div>
     </section>
   )
