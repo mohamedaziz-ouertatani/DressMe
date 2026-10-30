@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
+import { useAuth } from '../auth'
 import { useI18n } from '../i18n'
+import { plural } from '../i18n/plurals'
 import { CATEGORY_LABELS, COLOUR_LABELS, SUB_LABELS, vocab } from '../i18n/vocab'
 import { Page } from '../shell'
 import { ItemPhoto } from '../ui/ItemPhoto'
@@ -16,10 +18,21 @@ export function SimilarPage() {
   const [params] = useSearchParams()
   const itemId = params.get('item') ?? undefined
   const candidateId = params.get('candidate') ?? undefined
+  const { user } = useAuth()
   const [all, setAll] = useState(false)      // also the other gender's pieces
-  const res = useLoad(() => api.similar({ itemId, candidateId }, 6, all), [itemId, candidateId, all])
+  const [allPrices, setAllPrices] = useState(false)      // also the listings above the budget cap
+  const res = useLoad(() => api.similar({ itemId, candidateId }, 6, all, allPrices), [itemId, candidateId, all, allPrices])
   const label = (sub: string, cat: string) => vocab(SUB_LABELS, sub, lang) || vocab(CATEGORY_LABELS, cat, lang)
   const pct = (s: number) => t('match', { p: Math.round(Math.max(0, s) * 100) })
+  // the cap the server used (budget x the team's share), said under the listings title with a way out
+  const cap = res.data?.budget_cap ?? null
+  const budget = user?.budget_tnd ?? null
+  const capLine = () => {
+    const share = cap !== null && budget ? cap / budget : 0
+    const p = lang === 'ar' ? new Intl.NumberFormat('ar-TN', { style: 'percent' }).format(share) : String(Math.round(share * 100))
+    return plural('underBudget', cap!, lang, { p })
+  }
+  const quiet = 'font-semibold text-ink underline decoration-1 underline-offset-4'
 
   return (
     <Page title={t('similarTitle')}>
@@ -67,15 +80,29 @@ export function SimilarPage() {
               </ul>
             )}
           </section>
-          {res.data.listings && res.data.listings.length > 0 && (
+          {((res.data.listings && res.data.listings.length > 0) || cap !== null || allPrices) && (
             <section>
               <h2 className="text-[18px] font-semibold text-carbon">{t('listingsTitle')}</h2>
+              {cap !== null && (
+                <p className="mt-1 text-[13px] text-carbon">
+                  {capLine()} · <button type="button" className={quiet} onClick={() => setAllPrices(true)}>{t('showAllPrices')}</button>
+                </p>
+              )}
+              {allPrices && budget !== null && (
+                <p className="mt-1 text-[13px] text-carbon">
+                  {t('allPricesShown')} · <button type="button" className={quiet} onClick={() => setAllPrices(false)}>{t('backToBudget')}</button>
+                </p>
+              )}
               <p className="mb-3 mt-1 text-[13px] text-carbon-soft">{t('listingsNote')}</p>
-              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                {res.data.listings.map((l) => (
-                  <li key={l.id}><ListingCard listing={l} note={pct(l.score)} /><div className="px-2"><SimilarWhy why={l.why} /></div></li>
-                ))}
-              </ul>
+              {res.data.listings && res.data.listings.length > 0 ? (
+                <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                  {res.data.listings.map((l) => (
+                    <li key={l.id}><ListingCard listing={l} note={pct(l.score)} /><div className="px-2"><SimilarWhy why={l.why} /></div></li>
+                  ))}
+                </ul>
+              ) : cap !== null ? (
+                <p className="text-[14px] text-carbon-soft">{t('nothingUnderBudget')}</p>
+              ) : null}
             </section>
           )}
           {res.data.shop && res.data.shop.length > 0 && (

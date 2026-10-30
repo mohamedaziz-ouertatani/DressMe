@@ -236,6 +236,7 @@ export interface Similar {
   listings?: (ListingHit & { why?: SimilarWhy })[]   // shop listings in stock now (empty until the collector has run)
   /** the piece everything above is compared with (a wardrobe item or a scan); missing on an older server */
   query?: { id: string; kind: 'item' | 'candidate'; image_url: string; category: Category; sub_category: string; colour: string }
+  budget_cap?: number | null   // TND: listings were kept up to this price (budget x the team's share); null = no cap
 }
 
 /** A shop product collected by src/phase4/collect_listings.py (backend/app/listings.py, listing_out).
@@ -468,6 +469,21 @@ export interface Weather {
   place: string                  // 'here' (the user's rounded position) or the default place's name
   lat: number
   lon: number
+}
+
+/** GET /price-estimate (backend/app/routers/price.py, src/phase4/price.py): a second-hand price band in TND.
+ *  The band fields are null (never 0) when the model cannot price this channel; `note` is always set and
+ *  must be shown with the band, which is a range, never a single price. */
+export type PriceChannel = 'friperie' | 'classified'
+export interface PriceEstimate {
+  low: number | null
+  median: number | null
+  high: number | null
+  channel: string
+  based_on: 'category' | 'all' | null   // the piece's own category, or all categories (too few of its kind)
+  count: number | null                  // priced items the band comes from
+  typical_error_factor: number | null   // e.g. 1.53 = typically off by x1.53 either way
+  note: string                          // English, for other consumers: the app builds its own from `channel`
 }
 
 /** A collector run started from Admin > Listings (backend/app/jobs.py). */

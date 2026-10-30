@@ -42,6 +42,24 @@ export const PLURALS = {
     fr: { one: '{n} nouvelle paire', other: '{n} nouvelles paires' },
     ar: { zero: 'لا تركيبة جديدة', one: 'تركيبة جديدة واحدة', two: 'تركيبتان جديدتان', few: '{n} تركيبات جديدة', many: '{n} تركيبة جديدة', other: '{n} تركيبة جديدة' },
   },
+  // the budget cap on the look-alike listings ({p} = the share of the budget, already formatted);
+  // after من the counted noun is genitive: دينارين, 3-10 دنانير, 11-99 دينارا, 100+ and fractions دينار
+  underBudget: {
+    en: { other: 'Under {n} TND ({p}% of your budget)' },
+    fr: { other: 'Moins de {n} TND ({p} % de ton budget)' },
+    ar: { one: 'أقل من دينار واحد ({p} من ميزانيتك)', two: 'أقل من دينارين ({p} من ميزانيتك)', few: 'أقل من {n} دنانير ({p} من ميزانيتك)', many: 'أقل من {n} دينارا ({p} من ميزانيتك)', other: 'أقل من {n} دينار ({p} من ميزانيتك)' },
+  },
+  // under the price band: how many priced pieces it comes from (after من the dual is genitive: قطعتين)
+  pricedPieces: {
+    en: { one: 'From {n} priced piece of this kind.', other: 'From {n} priced pieces of this kind.' },
+    fr: { one: 'Sur {n} pièce de ce type avec un prix.', other: 'Sur {n} pièces de ce type avec un prix.' },
+    ar: { one: 'من قطعة واحدة من هذا النوع لها سعر.', two: 'من قطعتين من هذا النوع لهما سعر.', few: 'من {n} قطع من هذا النوع لها سعر.', many: 'من {n} قطعة من هذا النوع لها سعر.', other: 'من {n} قطعة من هذا النوع لها سعر.' },
+  },
+  pricedPiecesAll: {
+    en: { one: 'From {n} priced piece of all kinds.', other: 'From {n} priced pieces of all kinds.' },
+    fr: { one: 'Sur {n} pièce de tous types avec un prix.', other: 'Sur {n} pièces de tous types avec un prix.' },
+    ar: { one: 'من قطعة واحدة من كل الأنواع لها سعر.', two: 'من قطعتين من كل الأنواع لهما سعر.', few: 'من {n} قطع من كل الأنواع لها سعر.', many: 'من {n} قطعة من كل الأنواع لها سعر.', other: 'من {n} قطعة من كل الأنواع لها سعر.' },
+  },
 } satisfies Record<string, Table>
 
 const rules = new Map<Language, Intl.PluralRules>()
