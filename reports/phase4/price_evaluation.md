@@ -149,9 +149,9 @@ knows.
 
 A category with fewer than `min_category_items` (8) priced pieces uses all of
 its channel's prices instead, and the card says so. Friperie dresses (4 items)
-are the current case. Training also drops categories under 8 items (hard-coded
-in `train_price.py`), so lowering `min_category_items` in the csv brings
-dresses back only after retraining.
+are the current case. Training reads the same setting and leaves out smaller
+categories, so lowering `min_category_items` brings dresses back only after
+retraining.
 
 ## Limits
 

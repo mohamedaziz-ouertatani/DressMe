@@ -103,6 +103,12 @@ def main():
     ap.add_argument("--out", type=Path, default=None)
     args = ap.parse_args()
 
+    # the team's settings, through the API's own strict loader: a bad csv
+    # stops training here, before any work, just as it stops the route
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from price import ARTIFACT, PriceModel, load_rules   # noqa: E402
+    min_items = int(load_rules()["min_category_items"])
+
     for p in (args.tayara, args.friperie):
         if not p.exists():
             sys.exit(f"Not found: {p}")
@@ -229,7 +235,7 @@ def main():
     cats = {"*": fr_m.price.to_numpy(float)}
     app_cat = fr_m.category.str.lower().map(FRIPERIE_TO_APP)
     for c, g2 in fr_m.groupby(app_cat):
-        if len(g2) >= 8:
+        if len(g2) >= min_items:         # smaller categories fall back to "*"
             cats[c] = g2.price.to_numpy(float)
     reference["friperie"] = cats
 
@@ -247,9 +253,6 @@ def main():
     if args.dry_run:
         print("\n--dry-run: nothing written")
         return
-
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from price import ARTIFACT, PriceModel          # noqa: E402
 
     model = PriceModel(
         coef=ridge.coef_, intercept=ridge.intercept_,
