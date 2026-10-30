@@ -234,6 +234,7 @@ export interface Similar {
   catalog: (CatalogHit & { why?: SimilarWhy })[]
   shop?: (ShopHit & { why?: SimilarWhy })[]   // missing or empty when the server has no shop catalogue
   listings?: (ListingHit & { why?: SimilarWhy })[]   // shop listings in stock now (empty until the collector has run)
+  budget_cap?: number | null   // TND: listings were kept up to this price (budget x the team's share); null = no cap
 }
 
 /** A shop product collected by src/phase4/collect_listings.py (backend/app/listings.py, listing_out).

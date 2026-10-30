@@ -42,6 +42,13 @@ export const PLURALS = {
     fr: { one: '{n} nouvelle paire', other: '{n} nouvelles paires' },
     ar: { zero: 'لا تركيبة جديدة', one: 'تركيبة جديدة واحدة', two: 'تركيبتان جديدتان', few: '{n} تركيبات جديدة', many: '{n} تركيبة جديدة', other: '{n} تركيبة جديدة' },
   },
+  // the budget cap on the look-alike listings ({p} = the share of the budget, already formatted);
+  // after من the counted noun is genitive: دينارين, 3-10 دنانير, 11-99 دينارا, 100+ and fractions دينار
+  underBudget: {
+    en: { other: 'Under {n} TND ({p}% of your budget)' },
+    fr: { other: 'Moins de {n} TND ({p} % de ton budget)' },
+    ar: { one: 'أقل من دينار واحد ({p} من ميزانيتك)', two: 'أقل من دينارين ({p} من ميزانيتك)', few: 'أقل من {n} دنانير ({p} من ميزانيتك)', many: 'أقل من {n} دينارا ({p} من ميزانيتك)', other: 'أقل من {n} دينار ({p} من ميزانيتك)' },
+  },
 } satisfies Record<string, Table>
 
 const rules = new Map<Language, Intl.PluralRules>()
