@@ -240,7 +240,8 @@ def similar(request: Request, item_id: str | None = None, candidate_id: str | No
             user=Depends(gendered_user)):
     """gender=all: also the other gender's pieces (default: the user's gender + unisex).
     Look-alikes in your wardrobe ('you already have this'), dataset inspiration,
-    H&M products ('shop', no price or stock) and shop listings in stock now ('listings')."""
+    H&M products ('shop', no price or stock) and shop listings in stock now ('listings').
+    'query' = the piece they are compared with (id, kind item | candidate, image_url, labels)."""
     if bool(item_id) == bool(candidate_id):
         raise HTTPException(422, "Give exactly one of item_id or candidate_id")
     doc = own_item(request, user, item_id or candidate_id,
@@ -272,7 +273,12 @@ def similar(request: Request, item_id: str | None = None, candidate_id: str | No
         hit["why"] = explain(hit, request.app.state.catalog.vector(hit["id"]))
     for hit in listings:
         hit["why"] = explain(hit, request.app.state.listing_index.vector(request.app.state.db, hit["id"]))
-    return {"wardrobe": out_mine, "catalog": catalog, "shop": shop, "listings": listings}
+    # the piece everything above is compared with, so the app can show it at the top
+    kind = "items" if item_id else "candidates"
+    shown_query = {k: v for k, v in item_out(doc, kind=kind).items()
+                   if k in ("id", "image_url", "category", "sub_category", "colour")}
+    return {"wardrobe": out_mine, "catalog": catalog, "shop": shop, "listings": listings,
+            "query": {**shown_query, "kind": "item" if item_id else "candidate"}}
 
 
 @router.get("/catalog/{item_id}/image")
