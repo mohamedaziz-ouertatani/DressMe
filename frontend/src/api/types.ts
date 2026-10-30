@@ -234,6 +234,8 @@ export interface Similar {
   catalog: (CatalogHit & { why?: SimilarWhy })[]
   shop?: (ShopHit & { why?: SimilarWhy })[]   // missing or empty when the server has no shop catalogue
   listings?: (ListingHit & { why?: SimilarWhy })[]   // shop listings in stock now (empty until the collector has run)
+  /** the piece everything above is compared with (a wardrobe item or a scan); missing on an older server */
+  query?: { id: string; kind: 'item' | 'candidate'; image_url: string; category: Category; sub_category: string; colour: string }
 }
 
 /** A shop product collected by src/phase4/collect_listings.py (backend/app/listings.py, listing_out).
