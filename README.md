@@ -319,6 +319,49 @@ python src/phase3/make_colour_labelling_sheet.py   # 400 items + offline labelli
 python src/phase3/evaluate_colour_labels.py        # after labelling: accuracy -> reports/phase3/colour_validation.*
 ```
 
+## Phase 4: price model
+
+The **Worth it?** card shows a price band for a garment: "30 to 70 TND", the
+market it was priced against, and how far off the estimate typically is. The
+model is a ridge regression over the item's FashionCLIP vector, trained on
+1,523 tayara.tn ads and 183 friperie (Instagram resale) garments.
+Evidence and limits: [`reports/phase4/price_evaluation.md`](reports/phase4/price_evaluation.md).
+
+| file | what it is |
+|---|---|
+| `src/phase4/price.py` | `PriceModel.estimate(vector, category, channel)`, loaded by the API |
+| `src/phase4/train_price.py` | fits the model, writes the artifact |
+| `mappings/price_model.csv` | band percentiles, minimum items per category, rounding |
+| `models/checkpoints/price_model.joblib` | the fitted model (gitignored) |
+
+### Train it
+
+The two training files are gitignored. Ask Yassine for them and put them here:
+
+```
+data/processed/tayara_fashionclip.csv
+data/processed/friperie_fashionclip.csv
+```
+
+Then:
+
+```bash
+python src/phase4/train_price.py --dry-run   # measure only, writes nothing
+python src/phase4/train_price.py             # writes models/checkpoints/price_model.joblib
+docker compose up -d --build backend
+```
+
+### Without the artifact
+
+The app runs normally. `make_price_model()` returns `None`, the price route
+answers 503, and the card is hidden. No other screen depends on it.
+
+### Changing the band
+
+Edit `mappings/price_model.csv`, not the code. An unknown or missing setting
+makes the price route fail with an error naming the line (or the missing
+setting); the rest of the app is unaffected.
+
 ## Datasets and licences
 
 The datasets are used for non-commercial academic work only and are never redistributed through this repository; `data/` is git-ignored. The figures in `reports/` include small sample thumbnails used for analysis. Licence details are in section 2 of the report:

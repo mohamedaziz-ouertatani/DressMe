@@ -5,6 +5,7 @@ import type {
   Listing, ListingFilters, ListingPage, ListingPatch, ModelQuality, ReviewListing, SellForm, Occasion, Outfit, Season, Similar, Stats, User, Gender,
   ChatAttachment, ChatAction, TryOnResult, Weather, Explanation, GuessField, OutfitExplanation,
   Decision, DecisionAnswer, OutfitLabel, WearEntry, WearSummary, OccasionChip, TodayOutfits, BuildResult,
+  PriceChannel, PriceEstimate,
 } from './types'
 
 const BASE = '/api'
@@ -174,6 +175,13 @@ export const api = {
     if (ref.candidateId) q.set('candidate_id', ref.candidateId)
     if (all) q.set('gender', 'all')
     return request<Similar>(`/similar?${q}`)
+  },
+  /** A second-hand price band for an item or a scan (503 = no price model on the server). */
+  priceEstimate: (ref: { itemId?: string; candidateId?: string }, channel: PriceChannel = 'friperie') => {
+    const q = new URLSearchParams({ channel })
+    if (ref.itemId) q.set('item_id', ref.itemId)
+    if (ref.candidateId) q.set('candidate_id', ref.candidateId)
+    return request<PriceEstimate>(`/price-estimate?${q}`)
   },
   subCategoryGender: () => request<Record<string, 'men' | 'women' | 'unisex'>>('/vocab/sub-category-gender'),
   explain: (ref: { itemId?: string; candidateId?: string }, head?: GuessField, value?: string) => {
