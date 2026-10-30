@@ -237,10 +237,13 @@ def buy_advice(body: BuyAdvice, request: Request, user=Depends(gendered_user)):
 @router.get("/similar")
 def similar(request: Request, item_id: str | None = None, candidate_id: str | None = None,
             k: int = Query(6, ge=1, le=20), gender: Literal["mine", "all"] = "mine",
-            user=Depends(gendered_user)):
+            all_prices: bool = False, user=Depends(gendered_user)):
     """gender=all: also the other gender's pieces (default: the user's gender + unisex).
     Look-alikes in your wardrobe ('you already have this'), dataset inspiration,
-    H&M products ('shop', no price or stock) and shop listings in stock now ('listings')."""
+    H&M products ('shop', no price or stock) and shop listings in stock now ('listings').
+    With a budget in the profile, the listings are only those with a known price up to
+    budget x budget_share (mappings/verdict_rules.csv, the same share as the over_budget note);
+    `budget_cap` says which cap was used (null = none). all_prices=true switches the cap off."""
     if bool(item_id) == bool(candidate_id):
         raise HTTPException(422, "Give exactly one of item_id or candidate_id")
     doc = own_item(request, user, item_id or candidate_id,
@@ -254,8 +257,10 @@ def similar(request: Request, item_id: str | None = None, candidate_id: str | No
     shop = request.app.state.catalog.search_shop(query, k=k, category=doc["category"], genders=shown)
     for c in catalog + shop:
         c["image_url"] = f"/catalog/{c['id']}/image"
+    budget = user["profile"].get("budget_tnd")
+    budget_cap = None if all_prices or not budget else round(budget * verdict.load_rules()["budget_share"], 2)
     listings = request.app.state.listing_index.search(
-        request.app.state.db, query, k=k + 1, category=doc["category"], genders=shown)
+        request.app.state.db, query, k=k + 1, category=doc["category"], genders=shown, max_price=budget_cap)
     # a candidate made from a listing: leave the listing itself out
     listings = [x for x in listings if x["id"] != str(doc.get("listing_id"))][:k]
 
@@ -272,7 +277,8 @@ def similar(request: Request, item_id: str | None = None, candidate_id: str | No
         hit["why"] = explain(hit, request.app.state.catalog.vector(hit["id"]))
     for hit in listings:
         hit["why"] = explain(hit, request.app.state.listing_index.vector(request.app.state.db, hit["id"]))
-    return {"wardrobe": out_mine, "catalog": catalog, "shop": shop, "listings": listings}
+    return {"wardrobe": out_mine, "catalog": catalog, "shop": shop, "listings": listings,
+            "budget_cap": budget_cap}
 
 
 @router.get("/catalog/{item_id}/image")

@@ -291,10 +291,13 @@ class ListingIndex:
                 return vec
         return None
 
-    def search(self, db, vector, k=6, category=None, exclude_seller=None, genders=None):
+    def search(self, db, vector, k=6, category=None, exclude_seller=None, genders=None, max_price=None):
         """The k nearest listings. exclude_seller: leave out that seller's own listings
         (the Seller assistant's price hint must not quote the user's own prices).
-        genders: keep only these item genders (None = all)."""
+        genders: keep only these item genders (None = all).
+        max_price: keep only listings with a known price 0 < price_tnd <= max_price (None = any price,
+        no price too). 0 is left out on purpose: the shop connectors have no "> 0" check.
+        The filters run in memory over every listing, nearest first, so k come back whenever k match."""
         self._refresh(db)
         if not self._docs:
             return []
@@ -307,6 +310,8 @@ class ListingIndex:
             if exclude_seller is not None and doc.get("seller_id") == exclude_seller:
                 continue
             if genders and doc.get("gender") not in genders:
+                continue
+            if max_price is not None and not (doc.get("price_tnd") and 0 < doc["price_tnd"] <= max_price):
                 continue
             hits.append({**listing_out(doc), "score": round(float(scores[i]), 3)})
             if len(hits) == k:
