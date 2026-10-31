@@ -4,7 +4,7 @@ import { api } from '../api/client'
 import { useAuth } from '../auth'
 import { useI18n } from '../i18n'
 import { plural } from '../i18n/plurals'
-import { CATEGORY_LABELS, SUB_LABELS, vocab } from '../i18n/vocab'
+import { CATEGORY_LABELS, COLOUR_LABELS, SUB_LABELS, vocab } from '../i18n/vocab'
 import { Page } from '../shell'
 import { ItemPhoto } from '../ui/ItemPhoto'
 import { ScopeLine } from '../ui/GenderChoice'
@@ -42,6 +42,23 @@ export function SimilarPage() {
         <Skeleton className="h-64" />
       ) : (
         <div className="flex flex-col gap-10">
+          {/* the piece everything below is compared with, so "65% alike" says alike to what; an older server sends none */}
+          {res.data.query && (() => {
+            const q = res.data.query
+            // "T-shirt · Red"; an empty colour (the model was unsure and nobody confirmed it) shows the name alone
+            const colour = q.colour ? vocab(COLOUR_LABELS, q.colour, lang) : ''
+            const name = [label(q.sub_category, q.category), colour].filter(Boolean).join(' · ')
+            const photo = <ItemPhoto src={q.image_url} alt={name} size={72} />
+            return (
+              <section aria-label={t('comparedWith')} className="ticket flex items-center gap-4 self-start p-2 pe-5">
+                {q.kind === 'item' ? <Link to={`/wardrobe/${q.id}`} className="shrink-0">{photo}</Link> : <div className="shrink-0">{photo}</div>}
+                <div className="min-w-0">
+                  <p className="text-[13px] text-carbon-soft">{t('comparedWith')}</p>
+                  <p className="truncate text-[16px] font-semibold text-carbon">{name}</p>
+                </div>
+              </section>
+            )
+          })()}
           <ScopeLine all={all} onToggle={() => setAll(!all)} />
           <section>
             <h2 className="text-[18px] font-semibold text-carbon">{t('inWardrobe')}</h2>

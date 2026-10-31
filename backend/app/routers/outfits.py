@@ -243,7 +243,8 @@ def similar(request: Request, item_id: str | None = None, candidate_id: str | No
     H&M products ('shop', no price or stock) and shop listings in stock now ('listings').
     With a budget in the profile, the listings are only those with a known price up to
     budget x budget_share (mappings/verdict_rules.csv, the same share as the over_budget note);
-    `budget_cap` says which cap was used (null = none). all_prices=true switches the cap off."""
+    `budget_cap` says which cap was used (null = none). all_prices=true switches the cap off.
+    'query' = the piece they are compared with (id, kind item | candidate, image_url, labels)."""
     if bool(item_id) == bool(candidate_id):
         raise HTTPException(422, "Give exactly one of item_id or candidate_id")
     doc = own_item(request, user, item_id or candidate_id,
@@ -277,8 +278,13 @@ def similar(request: Request, item_id: str | None = None, candidate_id: str | No
         hit["why"] = explain(hit, request.app.state.catalog.vector(hit["id"]))
     for hit in listings:
         hit["why"] = explain(hit, request.app.state.listing_index.vector(request.app.state.db, hit["id"]))
+    # the piece everything above is compared with, so the app can show it at the top
+    kind = "items" if item_id else "candidates"
+    shown_query = {k: v for k, v in item_out(doc, kind=kind).items()
+                   if k in ("id", "image_url", "category", "sub_category", "colour")}
     return {"wardrobe": out_mine, "catalog": catalog, "shop": shop, "listings": listings,
-            "budget_cap": budget_cap}
+            "budget_cap": budget_cap,
+            "query": {**shown_query, "kind": "item" if item_id else "candidate"}}
 
 
 @router.get("/catalog/{item_id}/image")
