@@ -56,7 +56,7 @@ RULES_CSV = ROOT / "mappings" / "price_model.csv"
 ARTIFACT = ROOT / "models" / "checkpoints" / "price_model.joblib"
 
 SETTINGS = ("band_low_pct", "band_high_pct", "min_category_items",
-            "examples", "round_to")
+            "examples", "round_to", "tag_factor", "show_priced_high")
 CHANNELS = ("friperie", "classified")
 
 
@@ -84,6 +84,10 @@ def load_rules(path: Path = RULES_CSV) -> dict:
     if not 0 <= settings["band_low_pct"] < settings["band_high_pct"] <= 100:
         raise ValueError(f"{path.name}: band_low_pct must be below band_high_pct, "
                          "both within 0-100")
+    if settings["tag_factor"] <= 1:
+        raise ValueError(f"{path.name}: tag_factor must be above 1")
+    if settings["show_priced_high"] not in (0, 1):
+        raise ValueError(f"{path.name}: show_priced_high must be 0 or 1")
     return settings
 
 
@@ -220,6 +224,27 @@ def _round_to(value: float, step: float) -> int:
     if step <= 0:
         return int(round(value))
     return int(round(value / step) * step)
+
+
+def price_tag(price_tnd, band, rules) -> str | None:
+    """"good_deal", "priced_high" or None for an asked price against an estimate.
+
+    Measured from the band's MEDIAN by tag_factor, not from the band's edges:
+    the edges are only about x1.5 from the median, so on normal friperie prices
+    they would tag about 13% as a deal and 26% as high; x2 tags about 7% and
+    10% (the 183 hand-checked friperie items). "priced_high" is only returned
+    when show_priced_high is 1: the Seller assistant's price_hint (resale.py)
+    can still suggest a price this model calls high.
+    """
+    median = (band or {}).get("median")
+    if not price_tnd or price_tnd <= 0 or not median or median <= 0:
+        return None
+    factor = rules["tag_factor"]
+    if price_tnd < median / factor:
+        return "good_deal"
+    if price_tnd > median * factor and rules["show_priced_high"]:
+        return "priced_high"
+    return None
 
 
 def _note(channel: str, used_fallback: bool) -> str:

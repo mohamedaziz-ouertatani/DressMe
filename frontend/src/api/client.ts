@@ -178,11 +178,13 @@ export const api = {
     if (allPrices) q.set('all_prices', 'true')
     return request<Similar>(`/similar?${q}`)
   },
-  /** A second-hand price band for an item or a scan (503 = no price model on the server). */
-  priceEstimate: (ref: { itemId?: string; candidateId?: string }, channel: PriceChannel = 'friperie') => {
+  /** A second-hand price band for an item, a scan or a seller's listing (503 = no price model on the server).
+   *  A listing is always priced against friperie prices and also gets a `tag`. */
+  priceEstimate: (ref: { itemId?: string; candidateId?: string; listingId?: string }, channel: PriceChannel = 'friperie') => {
     const q = new URLSearchParams({ channel })
     if (ref.itemId) q.set('item_id', ref.itemId)
     if (ref.candidateId) q.set('candidate_id', ref.candidateId)
+    if (ref.listingId) q.set('listing_id', ref.listingId)
     return request<PriceEstimate>(`/price-estimate?${q}`)
   },
   subCategoryGender: () => request<Record<string, 'men' | 'women' | 'unisex'>>('/vocab/sub-category-gender'),

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Banknote } from 'lucide-react'
+import { Banknote, TrendingDown, TrendingUp } from 'lucide-react'
 import { ApiError, api } from '../api/client'
-import type { PriceEstimate } from '../api/types'
+import type { PriceEstimate, PriceTag } from '../api/types'
 import { useI18n } from '../i18n'
 import { plural } from '../i18n/plurals'
 import type { StringKey } from '../i18n/strings'
@@ -13,18 +13,33 @@ const NOTE: Record<string, StringKey> = { friperie: 'priceNoteFriperie', classif
  *  by about x1.5, so this is ALWAYS a range with the channel it was estimated against and the typical error, never a
  *  single price. No model on the server (503) or a failed call: nothing is shown, the verdict stands on its own. */
 export function PriceBand({ candidateId }: { candidateId: string }) {
-  const { t, lang } = useI18n()
-  const [band, setBand] = useState<PriceEstimate | null>(null)
+  const band = usePriceEstimate({ candidateId })
+  return band ? <PriceBandView band={band} /> : null
+}
+
+/** GET /price-estimate for a scan or a listing: null while loading, on 503 (no model) or on an error. */
+// eslint-disable-next-line react-refresh/only-export-components
+export function usePriceEstimate(ref: { candidateId?: string; listingId?: string }) {
+  const [state, setState] = useState<{ key: string; band: PriceEstimate } | null>(null)
+  const { candidateId, listingId } = ref
+  const key = `${candidateId ?? ''}|${listingId ?? ''}`
 
   useEffect(() => {
+    if (!candidateId && !listingId) return
     let live = true
-    api.priceEstimate({ candidateId })
-      .then((b) => { if (live) setBand(b) })
+    api.priceEstimate({ candidateId, listingId })
+      .then((b) => { if (live) setState({ key, band: b }) })
       .catch((e) => { if (!(e instanceof ApiError && e.status === 503)) console.error('price estimate', e) })
     return () => { live = false }
-  }, [candidateId])
+  }, [candidateId, listingId, key])
 
-  if (!band) return null
+  // an answer for another piece (the page moved on) is never shown
+  return state && state.key === key ? state.band : null
+}
+
+/** The band itself, already loaded. */
+export function PriceBandView({ band }: { band: PriceEstimate }) {
+  const { t, lang } = useI18n()
   const number = new Intl.NumberFormat(lang === 'ar' ? 'ar-TN' : lang)
   const known = band.low !== null && band.high !== null
 
@@ -61,5 +76,24 @@ export function PriceBand({ candidateId }: { candidateId: string }) {
         )}
       </div>
     </section>
+  )
+}
+
+const TAG: Record<PriceTag, { label: StringKey; look: string; icon: typeof TrendingDown }> = {
+  good_deal: { label: 'priceTagGoodDeal', look: 'bg-buy-soft text-buy', icon: TrendingDown },
+  priced_high: { label: 'priceTagHigh', look: 'bg-unsure-soft text-unsure', icon: TrendingUp },
+}
+
+/** "Good price" next to a friperie seller's price (GET /price-estimate?listing_id=, its `tag`). A word and an icon,
+ *  never colour alone. No tag (null, 503, a shop listing): nothing. */
+export function PriceTagChip({ tag, className = '' }: { tag?: PriceTag | null; className?: string }) {
+  const { t } = useI18n()
+  if (!tag || !TAG[tag]) return null
+  const { label, look, icon: Icon } = TAG[tag]
+  return (
+    <span role="note" className={`inline-flex items-center gap-1 rounded-pill px-2.5 py-0.5 text-[13px] font-medium ${look} ${className}`}>
+      <Icon className="size-3.5 shrink-0 mirror-rtl" strokeWidth={1.75} aria-hidden />
+      {t(label)}
+    </span>
   )
 }
