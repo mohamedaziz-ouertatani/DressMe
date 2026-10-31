@@ -51,10 +51,10 @@ export function PriceBandView({ band }: { band: PriceEstimate }) {
         {known ? (
           <>
             <p className="text-[22px] font-semibold leading-tight text-carbon tabular">
-              {t('priceBandRange', { low: number.format(band.low!), high: number.format(band.high!) })}
+              {plural('priceRange', band.high!, lang, { low: number.format(band.low!) })}
             </p>
             {band.median !== null && (
-              <p className="text-[14px] text-carbon-soft tabular">{t('priceBandMedian', { median: number.format(band.median) })}</p>
+              <p className="text-[14px] text-carbon-soft tabular">{plural('priceAbout', band.median, lang)}</p>
             )}
             {band.typical_error_factor !== null && (
               <p className="text-[14px] text-carbon-soft">{t('priceBandError', { factor: number.format(band.typical_error_factor) })}</p>
