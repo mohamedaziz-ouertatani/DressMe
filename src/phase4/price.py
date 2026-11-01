@@ -14,8 +14,8 @@ rather than as a win.
 
 WHAT THE MODEL DOES, AND WHAT IT DOES NOT
 -----------------------------------------
-It RANKS well and MIS-LEVELS. A ridge trained on classified ads keeps about
-half its ranking power on Instagram friperie (Spearman 0.33 against 0.58
+It RANKS well and MIS-LEVELS. A model trained on classified ads keeps about
+half its ranking power on Instagram friperie (ridge: Spearman 0.33 against 0.58
 in-market) but its dinar values are wrong, because the two channels are not the
 same market:
 
@@ -25,11 +25,22 @@ same market:
 
 So the estimate is produced in two steps: the model gives a RANK, and that rank
 is mapped onto the price distribution of the channel being priced for. That
-mapping is what brings typical error down to x1.53 on friperie (x1.99 on
+mapping is what brings typical error down to x1.42 on friperie (x1.90 on
 classified ads). It also means the model cannot price for a channel it has no
 reference distribution for, and `estimate()` says so rather than guessing.
 
-Typical error is still **x1.53** on friperie. This is a hint worth a look, not a valuation.
+THE MODEL: AN RBF-KERNEL SVR (since Nov 2026; a ridge before)
+-------------------------------------------------------------
+The scorer is StandardScaler + SVR(kernel="rbf", gamma="scale"), C and epsilon
+picked by inner grouped CV (src/phase4/train_price.py). In the benchmark
+(src/phase4/benchmark/, reports/phase4/benchmark/) it was the only model better
+than the ridge on BOTH channels with an interval clear of zero. The gain comes
+from the kernel, not from the SVR's robust loss: a kernel ridge gains as much,
+and a linear SVR does not. The ridge is still supported: an artifact
+without a "kind" (written before the SVR) loads as kind "linear".
+
+Typical error is still **x1.42** on friperie (the error of what estimate()
+serves, see train_price.py). This is a hint worth a look, not a valuation.
 `estimate()` always returns a band, never a bare number, for that reason.
 
     rules = load_rules()
@@ -58,6 +69,7 @@ ARTIFACT = ROOT / "models" / "checkpoints" / "price_model.joblib"
 SETTINGS = ("band_low_pct", "band_high_pct", "min_category_items",
             "examples", "round_to", "tag_factor", "show_priced_high")
 CHANNELS = ("friperie", "classified")
+KINDS = ("linear", "svr")
 
 
 # --------------------------------------------------------------------- rules
@@ -93,39 +105,58 @@ def load_rules(path: Path = RULES_CSV) -> dict:
 
 # --------------------------------------------------------------------- model
 class PriceModel:
-    """A ridge over FashionCLIP vectors, plus one reference price distribution
-    per channel and category.
+    """A regressor over FashionCLIP vectors (kind "linear" = ridge, kind "svr" =
+    RBF-kernel SVR), plus one reference price distribution per channel and
+    category.
 
-    The ridge supplies the ORDER; the reference distribution supplies the
+    The regressor supplies the ORDER; the reference distribution supplies the
     DINARS. Keeping them separate is what lets one trained model serve two
     channels that price 3-4x apart, and what makes it refuse a channel it has
     never seen rather than quietly answering in the wrong currency of value.
     """
 
-    def __init__(self, coef, intercept, mean, scale, train_logp, reference,
-                 meta=None):
-        self.coef = np.asarray(coef, np.float32)
-        self.intercept = float(intercept)
-        self.mean = np.asarray(mean, np.float32)
-        self.scale = np.asarray(scale, np.float32)
+    def __init__(self, coef=None, intercept=0.0, mean=None, scale=None,
+                 train_logp=(), reference=None, meta=None, kind="linear",
+                 pipeline=None):
+        # kind "linear": a ridge stored as plain numbers (coef / intercept on
+        #   standardised inputs). Old artifacts have no "kind" and are this.
+        # kind "svr": a fitted sklearn Pipeline (StandardScaler + RBF SVR),
+        #   pickled whole, so it needs the same scikit-learn version to load:
+        #   train it inside the backend container.
+        if kind not in KINDS:
+            raise ValueError(f"unknown model kind {kind!r}, expected one of {KINDS}")
+        self.kind = kind
+        self.pipeline = pipeline
+        if kind == "svr":
+            if pipeline is None:
+                raise ValueError("an svr PriceModel needs its fitted pipeline")
+            self.dim = int(pipeline[0].n_features_in_)
+        else:
+            self.coef = np.asarray(coef, np.float32)
+            self.intercept = float(intercept)
+            self.mean = np.asarray(mean, np.float32)
+            self.scale = np.asarray(scale, np.float32)
+            self.dim = int(self.coef.shape[0])
         # the training predictions, sorted -- turns a raw score into a rank
         self.train_logp = np.sort(np.asarray(train_logp, np.float32))
         # {channel: {category_or_"*": sorted array of observed prices}}
         self.reference = {c: {k: np.sort(np.asarray(v, np.float32))
                               for k, v in cats.items()}
-                          for c, cats in reference.items()}
+                          for c, cats in (reference or {}).items()}
         self.meta = meta or {}
 
     # ---------------------------------------------------------------- scoring
     def _raw(self, vector) -> float:
         v = np.asarray(vector, np.float32).ravel()
-        if v.shape[0] != self.coef.shape[0]:
-            raise ValueError(f"expected a {self.coef.shape[0]}-d vector, "
-                             f"got {v.shape[0]}")
+        if v.shape[0] != self.dim:
+            raise ValueError(f"expected a {self.dim}-d vector, got {v.shape[0]}")
         n = float(np.linalg.norm(v))
         if n > 1e-6:
             v = v / n          # the backend stores unit-length vectors
-        z = (v - self.mean) / np.where(self.scale == 0, 1.0, self.scale)
+        if self.kind == "svr":
+            # the pipeline standardises the input itself, as in training
+            return float(self.pipeline.predict(v.astype(np.float64)[None, :])[0])
+        z =(v - self.mean) / np.where(self.scale == 0, 1.0, self.scale)
         return float(z @ self.coef + self.intercept)
 
     def percentile_of(self, vector) -> float:
@@ -199,13 +230,19 @@ class PriceModel:
     # ------------------------------------------------------------- persistence
     def save(self, path: Path = ARTIFACT):
         import joblib
+        path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        joblib.dump({"coef": self.coef, "intercept": self.intercept,
-                     "mean": self.mean, "scale": self.scale,
-                     "train_logp": self.train_logp,
-                     "reference": {c: {k: v for k, v in cats.items()}
-                                   for c, cats in self.reference.items()},
-                     "meta": self.meta}, path)
+        d = {"kind": self.kind,
+             "train_logp": self.train_logp,
+             "reference": {c: {k: v for k, v in cats.items()}
+                           for c, cats in self.reference.items()},
+             "meta": self.meta}
+        if self.kind == "svr":
+            d["pipeline"] = self.pipeline
+        else:
+            d.update(coef=self.coef, intercept=self.intercept,
+                     mean=self.mean, scale=self.scale)
+        joblib.dump(d, path)
         return path
 
     @classmethod
@@ -215,6 +252,10 @@ class PriceModel:
             raise FileNotFoundError(
                 f"{path} not found -- run src/phase4/train_price.py first")
         d = joblib.load(path)
+        # an artifact written before the svr kind has no "kind": it is linear
+        if d.get("kind", "linear") == "svr":
+            return cls(train_logp=d["train_logp"], reference=d["reference"],
+                       meta=d.get("meta"), kind="svr", pipeline=d["pipeline"])
         return cls(d["coef"], d["intercept"], d["mean"], d["scale"],
                    d["train_logp"], d["reference"], d.get("meta"))
 
@@ -231,8 +272,10 @@ def price_tag(price_tnd, band, rules) -> str | None:
 
     Measured from the band's MEDIAN by tag_factor, not from the band's edges:
     the edges are only about x1.5 from the median, so on normal friperie prices
-    they would tag about 13% as a deal and 26% as high; x2 tags about 7% and
-    10% (the 183 hand-checked friperie items). "priced_high" is only returned
+    they would tag about 13% as a deal and 26% as high (measured with the
+    ridge). x2 tags about 7% as a deal and 4% as high with the SVR (7% and 9%
+    with the ridge): grouped-CV estimates on the 183 hand-checked friperie
+    items at their own asking prices, mean of 5 fold assignments. "priced_high" is only returned
     when show_priced_high is 1. On since price_hint uses the same model (#68):
     the chat's suggestion and the tag agree. Wording kept soft ('Above the
     usual price'), shown only above x2 the estimate, always with the band.

@@ -323,8 +323,12 @@ python src/phase3/evaluate_colour_labels.py        # after labelling: accuracy -
 
 The **Worth it?** card shows a price band for a garment: "30 to 70 TND", the
 market it was priced against, and how far off the estimate typically is. The
-model is a ridge regression over the item's FashionCLIP vector, trained on
-1,523 tayara.tn ads and 183 friperie (Instagram resale) garments.
+model is an RBF-kernel SVR over the item's FashionCLIP vector, trained on
+1,523 tayara.tn ads and 183 friperie (Instagram resale) garments. Typical error
+is ×1.42 on friperie prices (×1.53 with the ridge). It was a ridge regression until 1 Nov 2026; the
+benchmark that chose the SVR is in
+[`src/phase4/benchmark/`](src/phase4/benchmark/) and
+[`reports/phase4/benchmark/`](reports/phase4/benchmark/).
 Evidence and limits: [`reports/phase4/price_evaluation.md`](reports/phase4/price_evaluation.md).
 
 | file | what it is |
@@ -343,13 +347,29 @@ data/processed/tayara_fashionclip.csv
 data/processed/friperie_fashionclip.csv
 ```
 
-Then:
+Then train **inside the backend container**. The SVR is saved as a pickled
+scikit-learn pipeline, and it loads only with the scikit-learn version that
+wrote it, so it must be the container's version:
 
 ```bash
-python src/phase4/train_price.py --dry-run   # measure only, writes nothing
-python src/phase4/train_price.py             # writes models/checkpoints/price_model.joblib
+docker exec -w /app dressme-backend-1 python src/phase4/train_price.py --dry-run
+```
+
+```bash
+docker exec -w /app dressme-backend-1 python src/phase4/train_price.py
+```
+
+```bash
 docker compose up -d --build backend
 ```
+
+The first command only measures and writes nothing. The second writes
+`models/checkpoints/price_model.joblib`. The default is `--model svr`: C and
+epsilon are chosen by grouped CV on the training data, and it takes a few
+minutes. `--model ridge` trains the earlier linear model (40 KB instead of
+6.4 MB, any scikit-learn version). An artifact made before the SVR still
+loads, as the ridge. The kind, the chosen parameters and the measured errors
+are in the artifact's `meta`.
 
 ### Without the artifact
 
