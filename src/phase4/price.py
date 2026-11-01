@@ -58,6 +58,7 @@ ARTIFACT = ROOT / "models" / "checkpoints" / "price_model.joblib"
 SETTINGS = ("band_low_pct", "band_high_pct", "min_category_items",
             "examples", "round_to", "tag_factor", "show_priced_high")
 CHANNELS = ("friperie", "classified")
+KINDS = ("linear", "svr")
 
 
 # --------------------------------------------------------------------- rules
@@ -93,39 +94,58 @@ def load_rules(path: Path = RULES_CSV) -> dict:
 
 # --------------------------------------------------------------------- model
 class PriceModel:
-    """A ridge over FashionCLIP vectors, plus one reference price distribution
-    per channel and category.
+    """A regressor over FashionCLIP vectors (kind "linear" = ridge, kind "svr" =
+    RBF-kernel SVR), plus one reference price distribution per channel and
+    category.
 
-    The ridge supplies the ORDER; the reference distribution supplies the
+    The regressor supplies the ORDER; the reference distribution supplies the
     DINARS. Keeping them separate is what lets one trained model serve two
     channels that price 3-4x apart, and what makes it refuse a channel it has
     never seen rather than quietly answering in the wrong currency of value.
     """
 
-    def __init__(self, coef, intercept, mean, scale, train_logp, reference,
-                 meta=None):
-        self.coef = np.asarray(coef, np.float32)
-        self.intercept = float(intercept)
-        self.mean = np.asarray(mean, np.float32)
-        self.scale = np.asarray(scale, np.float32)
+    def __init__(self, coef=None, intercept=0.0, mean=None, scale=None,
+                 train_logp=(), reference=None, meta=None, kind="linear",
+                 pipeline=None):
+        # kind "linear": a ridge stored as plain numbers (coef / intercept on
+        #   standardised inputs). Old artifacts have no "kind" and are this.
+        # kind "svr": a fitted sklearn Pipeline (StandardScaler + RBF SVR),
+        #   pickled whole, so it needs the same scikit-learn version to load:
+        #   train it inside the backend container.
+        if kind not in KINDS:
+            raise ValueError(f"unknown model kind {kind!r}, expected one of {KINDS}")
+        self.kind = kind
+        self.pipeline = pipeline
+        if kind == "svr":
+            if pipeline is None:
+                raise ValueError("an svr PriceModel needs its fitted pipeline")
+            self.dim = int(pipeline[0].n_features_in_)
+        else:
+            self.coef = np.asarray(coef, np.float32)
+            self.intercept = float(intercept)
+            self.mean = np.asarray(mean, np.float32)
+            self.scale = np.asarray(scale, np.float32)
+            self.dim = int(self.coef.shape[0])
         # the training predictions, sorted -- turns a raw score into a rank
         self.train_logp = np.sort(np.asarray(train_logp, np.float32))
         # {channel: {category_or_"*": sorted array of observed prices}}
         self.reference = {c: {k: np.sort(np.asarray(v, np.float32))
                               for k, v in cats.items()}
-                          for c, cats in reference.items()}
+                          for c, cats in (reference or {}).items()}
         self.meta = meta or {}
 
     # ---------------------------------------------------------------- scoring
     def _raw(self, vector) -> float:
         v = np.asarray(vector, np.float32).ravel()
-        if v.shape[0] != self.coef.shape[0]:
-            raise ValueError(f"expected a {self.coef.shape[0]}-d vector, "
-                             f"got {v.shape[0]}")
+        if v.shape[0] != self.dim:
+            raise ValueError(f"expected a {self.dim}-d vector, got {v.shape[0]}")
         n = float(np.linalg.norm(v))
         if n > 1e-6:
             v = v / n          # the backend stores unit-length vectors
-        z = (v - self.mean) / np.where(self.scale == 0, 1.0, self.scale)
+        if self.kind == "svr":
+            # the pipeline standardises the input itself, as in training
+            return float(self.pipeline.predict(v.astype(np.float64)[None, :])[0])
+        z =(v - self.mean) / np.where(self.scale == 0, 1.0, self.scale)
         return float(z @ self.coef + self.intercept)
 
     def percentile_of(self, vector) -> float:
@@ -199,13 +219,19 @@ class PriceModel:
     # ------------------------------------------------------------- persistence
     def save(self, path: Path = ARTIFACT):
         import joblib
+        path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        joblib.dump({"coef": self.coef, "intercept": self.intercept,
-                     "mean": self.mean, "scale": self.scale,
-                     "train_logp": self.train_logp,
-                     "reference": {c: {k: v for k, v in cats.items()}
-                                   for c, cats in self.reference.items()},
-                     "meta": self.meta}, path)
+        d = {"kind": self.kind,
+             "train_logp": self.train_logp,
+             "reference": {c: {k: v for k, v in cats.items()}
+                           for c, cats in self.reference.items()},
+             "meta": self.meta}
+        if self.kind == "svr":
+            d["pipeline"] = self.pipeline
+        else:
+            d.update(coef=self.coef, intercept=self.intercept,
+                     mean=self.mean, scale=self.scale)
+        joblib.dump(d, path)
         return path
 
     @classmethod
@@ -215,6 +241,10 @@ class PriceModel:
             raise FileNotFoundError(
                 f"{path} not found -- run src/phase4/train_price.py first")
         d = joblib.load(path)
+        # an artifact written before the svr kind has no "kind": it is linear
+        if d.get("kind", "linear") == "svr":
+            return cls(train_logp=d["train_logp"], reference=d["reference"],
+                       meta=d.get("meta"), kind="svr", pipeline=d["pipeline"])
         return cls(d["coef"], d["intercept"], d["mean"], d["scale"],
                    d["train_logp"], d["reference"], d.get("meta"))
 

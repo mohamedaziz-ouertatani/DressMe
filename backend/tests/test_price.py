@@ -59,6 +59,64 @@ def test_band_is_not_widened_without_an_error_factor():
     assert 38 <= band["low"] and band["high"] <= 42
 
 
+# ------------------------------------------------- the two model kinds and their artifacts
+REFERENCE = {"friperie": {"*": [10, 20, 25, 30, 40, 55]}, "classified": {"*": [40, 70, 100, 150, 300]}}
+
+
+def tiny_svr():
+    """A 4-d RBF-SVR PriceModel, fitted in memory, as train_price.py builds it."""
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.svm import SVR
+    rng = np.random.default_rng(1)
+    X = rng.normal(size=(60, 4))
+    X /= np.linalg.norm(X, axis=1, keepdims=True)
+    y = X @ np.array([1.0, -1.0, 0.5, 0.0]) + rng.normal(scale=0.1, size=60)
+    pipe = make_pipeline(StandardScaler(), SVR(kernel="rbf", gamma="scale", C=1, epsilon=0.1)).fit(X, y)
+    return price.PriceModel(kind="svr", pipeline=pipe, train_logp=pipe.predict(X), reference=REFERENCE,
+                            meta={"model": "svr", "error_factor_by_channel": {"friperie": 1.44}})
+
+
+def test_svr_save_load_round_trip(tmp_path):
+    model = tiny_svr()
+    back = price.PriceModel.load(model.save(tmp_path / "svr.joblib"))
+    assert back.kind == "svr" and back.meta == model.meta
+    for v in ([0.5, 0.2, 0.1, 0.8], [-1, 1, 0, 0], [1, -1, 1, 0]):
+        assert back.percentile_of(v) == model.percentile_of(v)
+        assert back.estimate(v, channel="friperie", rules=RULES) == model.estimate(v, channel="friperie", rules=RULES)
+
+
+def test_estimate_with_an_svr_model_returns_a_band():
+    model = tiny_svr()
+    band = model.estimate([0.5, 0.2, 0.1, 0.8], channel="friperie", rules=RULES)
+    assert band["low"] <= band["median"] <= band["high"]
+    assert band["typical_error_factor"] == 1.44 and band["channel"] == "friperie"
+    assert model.estimate([0.5, 0.2, 0.1, 0.8], channel="boutique", rules=RULES) is None
+    # an expensive-direction vector ranks above a cheap-direction one
+    assert model.percentile_of([1, -1, 0.5, 0]) > model.percentile_of([-1, 1, -0.5, 0])
+
+
+def test_old_linear_artifact_without_kind_still_loads(tmp_path):
+    """Teammates have a price_model.joblib written before the svr kind: no "kind" key."""
+    import joblib
+    old = tiny_model({"error_factor_by_channel": {"friperie": 1.53}})
+    path = tmp_path / "old.joblib"
+    joblib.dump({"coef": old.coef, "intercept": old.intercept, "mean": old.mean, "scale": old.scale,
+                 "train_logp": old.train_logp, "reference": old.reference, "meta": old.meta}, path)
+    back = price.PriceModel.load(path)
+    assert back.kind == "linear"
+    v = [0.5, 0.2, 0.1, 0.8]
+    band = back.estimate(v, channel="friperie", rules=RULES)
+    assert band == old.estimate(v, channel="friperie", rules=RULES)
+    assert band["typical_error_factor"] == 1.53
+
+
+def test_unknown_kind_is_refused():
+    import pytest
+    with pytest.raises(ValueError):
+        price.PriceModel(kind="forest", train_logp=[0, 1], reference=REFERENCE)
+
+
 def scan(client, headers, rgb=RED):
     r = client.post("/analyze", files={"photo": photo(rgb)}, headers=headers)
     assert r.status_code == 201, r.text
