@@ -233,8 +233,10 @@ def price_tag(price_tnd, band, rules) -> str | None:
     the edges are only about x1.5 from the median, so on normal friperie prices
     they would tag about 13% as a deal and 26% as high; x2 tags about 7% and
     10% (the 183 hand-checked friperie items). "priced_high" is only returned
-    when show_priced_high is 1: the Seller assistant's price_hint (resale.py)
-    can still suggest a price this model calls high.
+    when show_priced_high is 1. On since price_hint uses the same model (#68):
+    the chat's suggestion and the tag agree. Wording kept soft ('Above the
+    usual price'), shown only above x2 the estimate, always with the band.
+    Set to 0 to switch off.
     """
     median = (band or {}).get("median")
     if not price_tnd or price_tnd <= 0 or not median or median <= 0:
