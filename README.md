@@ -325,7 +325,7 @@ The **Worth it?** card shows a price band for a garment: "30 to 70 TND", the
 market it was priced against, and how far off the estimate typically is. The
 model is an RBF-kernel SVR over the item's FashionCLIP vector, trained on
 1,523 tayara.tn ads and 183 friperie (Instagram resale) garments. Typical error
-is ×1.50 on friperie prices. It was a ridge regression until 1 Nov 2026; the
+is ×1.42 on friperie prices (×1.53 with the ridge). It was a ridge regression until 1 Nov 2026; the
 benchmark that chose the SVR is in
 [`src/phase4/benchmark/`](src/phase4/benchmark/) and
 [`reports/phase4/benchmark/`](reports/phase4/benchmark/).

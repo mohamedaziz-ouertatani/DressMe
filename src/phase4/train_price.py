@@ -261,24 +261,32 @@ def main():
 
     # honest in-sample-free error: grouped 5-fold CV, the parameters chosen
     # again inside every training fold
-    fr_rows = np.where((meta_fit.channel == "friperie").to_numpy())[0]
-    fr_app = meta_fit.category.str.lower().map(FRIPERIE_TO_APP).to_numpy()
+    # honest in-sample-free error: grouped 5-fold CV, the parameters chosen
+    # again inside every training fold
+    chan_fit = meta_fit.channel.to_numpy()
+    fr_rows = np.where(chan_fit == "friperie")[0]
+    # the reference curve each item is read off, as estimate() picks it:
+    # friperie by the app category, classified by tayara's own group
+    curve = np.where(chan_fit == "friperie",
+                     meta_fit.category.str.lower().map(FRIPERIE_TO_APP).astype(str),
+                     meta_fit.category.astype(str))
     prices_fit = meta_fit.price.to_numpy(float)
     step = rules["round_to"]
     pred = np.empty(len(yfit))
-    served = np.full(len(yfit), np.nan)       # estimate()'s median, friperie rows
+    served = np.full(len(yfit), np.nan)       # estimate()'s median for each item
     fold_params = []
     for tr, te in folds_of(gfit, FOLDS):
         m, p = fit_model(args.model, Xfit[tr], yfit[tr], gfit[tr])
         fold_params.append(p)
         pred[te] = m.predict(Xfit[te])
-        # what the app would have said for each held-out friperie item: rank
-        # among this fold's training scores, read off this fold's friperie prices
+        # what the app would have said for each held-out item: rank among this
+        # fold's training scores, read off this fold's prices of the item's
+        # channel and category (the whole channel below min_category_items)
         scores_tr = m.predict(Xfit[tr])
-        tr_fr = np.intersect1d(tr, fr_rows)
-        for i in np.intersect1d(te, fr_rows):
-            same = tr_fr[fr_app[tr_fr] == fr_app[i]]
-            ref = prices_fit[same] if len(same) >= min_items else prices_fit[tr_fr]
+        for i in te:
+            same_ch = tr[chan_fit[tr] == chan_fit[i]]
+            same = same_ch[curve[same_ch] == curve[i]]
+            ref = prices_fit[same] if len(same) >= min_items else prices_fit[same_ch]
             served[i] = served_median(scores_tr, pred[i], ref, step)
     rho = spearmanr(pred, yfit).statistic
     if args.model == "svr":
@@ -286,25 +294,33 @@ def main():
             f"{k}: " + ", ".join(f"{v} x{c}" for v, c in
                                  pd.Series([f[k] for f in fold_params]).value_counts().items())
             for k in sorted(fold_params[0])))
-    # error after mapping rank -> the item's own channel distribution
-    err, per_channel = [], {}
-    for ch in meta_fit.channel.unique():
-        m_ = (meta_fit.channel == ch).to_numpy()
-        true = prices_fit[m_]
-        ref = np.sort(true)
+
+    def typical(e):
+        return float(np.exp(np.mean(e)))
+
+    # 1. the SERVED error (what the card quotes): the median estimate() would
+    #    have returned, against the asking price
+    served_e = np.abs(np.log(np.maximum(served, 1)) - np.log(prices_fit))
+    # 2. the earlier measure, kept for the record: every item ranked within its
+    #    channel and read off the whole channel's prices (in-sample curve)
+    rank_e = np.empty(len(yfit))
+    for ch in np.unique(chan_fit):
+        m_ = chan_fit == ch
         pc = (pd.Series(pred[m_]).rank().to_numpy() - .5) / m_.sum()
-        e = np.abs(np.log(np.quantile(ref, pc)) - np.log(true))
-        per_channel[ch] = round(float(np.exp(e.mean())), 2)
-        err.append(e)
-    err = np.concatenate(err)
-    factor = float(np.exp(err.mean()))
+        rank_e[m_] = np.abs(np.log(np.quantile(np.sort(prices_fit[m_]), pc))
+                            - np.log(prices_fit[m_]))
+    per_channel = {ch: round(typical(served_e[chan_fit == ch]), 2)
+                   for ch in np.unique(chan_fit)}
+    rank_per_channel = {ch: round(typical(rank_e[chan_fit == ch]), 2)
+                        for ch in np.unique(chan_fit)}
+    factor, rank_factor = typical(served_e), typical(rank_e)
     print(f"  grouped-CV Spearman {rho:+.3f}")
-    print(f"  typical error after channel mapping  x{factor:.2f}  overall")
+    print(f"  typical error of what estimate() serves  x{factor:.2f}  overall")
     for ch, f_ in sorted(per_channel.items()):
-        print(f"     {ch:<12} x{f_:.2f}")
-    print("\n  The per-channel figures are the ones to quote: the app serves")
-    print("  friperie shoppers, and tayara's 5-1800 DT spread inflates the")
-    print("  pooled number without describing what any user would see.")
+        print(f"     {ch:<12} x{f_:.2f}   (channel-wide rank map: x{rank_per_channel[ch]:.2f})")
+    print("\n  The per-channel served figures are the ones to quote (the card")
+    print("  shows them): the app serves friperie shoppers, and tayara's")
+    print("  5-1800 DT spread inflates the pooled number.")
 
     # ---- how often would the Shops tag fire on normal friperie prices? -----
     tag_rates = None
@@ -318,12 +334,6 @@ def main():
               f"(grouped-CV medians, tag_factor {factor_tag:g}):")
         print(f"     good_deal {tag_rates['good_deal']:.1%}   "
               f"priced_high {tag_rates['priced_high']:.1%}")
-        # the same medians against the asking prices: the error of the path
-        # the app serves (category reference, training-fold prices). The
-        # figure above maps every channel item against the whole channel.
-        tag_rates["served_error"] = round(float(np.exp(
-            np.abs(np.log(np.maximum(med, 1)) - np.log(asked)).mean())), 2)
-        print(f"     served-path error x{tag_rates['served_error']:.2f}")
 
     # ---- reference price distributions, keyed by the APP's categories -----
     reference = {}
@@ -354,6 +364,10 @@ def main():
             "params": params,
             "error_factor": round(factor, 2),
             "error_factor_by_channel": per_channel,
+            # the measure used before Nov 2026 (ridge: friperie x1.53), kept
+            # for the record; the card no longer shows it
+            "rank_map_error_factor": round(rank_factor, 2),
+            "rank_map_error_factor_by_channel": rank_per_channel,
             "cv_spearman": round(float(rho), 3),
             "tag_rates_friperie": tag_rates,
             "n_train": int(len(Xfit)),

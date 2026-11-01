@@ -54,25 +54,37 @@ three times. That is why the level comes from each channel's own prices.
 | | SVR (shipped) | ridge (before) |
 |---|---|---|
 | Spearman, grouped 5-fold CV, both channels | **0.589** | 0.558 |
-| typical error, friperie | **×1.50** | ×1.53 |
-| typical error, classified | **×1.94** | ×1.99 |
-| friperie error of the served path | **×1.44** | ×1.51 |
+| typical error, friperie (served; the card) | **×1.42** | ×1.51 |
+| typical error, classified (served) | **×1.90** | ×2.14 |
+| friperie, mean of 5 fold assignments | ×1.44 | ×1.51 |
+| *earlier measure, kept for the record:* friperie / classified | ×1.50 / ×1.94 | ×1.53 / ×1.99 |
 
-"Typical error ×1.50" is the geometric mean of how far the estimate is from the
+"Typical error ×1.42" is the geometric mean of how far the estimate is from the
 true price, as a ratio either way: the estimate is usually within a factor of
-1.50 above or below. The card on the Worth
+1.42 above or below. The card on the Worth
 it? screen quotes the friperie figure because that is what users see; the
-pooled figure (×1.89, ×1.94 with the ridge) is inflated by the 5–1800 TND
+pooled figure (×1.84, ×2.06 with the ridge) is inflated by the 5–1800 TND
 spread of the ads.
 
-The first three rows are what `train_price.py` prints and stores in the
-artifact (one fold assignment; five gave the same to ±0.02). The card shows
-the second row. The last row measures the median `estimate()` actually
-returns: the rank is read off the training fold's prices **of the item's own
-category**, then rounded. It is lower because the category curve fits better
-than the whole channel. It is the figure the benchmark reports (mean of 5 fold
-assignments). The card keeps the more cautious ×1.50, which is the same
-measure the ridge's ×1.53 used.
+**What "typical error" measures (since 1 Nov 2026).** It is the error of what
+`estimate()` serves. For each held-out item of the grouped CV, the model's score
+is ranked among the training fold's scores, and that rank is read off the
+training fold's prices of the item's own channel and category (the whole channel
+below `min_category_items`). The result is rounded like the app rounds it, and
+compared with the asking price. This is the same path the benchmark's "served
+(rank map)" row measures. `train_price.py` stores it as
+`error_factor_by_channel`, and the card and the band widening use it.
+
+The earlier measure ranked every item within its channel and read it off the
+whole channel's prices. It used no category curve and no training-fold split
+of the prices. That is the ×1.53 the ridge used to show. It is kept in the
+artifact's meta as `rank_map_error_factor_by_channel`. On the ads the two
+measures differ more (×1.90 served against ×1.94), because the classified curves
+are coarse (clothing / shoes / bags).
+
+The first five numbers come from one fold assignment, which is what
+`train_price.py` stores. Over five assignments the friperie served error
+averages ×1.44 (from ×1.42 to ×1.44).
 
 ### Against the current rule (`backend/app/resale.py`)
 
@@ -210,7 +222,7 @@ channel. The costs:
 | | ridge | SVR |
 |---|---|---|
 | artifact size | 40 KB | 6.4 MB (the support vectors) |
-| `estimate()` per item | 0.2 ms | 0.8 ms |
+| `estimate()` per item (backend running) | about 0.15 ms | about 1.3 ms |
 | scikit-learn version | any (plain numbers) | must match the version that trained it: train in the backend container |
 
 `--model ridge` still trains the earlier model, and an artifact written before
@@ -229,6 +241,11 @@ assignments):
 
 "Above the usual price" fires less than half as often. With the SVR, a
 friperie item at a normal price is rarely flagged as dear.
+
+Moving the card to the served error (×1.50 to ×1.42) changes nothing here. The
+tag is measured from the band's median, and the error factor only widens the
+band's edges. Re-measured after the change: the same 6.6% / 2.7% on the
+stored fold assignment.
 
 ## Things tested and not changed
 
@@ -285,7 +302,7 @@ is kept. Worth revisiting with more friperie data, deciding the rule first.
 
 Step 3 matters for categories whose prices sit close together. Without it, 10
 friperie jackets, most priced 40–50 TND, gave a band of "40 to 50 TND" while the
-line underneath said the estimate is typically off by ×1.53 (the ridge; ×1.50 now). For a median of
+line underneath said the estimate is typically off by ×1.53 (the ridge; ×1.42 now). For a median of
 46 TND the headline now reads "30 to 70 TND", which is what the model actually
 knows.
 
@@ -297,7 +314,7 @@ retraining.
 
 ## Limits
 
-- **A hint, not a valuation.** Typical error ×1.50 on friperie, and not
+- **A hint, not a valuation.** Typical error ×1.42 on friperie, and not
   clearly better than the category's usual price in dinars (see "At the dinar
   level").
 - **Asking prices**, not sale prices.
