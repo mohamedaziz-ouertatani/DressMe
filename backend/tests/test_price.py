@@ -147,7 +147,7 @@ def with_priced_high(monkeypatch, on):
 
 def test_team_settings_for_the_tag():
     rules = price.load_rules()
-    assert rules["tag_factor"] == 2 and rules["show_priced_high"] == 0
+    assert rules["tag_factor"] == 2 and rules["show_priced_high"] == 1
 
 
 def test_cheap_seller_listing_is_a_good_deal(make_client):
@@ -164,7 +164,8 @@ def test_cheap_seller_listing_is_a_good_deal(make_client):
 def test_dear_seller_listing_is_priced_high_only_when_switched_on(client, monkeypatch):
     buyer = sign_up(client)
     lid = listed(client, 60)                                   # 60 > 25 x 2
-    assert tag_of(client, buyer, lid)["tag"] is None           # show_priced_high = 0 (team default)
+    with_priced_high(monkeypatch, 0)
+    assert tag_of(client, buyer, lid)["tag"] is None           # switched off
     with_priced_high(monkeypatch, 1)
     assert tag_of(client, buyer, lid)["tag"] == "priced_high"
 
