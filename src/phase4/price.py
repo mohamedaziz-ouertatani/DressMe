@@ -14,8 +14,8 @@ rather than as a win.
 
 WHAT THE MODEL DOES, AND WHAT IT DOES NOT
 -----------------------------------------
-It RANKS well and MIS-LEVELS. A ridge trained on classified ads keeps about
-half its ranking power on Instagram friperie (Spearman 0.33 against 0.58
+It RANKS well and MIS-LEVELS. A model trained on classified ads keeps about
+half its ranking power on Instagram friperie (ridge: Spearman 0.33 against 0.58
 in-market) but its dinar values are wrong, because the two channels are not the
 same market:
 
@@ -25,11 +25,21 @@ same market:
 
 So the estimate is produced in two steps: the model gives a RANK, and that rank
 is mapped onto the price distribution of the channel being priced for. That
-mapping is what brings typical error down to x1.53 on friperie (x1.99 on
+mapping is what brings typical error down to x1.50 on friperie (x1.94 on
 classified ads). It also means the model cannot price for a channel it has no
 reference distribution for, and `estimate()` says so rather than guessing.
 
-Typical error is still **x1.53** on friperie. This is a hint worth a look, not a valuation.
+THE MODEL: AN RBF-KERNEL SVR (since Nov 2026; a ridge before)
+-------------------------------------------------------------
+The scorer is StandardScaler + SVR(kernel="rbf", gamma="scale"), C and epsilon
+picked by inner grouped CV (src/phase4/train_price.py). In the benchmark
+(src/phase4/benchmark/, reports/phase4/benchmark/) it was the only model better
+than the ridge on BOTH channels with an interval clear of zero. The gain comes
+from the kernel, not from the SVR's robust loss: a kernel ridge gains as much,
+and a linear SVR does not. The ridge is still supported: an artifact
+without a "kind" (written before the SVR) loads as kind "linear".
+
+Typical error is still **x1.50** on friperie. This is a hint worth a look, not a valuation.
 `estimate()` always returns a band, never a bare number, for that reason.
 
     rules = load_rules()
@@ -261,8 +271,10 @@ def price_tag(price_tnd, band, rules) -> str | None:
 
     Measured from the band's MEDIAN by tag_factor, not from the band's edges:
     the edges are only about x1.5 from the median, so on normal friperie prices
-    they would tag about 13% as a deal and 26% as high; x2 tags about 7% and
-    10% (the 183 hand-checked friperie items). "priced_high" is only returned
+    they would tag about 13% as a deal and 26% as high (measured with the
+    ridge). x2 tags about 7% as a deal and 4% as high with the SVR (7% and 9%
+    with the ridge): grouped-CV estimates on the 183 hand-checked friperie
+    items at their own asking prices, mean of 5 fold assignments. "priced_high" is only returned
     when show_priced_high is 1. On since price_hint uses the same model (#68):
     the chat's suggestion and the tag agree. Wording kept soft ('Above the
     usual price'), shown only above x2 the estimate, always with the band.

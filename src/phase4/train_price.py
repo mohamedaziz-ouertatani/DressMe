@@ -25,8 +25,19 @@ post?" -- which is a fact about the channel, not about the garment.
 So the target is log price with each channel's mean removed. The model then
 learns one thing only: within a channel, which garments are expensive. The
 dinar level comes back afterwards, from that channel's own reference price
-distribution. That separation is what lets 1,841 items train one ranker that
+distribution. That separation is what lets 1,706 items train one ranker that
 serves two markets priced 3-4x apart.
+
+THE MODEL
+---------
+--model svr (default): StandardScaler + SVR(kernel="rbf", gamma="scale").
+C in {1, 3} and epsilon in {0.05, 0.1, 0.2} are chosen by an inner grouped
+3-fold CV on the training data only, both for the shipped fit and inside every
+outer CV fold, so the reported error never saw its test items during tuning.
+--model ridge: the earlier StandardScaler + RidgeCV. Why the SVR won is in
+reports/phase4/price_evaluation.md, "Model benchmark". The kind, the chosen
+parameters and the measured errors / tag rates are recorded in the artifact's
+meta.
 
 Whether pooling actually beats training on tayara alone is MEASURED below, not
 assumed. If it does not help, the script says so and you should use --tayara-only.
