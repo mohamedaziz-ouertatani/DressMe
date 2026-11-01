@@ -4,3 +4,5 @@ setting,band_high_pct,75,REVIEW: upper percentile of the reported price band
 setting,min_category_items,8,REVIEW: priced items a category needs before its own distribution is used
 setting,examples,5,REVIEW: look-alike items shown with an estimate
 setting,round_to,1,REVIEW: round the estimate to this many TND
+setting,tag_factor,2,"REVIEW: a second-hand listing is tagged good_deal below median / tag_factor and priced_high above median x tag_factor. Band edges (about x1.5) would tag ~13% deal + ~26% high of normal prices on the 183 friperie items; x2 tags ~7% + ~10%"
+setting,show_priced_high,0,"REVIEW: 1 = show priced_high. Off because the Seller assistant's price_hint (resale.py) can suggest prices this model calls high; switch on once price_hint uses the same model"

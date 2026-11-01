@@ -49,6 +49,19 @@ export const PLURALS = {
     fr: { other: 'Moins de {n} TND ({p} % de ton budget)' },
     ar: { one: 'أقل من دينار واحد ({p} من ميزانيتك)', two: 'أقل من دينارين ({p} من ميزانيتك)', few: 'أقل من {n} دنانير ({p} من ميزانيتك)', many: 'أقل من {n} دينارا ({p} من ميزانيتك)', other: 'أقل من {n} دينار ({p} من ميزانيتك)' },
   },
+  // the price band's range, counted on its SECOND number ({low} already formatted); after إلى the
+  // noun is genitive, same forms as underBudget: دينارين, 3-10 دنانير, 11-99 دينارا, 100+ and fractions دينار
+  priceRange: {
+    en: { other: '{low} to {n} TND' },
+    fr: { other: 'De {low} à {n} TND' },
+    ar: { one: 'من {low} إلى دينار واحد', two: 'من {low} إلى دينارين', few: 'من {low} إلى {n} دنانير', many: 'من {low} إلى {n} دينارا', other: 'من {low} إلى {n} دينار' },
+  },
+  // the band's median (after حوالي the noun is genitive too)
+  priceAbout: {
+    en: { other: 'Most around {n} TND' },
+    fr: { other: 'Le plus souvent autour de {n} TND' },
+    ar: { one: 'غالبا حوالي دينار واحد', two: 'غالبا حوالي دينارين', few: 'غالبا حوالي {n} دنانير', many: 'غالبا حوالي {n} دينارا', other: 'غالبا حوالي {n} دينار' },
+  },
   // under the price band: how many priced pieces it comes from (after من the dual is genitive: قطعتين)
   pricedPieces: {
     en: { one: 'From {n} priced piece of this kind.', other: 'From {n} priced pieces of this kind.' },

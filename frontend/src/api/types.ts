@@ -484,7 +484,11 @@ export interface PriceEstimate {
   count: number | null                  // priced items the band comes from
   typical_error_factor: number | null   // e.g. 1.53 = typically off by x1.53 either way
   note: string                          // English, for other consumers: the app builds its own from `channel`
+  // listing_id only: a friperie seller's asked price against the median (mappings/price_model.csv tag_factor);
+  // null = nothing to say, or a shop listing. "priced_high" only when the team switches it on (show_priced_high).
+  tag?: PriceTag | null
 }
+export type PriceTag = 'good_deal' | 'priced_high'
 
 /** A collector run started from Admin > Listings (backend/app/jobs.py). */
 export type JobStatus = 'running' | 'stopping' | 'finished' | 'failed' | 'stopped' | 'lost'
