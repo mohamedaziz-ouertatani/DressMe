@@ -5,7 +5,7 @@ from urllib.parse import parse_qs, urlparse
 from app.agents import AGENTS, seller
 from app.agents.common import with_attachments
 from app.agents.router import by_keywords, load_keywords
-from tests.conftest import BLUE, RED, fake_vector, photo, sign_up, upload
+from tests.conftest import BLUE, RED, FakePriceModel, fake_vector, photo, sign_up, upload
 from tests.test_agents import add_listing, as_request, user_doc
 
 
@@ -54,12 +54,13 @@ def test_pieces_to_sell_unmatched_and_twins(client):
 
 
 def test_price_hint_from_an_item_and_from_the_last_scan(client):
+    client.app.state.price = None                             # no price model: look-alike listings
     headers = sign_up(client)
     top = upload(client, headers, RED)
     add_listing(client, price_tnd=50.0)                       # a shop shirt: 50 x 0.3 = 15
     tools = seller_tools(client)
     hint = tools["price_hint"](item_id=top["id"])
-    assert hint["based_on"] == "shops" and hint["median"] == 15
+    assert hint["based_on"] == "shops" and hint["median"] == 15 and hint["source"] == "listings"
     assert "contact" not in hint["examples"][0] and "city" not in hint["examples"][0]
     assert "error" in tools["price_hint"]()                   # no scan yet
     client.post("/analyze", files={"photo": photo(RED)}, headers=headers)
@@ -67,6 +68,7 @@ def test_price_hint_from_an_item_and_from_the_last_scan(client):
 
 
 def test_price_hint_skips_own_listings_and_other_users_items(client):
+    client.app.state.price = None                             # the look-alike listings path
     amira = sign_up(client)
     sign_up(client, "youssef@example.com", "Youssef")
     top = upload(client, amira, RED)
@@ -74,6 +76,46 @@ def test_price_hint_skips_own_listings_and_other_users_items(client):
     assert seller_tools(client)["price_hint"](item_id=top["id"]) == {
         "error": "no similar listings with a price yet"}
     assert "error" in seller_tools(client, "youssef@example.com")["price_hint"](item_id=top["id"])
+
+
+def test_price_hint_uses_the_price_model_when_it_is_loaded(make_client):
+    """The same estimate as the listing page's tag (GET /price-estimate): friperie, the piece's
+    stored vector and category; listings are not read, and the keys stay the same."""
+    model = FakePriceModel()
+    client = make_client(price=model)
+    headers = sign_up(client)
+    top = upload(client, headers, RED)
+    add_listing(client, price_tnd=50.0)                       # would give 15 through the listings
+    tools = seller_tools(client)
+    hint = tools["price_hint"](item_id=top["id"])
+    assert hint == {"low": 20, "high": 32, "median": 25, "based_on": "category", "count": 53,
+                    "source": "price_model"}
+    assert model.calls == [(512, "top", "friperie")]
+    client.post("/analyze", files={"photo": photo(RED)}, headers=headers)
+    assert tools["price_hint"]()["source"] == "price_model"   # the last scan too
+
+
+def test_price_hint_falls_back_when_the_model_cannot_price(make_client):
+    class NoBand(FakePriceModel):
+        def estimate(self, vector, category=None, channel="friperie", rules=None):
+            super().estimate(vector, category, channel, rules)
+            return None                                   # e.g. no reference prices for the channel
+    client = make_client(price=NoBand())
+    top = upload(client, sign_up(client), RED)
+    add_listing(client, price_tnd=50.0)
+    hint = seller_tools(client)["price_hint"](item_id=top["id"])
+    assert hint["source"] == "listings" and hint["median"] == 15
+
+
+def test_price_hint_without_a_vector_answers_as_before(make_client):
+    """No vector: neither way can price it, so the same error as before, and the model is not asked."""
+    model = FakePriceModel()
+    client = make_client(price=model)
+    top = upload(client, sign_up(client), RED)
+    from bson import ObjectId
+    client.app.state.db.items.update_one({"_id": ObjectId(top["id"])}, {"$set": {"vector": None}})
+    assert seller_tools(client)["price_hint"](item_id=top["id"]) == {"error": "no such item or analysed photo"}
+    assert model.calls == []
 
 
 def test_my_listings_are_private_and_never_show_contact(client):
