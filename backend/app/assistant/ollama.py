@@ -39,10 +39,10 @@ class OllamaClient:
             response.raise_for_status()
             return response.json()
 
-    def chat(self, messages, tools, max_tokens):
+    def chat(self, messages, tools, max_tokens, temperature=None):
         s = self.settings
         body = {"model": self.name, "messages": [to_ollama(m) for m in messages], "stream": False, "think": s.think,
-                "options": {"temperature": s.temperature, "top_p": s.top_p, "top_k": s.top_k,
+                "options": {"temperature": s.temperature if temperature is None else temperature, "top_p": s.top_p, "top_k": s.top_k,
                             "presence_penalty": s.presence_penalty, "num_ctx": s.num_ctx, "num_predict": max_tokens},
                 "keep_alive": s.keep_alive}
         if tools:                                         # no tools = the model must answer in words

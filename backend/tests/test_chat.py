@@ -26,14 +26,14 @@ def test_a_turn_with_the_golden_wardrobe(make_client, settings):
     db.items.insert_many([stored(d, user_id) for d in WARDROBE["items"]])
     owned = {d["id"] for d in WARDROBE["items"]}
 
-    r = client.post("/chat", json={"message": "What can I wear with my black jeans?"}, headers=headers)
+    r = client.post("/chat", json={"message": "What can I wear with my black jeans?", "agent": "stylist"}, headers=headers)
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["answer"] == "Try {2} with {1}."                     # {99} was invented: removed
     assert body["stop_reason"] == "answered" and body["agent"] == "stylist" and body["model"] == "fake"
     assert sorted(body["pieces"]) == ["1", "2"]
     assert {p["id"] for p in body["pieces"].values()} <= owned       # the user's own items
-    assert [(t["tool"], t["ok"], t["n_pieces"]) for t in body["trace"]] == [("list_wardrobe", True, 5)]
+    assert [(t["tool"], t["ok"], t["n_pieces"]) for t in body["trace"] if "tool" in t] == [("list_wardrobe", True, 5)]
 
     # the model saw coded pieces only: refs, never an id or a photo
     tool_message = json.loads(model.received[1]["messages"][-1]["content"])
@@ -56,7 +56,7 @@ def test_another_user_never_sees_the_first_users_items(make_client):
     client.post("/items", files={"photo": photo(RED)}, headers=first)
     second = sign_up(client, "second@example.com", "Second")
 
-    r = client.post("/chat", json={"message": "What do I own?"}, headers=second)
+    r = client.post("/chat", json={"message": "What do I own?", "agent": "stylist"}, headers=second)
     assert r.status_code == 200
     tool_message = json.loads(model.received[1]["messages"][-1]["content"])
     assert tool_message == {"pieces": [], "total": 0}                # the first user's red top is not there
@@ -75,7 +75,7 @@ def test_a_number_typed_by_the_user_reaches_the_model_without_braces(make_client
     client = make_client(chat_model=model)
     headers = sign_up(client)
 
-    r = client.post("/chat", json={"message": "Does {12} go with {3}?"}, headers=headers)
+    r = client.post("/chat", json={"message": "Does {12} go with {3}?", "agent": "stylist"}, headers=headers)
     assert r.status_code == 200, r.text
     assert model.received[0]["messages"][-1] == {"role": "user", "content": "Does 12 go with 3?"}
     saved = client.app.state.db.chats.find_one({})
@@ -86,7 +86,7 @@ def test_the_users_own_number_is_saved_as_echoed_not_unknown(make_client):
     client = make_client(chat_model=FakeModel([ModelReply(text="Piece {12} is not here. {99}")]))
     headers = sign_up(client)
 
-    r = client.post("/chat", json={"message": "Does {12} go with my skirt?"}, headers=headers)
+    r = client.post("/chat", json={"message": "Does {12} go with my skirt?", "agent": "stylist"}, headers=headers)
     assert r.status_code == 200, r.text
     assert r.json()["answer"] == "Piece 12 is not here."
     saved = client.app.state.db.chats.find_one({})
@@ -101,5 +101,5 @@ def test_the_request_is_checked(make_client):
     unknown = client.post("/chat", json={"message": "Hi", "agent": "wizard"}, headers=headers)
     assert unknown.status_code == 422 and unknown.json()["detail"] == "unknown_agent"
     assert client.post("/chat", json={"message": "Hi"}).status_code in (401, 403)       # a login is needed
-    ok = client.post("/chat", json={"message": "Hi", "chat_id": "abc-1"}, headers=headers)
+    ok = client.post("/chat", json={"message": "Hi", "chat_id": "abc-1", "agent": "stylist"}, headers=headers)
     assert ok.status_code == 200 and ok.json()["chat_id"] == "abc-1"

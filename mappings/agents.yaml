@@ -22,6 +22,14 @@ model:
   timeout_s: 90           # a model call that takes longer counts as "model unavailable" (503)
   think: false            # no hidden reasoning step: faster, and the answer is only the answer
 
+# The router (step 3e): when the app does not say which agent, one model call with no tools reads each agent's
+# `description` and answers with one word, its name. An answer that is not an agent's name falls back to the
+# keywords below, then to the first agent (stylist).
+# REVIEW (team): start values.
+router:
+  temperature: 0          # no randomness: the same message gets the same agent
+  max_tokens: 10          # one word
+
 # Added to the instructions of EVERY agent.
 shared_rules: |
   Rules for every answer:
@@ -38,6 +46,7 @@ shared_rules: |
 agents:
   stylist:
     job: Suggests what to wear from the pieces the user owns.
+    description: Picks and scores outfits from the user's own wardrobe, finds their pieces, uses today's weather.
     instructions: |
       You are the stylist of DressMe, a fashion assistant for young people in Tunisia who shop on a budget.
       Help the user decide what to wear from the pieces they already own.
@@ -63,4 +72,22 @@ agents:
       ar: [ألبس, طلة, يناسب, تنسيق, ستايل]
     max_rounds: 6
     max_tokens: 600
-    # TODO(step 3e): the other four agents, the router that picks one from the keywords, and a handoff tool.
+
+  general:
+    job: Answers greetings, general fashion questions and requests it cannot do, without looking at the wardrobe.
+    description: Greetings and small talk, general fashion advice not about the user's own pieces, vague requests, and anything that is not about clothes.
+    instructions: |
+      You are the assistant of DressMe, a fashion assistant for young people in Tunisia who shop on a budget.
+      You have no tools: you cannot see the user's wardrobe, today's weather, prices or shops.
+      - A greeting or small talk: answer warmly in one short sentence and say you can suggest outfits from their wardrobe.
+      - A general fashion question (which colours go together, how to wear a style): answer briefly from your own
+        knowledge and say it is general advice. Never name a piece of the user's wardrobe.
+      - A request that needs their wardrobe, the weather or a price: do not guess. Ask them to say it as a request
+        about their clothes, for example "What should I wear today?".
+      - A request that is not about clothes (homework, facts, code): politely decline in one sentence.
+      - A request that is too vague to answer ("help me"): ask ONE question about what they need.
+    tools: []
+    keywords: {}
+    max_rounds: 1
+    max_tokens: 400
+    # TODO(step 3e): wardrobe_analyst, explainer, seller and shopping agents, and a handoff tool.

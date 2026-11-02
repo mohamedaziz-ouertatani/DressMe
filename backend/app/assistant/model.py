@@ -35,7 +35,9 @@ class ModelUnavailable(Exception):
 class ModelClient(Protocol):
     name: str          # saved with every chat turn, so we know which model said what
 
-    def chat(self, messages: list[dict], tools: list[dict], max_tokens: int) -> ModelReply: ...
+    # temperature: None = the team's value from agents.yaml; the router asks for 0 (step 3e)
+    def chat(self, messages: list[dict], tools: list[dict], max_tokens: int,
+             temperature: float | None = None) -> ModelReply: ...
 
     def available(self) -> bool: ...   # GET /assistant/status (step 3d)
 
@@ -46,10 +48,11 @@ class FakeModel:
 
     def __init__(self, script):
         self.script = list(script)
-        self.received = []         # one {"messages", "tools", "max_tokens"} per call
+        self.received = []         # one {"messages", "tools", "max_tokens", "temperature"} per call
 
-    def chat(self, messages, tools, max_tokens):
-        self.received.append({"messages": copy.deepcopy(messages), "tools": tools, "max_tokens": max_tokens})
+    def chat(self, messages, tools, max_tokens, temperature=None):
+        self.received.append({"messages": copy.deepcopy(messages), "tools": tools, "max_tokens": max_tokens,
+                              "temperature": temperature})
         if not self.script:
             raise AssertionError("FakeModel: the script has no reply left for this call")
         return self.script.pop(0)
@@ -62,7 +65,7 @@ class NoModel:
     """No model at all (the tests' default since step 3d plugged in Ollama): every call says it is unavailable."""
     name = "none"
 
-    def chat(self, messages, tools, max_tokens):
+    def chat(self, messages, tools, max_tokens, temperature=None):
         raise ModelUnavailable("no language model is set up")
 
     def available(self):

@@ -36,7 +36,7 @@ def golden_chat(make_client, settings):
     def ask(*calls):
         model.script += [ModelReply(tool_calls=[ToolCall(name, args)]) for name, args in calls]
         model.script.append(ModelReply(text=ALL_REFS))
-        r = client.post("/chat", json={"message": "help"}, headers=headers)
+        r = client.post("/chat", json={"message": "help", "agent": "stylist"}, headers=headers)
         assert r.status_code == 200, r.text
         for message in model.received[-1]["messages"]:
             if message["role"] == "tool":

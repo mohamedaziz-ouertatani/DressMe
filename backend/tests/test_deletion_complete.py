@@ -78,7 +78,7 @@ def leave_data_everywhere(client, headers):
     assert r.status_code == 200, r.text
 
     # step 3c: an assistant turn is saved in `chats`
-    assert client.post("/chat", json={"message": "What can I wear?"}, headers=headers).status_code == 200
+    assert client.post("/chat", json={"message": "What can I wear?", "agent": "stylist"}, headers=headers).status_code == 200
 
     sold = client.post("/listings/sell", files={"photo": photo(RED)},
                        data={"price_tnd": "25", "size": "M", "city": "Tunis", "contact": "@leaver"},

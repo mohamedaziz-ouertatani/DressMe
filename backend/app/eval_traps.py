@@ -76,6 +76,42 @@ def tools_called(body):
     return [line["tool"] for line in body.get("trace", []) if "tool" in line]
 
 
+def router_how(body):
+    """How the router chose (button / model / keywords / default), from the trace line {"router", "how"} (step 3e)."""
+    for line in body.get("trace", []):
+        if "router" in line:
+            return line.get("how")
+    return None
+
+
+def router_section(rows):
+    """Which agent the router chose, and how often it was right. Accuracy counts ONLY the traps whose expected agent
+    already exists in agents.yaml (the agents built so far); the rest are listed apart, because no router could be
+    right about an agent that is not there."""
+    from .config import ROOT                                 # the real file: the agents that exist now
+    existing = set(yaml.safe_load((ROOT / "mappings" / "agents.yaml").read_text(encoding="utf-8"))["agents"])
+    ok = [r for r in rows if r["status"] == 200]
+    if not ok or not any(r.get("router_how") for r in ok):
+        return []
+    lines = ["", "## Router", "", "| Chosen agent | Answers |", "| --- | --- |"]
+    lines += [f"| {agent} | {n} |" for agent, n in Counter(r["agent"] for r in ok).most_common()]
+    lines += ["", "| How it chose | Answers |", "| --- | --- |"]
+    lines += [f"| {how} | {n} |" for how, n in Counter(r.get("router_how") for r in ok).most_common()]
+    known = [r for r in ok if r.get("expected_agent") in existing]
+    right = sum(r["agent"] == r["expected_agent"] for r in known)
+    lines += ["", f"Accuracy on traps whose expected agent exists ({', '.join(sorted(existing))}): "
+                  f"{right} of {len(known)} ({100 * right / max(1, len(known)):.0f}%).", "",
+              "Traps whose expected agent does not exist yet (not scored):", "",
+              "| Expected | Answers | Chosen |", "| --- | --- | --- |"]
+    missing = defaultdict(list)
+    for r in ok:
+        if r.get("expected_agent") not in existing:
+            missing[r.get("expected_agent")].append(r["agent"])
+    lines += [f"| {exp} | {len(c)} | {', '.join(f'{a} {n}' for a, n in Counter(c).most_common())} |"
+              for exp, c in sorted(missing.items(), key=lambda kv: str(kv[0]))]
+    return lines
+
+
 def split_refs(unknown_refs, message):
     """(echoed, invented): an unknown {n} whose number the user typed is an echo of the user's message, a
     formatting slip; any other unknown {n} was made up by the model."""
@@ -202,6 +238,8 @@ def report(rows, meta):
         by_lang[r["lang"]].append(r["passed"])
     for lang, results in by_lang.items():
         lines.append(f"| {lang} | {len(results)} | {sum(results)} | {100 * sum(results) / len(results):.0f}% |")
+
+    lines += router_section(rows)
 
     failures = [r for r in rows if not r["passed"]]
     lines += ["", f"## Failed checks ({len(failures)})", ""]
@@ -346,7 +384,8 @@ def main(argv=None):
             fails = score(trap, code, answer_body, unknown, pieces)
             rows.append({"id": trap["id"], "run": run, "category": trap["category"], "lang": trap["lang"],
                          "message": trap["message"], "expected_agent": trap.get("expected_agent"),
-                         "agent": answer_body.get("agent"), "status": code, "seconds": seconds,
+                         "agent": answer_body.get("agent"), "router_how": router_how(answer_body),
+                         "status": code, "seconds": seconds,
                          "answer": answer_body.get("answer") or "", "tools": tools_called(answer_body),
                          "n_tool_calls": len(tools_called(answer_body)),
                          "stop_reason": answer_body.get("stop_reason"), "unknown_refs": unknown,

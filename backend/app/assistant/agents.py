@@ -43,11 +43,18 @@ class ModelSettings(Strict):
     think: bool
 
 
+class RouterSettings(Strict):
+    """The routing call (step 3e): one word back, so a few tokens, and no randomness."""
+    temperature: float = Field(ge=0, le=2)
+    max_tokens: int = Field(gt=0, le=50)
+
+
 class Agent(Strict):
     job: str
+    description: str                               # one line the router reads to choose (what it handles / not)
     instructions: str
-    tools: list[str]
-    keywords: dict[str, list[str]]                 # language -> words (en / fr / ar)
+    tools: list[str]                               # may be empty: an agent that only talks (general)
+    keywords: dict[str, list[str]] = {}            # language -> words (en / fr / ar): the router's fallback
     max_rounds: int = Field(gt=0)
     max_tokens: int = Field(gt=0)
 
@@ -55,6 +62,7 @@ class Agent(Strict):
 class AgentsFile(Strict):
     limits: Limits
     model: ModelSettings
+    router: RouterSettings
     shared_rules: str
     agents: dict[str, Agent]
 

@@ -22,6 +22,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from ..assistant.ledger import PieceLedger
 from ..assistant.loop import run_turn
 from ..assistant.model import ModelUnavailable
+from ..assistant.routing import choose_agent
 from ..assistant.tools import ToolContext
 from ..db import object_id
 from ..events import log_event
@@ -43,15 +44,16 @@ class ChatBody(BaseModel):
 def chat(body: ChatBody, request: Request, user=Depends(current_user)):
     state = request.app.state
     agents = state.agents
-    # TODO(step 3e): with no agent given, the router picks one from the keywords; for now the first of the file
-    name = body.agent or next(iter(agents.agents))
-    if name not in agents.agents:
+    if body.agent and body.agent not in agents.agents:
         raise HTTPException(422, "unknown_agent")
 
     started = time.perf_counter()
     # the model must never see a {n} it did not get from a tool, or it may copy it as a piece number;
     # only this copy changes, the saved message stays as the user wrote it
     for_model = USER_REF.sub(r"\1", body.message)
+    # step 3e: which agent answers (the app's button, else the router's one-word model call, else the keywords)
+    name, how = choose_agent(for_model, agents, state.chat_model, button=body.agent)
+    route_line = {"router": name, "how": how}
     # the tools reuse the screens' functions, which read the request (app state) and the user document (step 3d)
     ctx = ToolContext(user_id=user["_id"], db=state.db, ledger=PieceLedger(), user=user, request=request)
     try:
@@ -59,6 +61,7 @@ def chat(body: ChatBody, request: Request, user=Depends(current_user)):
                         shared_rules=agents.shared_rules)
     except ModelUnavailable:
         raise HTTPException(503, "assistant_unavailable")
+    turn.trace.insert(0, route_line)
 
     # the pieces behind the {n} in the answer: only the user's own items, through the ledger
     item_ids = [ctx.ledger.item_id(ref) for ref in turn.refs]
@@ -71,7 +74,7 @@ def chat(body: ChatBody, request: Request, user=Depends(current_user)):
         "user_id": user["_id"], "chat_id": chat_id, "created_at": datetime.now(timezone.utc), "agent": name,
         "message": body.message, "answer": turn.answer, "item_ids": item_ids, "unknown_refs": turn.unknown_refs,
         "echoed_refs": turn.echoed_refs, "trace": turn.trace, "stop_reason": turn.stop_reason, "model": state.chat_model.name})
-    log_event(state.db, "assistant", user["_id"], agent=name, rounds=turn.rounds, stop_reason=turn.stop_reason,
+    log_event(state.db, "assistant", user["_id"], agent=name, routed=how, rounds=turn.rounds, stop_reason=turn.stop_reason,
               n_tool_calls=sum(1 for line in turn.trace if "tool" in line), n_unknown_refs=len(turn.unknown_refs),
               ms=round((time.perf_counter() - started) * 1000))      # never the message text
     return {"chat_id": chat_id, "agent": name, "answer": turn.answer, "pieces": pieces, "trace": turn.trace,
