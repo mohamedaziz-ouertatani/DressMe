@@ -50,9 +50,22 @@ class BackgroundRemover:
         if self._clothes is None:
             return Image.fromarray(main)
         category, confidence = self._classification(img)
+
         if not use_cloth_mask(category, confidence):
             return Image.fromarray(main)
-        return Image.fromarray(keep_garment(main, self.clothes(img)))
+        classes = self.clothes(img)
+
+        if category in {"top", "outerwear", "traditional"}:
+            garment_class = 1
+        elif category == "bottom":
+            garment_class = 2
+        elif category in {"dress", "swimwear"}:
+            garment_class = 3
+        else:
+            return Image.fromarray(main)
+
+        mask = np.where(classes == garment_class, 255, 0).astype(np.uint8)
+        return Image.fromarray(mask)
 
     def _classification(self, img):
         if self._classifier is None:
