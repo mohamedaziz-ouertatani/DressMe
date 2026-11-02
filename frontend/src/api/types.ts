@@ -487,8 +487,13 @@ export interface PriceEstimate {
   // listing_id only: a friperie seller's asked price against the median (mappings/price_model.csv tag_factor);
   // null = nothing to say, or a shop listing. "priced_high" only when the team switches it on (show_priced_high).
   tag?: PriceTag | null
+  // item / scan only: the condition the user picked (default good) and its factor, already applied to the band
+  condition?: PriceCondition
+  condition_factor?: number
 }
 export type PriceTag = 'good_deal' | 'priced_high'
+/** The garment's condition, which the model cannot see (mappings/price_model.csv condition_*). */
+export type PriceCondition = 'new_tags' | 'like_new' | 'good' | 'stained' | 'torn'
 
 /** A collector run started from Admin > Listings (backend/app/jobs.py). */
 export type JobStatus = 'running' | 'stopping' | 'finished' | 'failed' | 'stopped' | 'lost'
