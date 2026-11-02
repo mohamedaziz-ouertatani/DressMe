@@ -66,8 +66,12 @@ except ImportError:                     # standalone use
 RULES_CSV = ROOT / "mappings" / "price_model.csv"
 ARTIFACT = ROOT / "models" / "checkpoints" / "price_model.joblib"
 
+# the garment's condition, which the model cannot see on a photo: the band is
+# multiplied by the team's measured factor (condition_<name> in price_model.csv)
+CONDITIONS = ("new_tags", "like_new", "good", "stained", "torn")
 SETTINGS = ("band_low_pct", "band_high_pct", "min_category_items",
-            "examples", "round_to", "tag_factor", "show_priced_high")
+            "examples", "round_to", "tag_factor", "show_priced_high") + \
+    tuple(f"condition_{c}" for c in CONDITIONS)
 CHANNELS = ("friperie", "classified")
 KINDS = ("linear", "svr")
 
@@ -100,6 +104,9 @@ def load_rules(path: Path = RULES_CSV) -> dict:
         raise ValueError(f"{path.name}: tag_factor must be above 1")
     if settings["show_priced_high"] not in (0, 1):
         raise ValueError(f"{path.name}: show_priced_high must be 0 or 1")
+    for c in CONDITIONS:
+        if settings[f"condition_{c}"] <= 0:
+            raise ValueError(f"{path.name}: condition_{c} must be above 0")
     return settings
 
 
@@ -265,6 +272,22 @@ def _round_to(value: float, step: float) -> int:
     if step <= 0:
         return int(round(value))
     return int(round(value / step) * step)
+
+
+def with_condition(band: dict, condition: str, rules: dict) -> dict:
+    """The band for a piece in this condition: low / median / high multiplied
+    by the team's factor, then rounded as estimate() rounds. "good" (x1.00)
+    gives the band back unchanged. The model reads the photo only, and it
+    does not see damage, so the user says the condition.
+    """
+    if condition not in CONDITIONS:
+        raise ValueError(f"unknown condition {condition!r}, expected one of {CONDITIONS}")
+    factor = rules[f"condition_{condition}"]
+    out = {**band, "condition": condition, "condition_factor": factor}
+    for k in ("low", "median", "high"):
+        if band.get(k) is not None:
+            out[k] = _round_to(band[k] * factor, rules["round_to"])
+    return out
 
 
 def price_tag(price_tnd, band, rules) -> str | None:

@@ -5,7 +5,7 @@ import type {
   Listing, ListingFilters, ListingPage, ListingPatch, ModelQuality, ReviewListing, SellForm, Occasion, Outfit, Season, Similar, Stats, User, Gender,
   ChatAttachment, ChatAction, TryOnResult, Weather, Explanation, GuessField, OutfitExplanation,
   Decision, DecisionAnswer, OutfitLabel, WearEntry, WearSummary, OccasionChip, TodayOutfits, BuildResult,
-  PriceChannel, PriceEstimate,
+  PriceChannel, PriceCondition, PriceEstimate,
 } from './types'
 
 const BASE = '/api'
@@ -179,12 +179,15 @@ export const api = {
     return request<Similar>(`/similar?${q}`)
   },
   /** A second-hand price band for an item, a scan or a seller's listing (503 = no price model on the server).
-   *  A listing is always priced against friperie prices and also gets a `tag`. */
-  priceEstimate: (ref: { itemId?: string; candidateId?: string; listingId?: string }, channel: PriceChannel = 'friperie') => {
+   *  A listing is always priced against friperie prices and also gets a `tag`. `condition` (item / scan only)
+   *  scales the band by the team's factor; left out = the server's default, good. */
+  priceEstimate: (ref: { itemId?: string; candidateId?: string; listingId?: string }, channel: PriceChannel = 'friperie',
+    condition?: PriceCondition) => {
     const q = new URLSearchParams({ channel })
     if (ref.itemId) q.set('item_id', ref.itemId)
     if (ref.candidateId) q.set('candidate_id', ref.candidateId)
     if (ref.listingId) q.set('listing_id', ref.listingId)
+    if (condition) q.set('condition', condition)
     return request<PriceEstimate>(`/price-estimate?${q}`)
   },
   subCategoryGender: () => request<Record<string, 'men' | 'women' | 'unisex'>>('/vocab/sub-category-gender'),

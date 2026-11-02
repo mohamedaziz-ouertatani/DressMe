@@ -8,6 +8,8 @@ import price
 from tests.conftest import BLUE, RED, FakePriceModel, photo, sign_up, upload
 
 FIELDS = {"low", "median", "high", "channel", "based_on", "count", "typical_error_factor", "note"}
+# an item or a scan also says the condition used (default good)
+ITEM_FIELDS = FIELDS | {"condition", "condition_factor"}
 RULES = {"band_low_pct": 25, "band_high_pct": 75, "min_category_items": 8, "examples": 5, "round_to": 1}
 
 
@@ -130,7 +132,7 @@ def test_band_for_a_scan(make_client):
     r = client.get("/price-estimate", params={"candidate_id": scan(client, headers)}, headers=headers)
     assert r.status_code == 200, r.text
     body = r.json()
-    assert set(body) == FIELDS                       # whitelist only: no vector, no percentile
+    assert set(body) == ITEM_FIELDS                  # whitelist only: no vector, no percentile
     assert (body["low"], body["median"], body["high"]) == (20, 25, 32)
     assert body["channel"] == "friperie" and body["note"]
     assert model.calls == [(512, "top", "friperie")]    # the stored vector, the scan's category
@@ -152,7 +154,7 @@ def test_unknown_channel_gives_nulls_never_zero(client):
                    headers=headers)
     assert r.status_code == 200
     body = r.json()
-    assert set(body) == FIELDS
+    assert set(body) == ITEM_FIELDS
     for k in ("low", "median", "high", "based_on", "count", "typical_error_factor"):
         assert body[k] is None
     assert body["channel"] == "boutique" and body["note"]
@@ -174,6 +176,78 @@ def test_another_users_scan_is_404(client):
 def test_exactly_one_id(client):
     headers = sign_up(client)
     assert client.get("/price-estimate", headers=headers).status_code == 422
+
+
+# ------------------------------------------------- the garment's condition (the model does not see it)
+def test_team_condition_factors():
+    rules = price.load_rules()
+    assert {c: rules[f"condition_{c}"] for c in price.CONDITIONS} == \
+        {"new_tags": 1.43, "like_new": 1.20, "good": 1.00, "stained": 0.55, "torn": 0.21}
+
+
+def test_each_condition_multiplies_the_band(client):
+    headers = sign_up(client)
+    cand = scan(client, headers)
+    rules = price.load_rules()
+    for condition in price.CONDITIONS:
+        r = client.get("/price-estimate", params={"candidate_id": cand, "condition": condition}, headers=headers)
+        assert r.status_code == 200, r.text
+        body = r.json()
+        f = rules[f"condition_{condition}"]
+        assert body["condition"] == condition and body["condition_factor"] == f
+        # the fake band is 20 / 25 / 32, rounded to round_to (1 TND)
+        assert (body["low"], body["median"], body["high"]) == (round(20 * f), round(25 * f), round(32 * f))
+        assert body["note"] and body["count"] == 53          # the rest of the answer is untouched
+
+
+def test_default_is_good_and_unchanged(client):
+    headers = sign_up(client)
+    cand = scan(client, headers)
+    plain = client.get("/price-estimate", params={"candidate_id": cand}, headers=headers).json()
+    good = client.get("/price-estimate", params={"candidate_id": cand, "condition": "good"}, headers=headers).json()
+    assert plain == good
+    assert (plain["low"], plain["median"], plain["high"]) == (20, 25, 32)   # the model's own band
+    assert plain["condition"] == "good" and plain["condition_factor"] == 1.0
+
+
+def test_unknown_condition_is_422(client):
+    headers = sign_up(client)
+    cand = scan(client, headers)
+    for bad in ("faded", "GOOD", ""):
+        r = client.get("/price-estimate", params={"candidate_id": cand, "condition": bad}, headers=headers)
+        assert r.status_code == 422, bad
+
+
+def test_with_condition_rounds_and_keeps_nulls():
+    rules = {**price.load_rules(), "round_to": 5}
+    band = price.with_condition({"low": 20, "median": 40, "high": 60, "note": "n"}, "stained", rules)
+    assert (band["low"], band["median"], band["high"]) == (10, 20, 35)     # 11, 22, 33 to the nearest 5
+    assert band["note"] == "n" and band["condition_factor"] == 0.55
+    assert price.with_condition({"low": None, "median": None, "high": None}, "torn", rules)["median"] is None
+
+
+def test_missing_or_bad_condition_setting_stops_load_rules(tmp_path):
+    import pytest
+    lines = price.RULES_CSV.read_text(encoding="utf-8").splitlines()
+    missing = tmp_path / "missing.csv"
+    missing.write_text("\n".join(l for l in lines if not l.startswith("setting,condition_torn,")), encoding="utf-8")
+    with pytest.raises(ValueError, match="condition_torn"):
+        price.load_rules(missing)
+    zero = tmp_path / "zero.csv"
+    zero.write_text("\n".join(l.replace("condition_stained,0.55", "condition_stained,0") for l in lines),
+                    encoding="utf-8")
+    with pytest.raises(ValueError, match="condition_stained"):
+        price.load_rules(zero)
+
+
+def test_a_listing_ignores_the_condition(make_client):
+    """Seller listings have no condition field: band and tag stay the model's."""
+    client = make_client()
+    lid = listed(client, 30)
+    headers = sign_up(client)
+    plain = tag_of(client, headers, lid)
+    torn = client.get("/price-estimate", params={"listing_id": lid, "condition": "torn"}, headers=headers).json()
+    assert torn == plain and "condition" not in plain and plain["median"] == 25
 
 
 # ------------------------------------------------- a friperie seller's listing: band + tag
