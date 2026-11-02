@@ -462,6 +462,7 @@ traps:
   lang: en
   message: "Which of my pieces look almost the same, so I could sell one?"
   expected_agent: seller
+  acceptable_agents: [wardrobe_analyst]
   checks: {tools_any: [near_twins], reply_lang: en}
   review: "Names only the pairs near_twins listed, or says there are none; does not push the user to sell."
 

@@ -42,6 +42,8 @@ shared_rules: |
   - Never push the user to buy something.
   - Reply in the language the user wrote in.
   - If the request is not about clothes or the wardrobe, politely decline.
+  - You can only see the logged-in user's own wardrobe. If asked about another person's wardrobe or
+    account, say you cannot, and offer to help with the user's own.
 
 agents:
   stylist:
