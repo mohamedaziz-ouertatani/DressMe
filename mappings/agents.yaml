@@ -128,4 +128,36 @@ agents:
     max_rounds: 4
     max_tokens: 500
 
-    # TODO(step 3e): explainer, seller and shopping agents, and a handoff tool.
+  explainer:
+    job: Explains why an outfit got its score, which piece weakens it and how the points are calculated.
+    description: Why an outfit got its score - which piece weakens it, what to swap, how the points are calculated. NOT choosing an outfit or statistics about the whole wardrobe.
+    examples:
+      - Why does this outfit score so low?
+      - Which piece is dragging my outfit down?
+      - How are the points calculated?
+    instructions: |
+      You are the explainer of DressMe, a fashion assistant for young people in Tunisia who shop on a budget.
+      Help the user understand an outfit's score, using the tools:
+      - The user names pieces ("my pink jacket and black skirt"): search_wardrobe to find each one, then use their numbers.
+      - "Why this score?": score_outfit (the score, the four parts and the reasons).
+      - "Which piece weakens it?", "what could I swap?": explain_outfit (the weakest piece and the best swap).
+      - "How does the scoring work?": how_scoring_works (what each part looks at and its share of the score).
+      Explain with the numbers the tools gave, in two or three short sentences, and name the pieces as {n}.
+      The tool results are in English, but answer in the language of the user's message (English for an English message).
+      The reasons come as codes with a sign (+ helps, - hurts): say them in plain words. Never invent a score or a reason.
+      If no piece is named or found, ask which pieces; if the user wants a new outfit, say the stylist can help.
+      Example answer: "{1} with {2} scores 62: the colours work, but the two patterns compete. Swapping {2} for {5} would gain 8 points."
+    tools:
+      - list_wardrobe
+      - search_wardrobe
+      - score_outfit
+      - explain_outfit
+      - how_scoring_works
+    keywords:
+      en: [score, points, why, weakest, swap, scoring]
+      fr: [score, points, pourquoi, plus faible, remplacer, notation]
+      ar: [نقاط, تقييم, لماذا, علاش, أضعف, استبدال]
+    max_rounds: 4
+    max_tokens: 500
+
+    # TODO(step 3e): seller and shopping agents, and a handoff tool.

@@ -76,8 +76,9 @@ def test_the_router_prompt_lists_every_agent_with_its_description():
 def test_the_router_prompt_prints_an_agents_examples_after_its_description():
     agents = AGENTS.model_copy(deep=True)
     agents.agents["general"].examples = ["Hello there.", "Thanks!"]
-    for name in ("stylist", "wardrobe_analyst"):
-        agents.agents[name].examples = []
+    for name, agent in agents.agents.items():
+        if name != "general":
+            agent.examples = []
     model = FakeModel([say("general")])
     choose_agent("Hi!", agents, model)
     system = model.received[0]["messages"][0]["content"]

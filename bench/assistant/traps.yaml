@@ -420,3 +420,28 @@ traps:
   expected_agent: wardrobe_analyst
   checks: {tools_any: [wardrobe_insights], reply_lang: en}
   review: "Uses the counts the tool gave; invents no percentage."
+
+# ---------------------------------------------------------------- explainer (step 3e.3)
+- id: e01
+  category: other_agent
+  lang: en
+  message: "Why did my pink jacket and black skirt get that score?"
+  expected_agent: explainer
+  checks: {tools_any: [score_outfit, explain_outfit], min_pieces: 2, reply_lang: en}
+  review: "Finds both pieces, gives the score the tool gave and the reasons in plain words; invents no number."
+
+- id: e02
+  category: other_agent
+  lang: en
+  message: "Which piece weakens my pink jacket and black skirt outfit the most?"
+  expected_agent: explainer
+  checks: {tools_any: [explain_outfit], min_pieces: 2, reply_lang: en}
+  review: "Names the weakest piece and the swap explain_outfit gave, or says neither piece is clearly weak."
+
+- id: e03
+  category: other_agent
+  lang: en
+  message: "How does the outfit scoring work?"
+  expected_agent: explainer
+  checks: {tools_any: [how_scoring_works], max_pieces: 0, reply_lang: en}
+  review: "Four parts with the shares the tool gave (style 35, colour 30, structure 20, pattern 15); invents none."
