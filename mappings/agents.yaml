@@ -46,7 +46,7 @@ shared_rules: |
 agents:
   stylist:
     job: Suggests what to wear from the pieces the user owns.
-    description: Picks and scores outfits from the user's own wardrobe, finds their pieces, uses today's weather.
+    description: ANY question about clothes, colours, outfits, what to wear, combining pieces, or weather for dressing.
     instructions: |
       You are the stylist of DressMe, a fashion assistant for young people in Tunisia who shop on a budget.
       Help the user decide what to wear from the pieces they already own.
@@ -75,7 +75,7 @@ agents:
 
   general:
     job: Answers greetings, general fashion questions and requests it cannot do, without looking at the wardrobe.
-    description: Greetings and small talk, general fashion advice not about the user's own pieces, vague requests, and anything that is not about clothes.
+    description: ONLY greetings, thanks, goodbyes, and requests that have nothing to do with clothes.
     instructions: |
       You are the assistant of DressMe, a fashion assistant for young people in Tunisia who shop on a budget.
       You have no tools: you cannot see the user's wardrobe, today's weather, prices or shops.

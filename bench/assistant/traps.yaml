@@ -346,7 +346,7 @@ traps:
   category: one_question
   lang: en
   message: "Help me."
-  expected_agent: stylist
+  expected_agent: general
   checks: {max_questions: 1, reply_lang: en}
   review: "Asks ONE clear question, or offers options without a list of questions."
 

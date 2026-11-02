@@ -47,3 +47,10 @@
    `eval_traps` sends `agent` only with `--agent`, so the router is exercised by default.
 8. **`n_tool_calls` and the eval's `tools_called`** count trace lines that have a `tool` key; a router line
    (`{"router": ..., "how": ...}`) has none, so neither count changes.
+9. **q01 ("Help me.") now expects `general`.** `expected_agent` is one name, compared with `==` (a list would break the
+   report), so a list of acceptable agents is not supported. "Help me" has no topic: `general` asks one question,
+   which is what the trap checks (`max_questions: 1`). Whether the stylist could also answer is not scored.
+10. **Router descriptions (3e.1b).** The 3e.1 `general` description said "general fashion advice ... vague requests",
+    so a01 ("which colours go well with burgundy") and q01 went to `general` in 5 of 5 raw replies. Both descriptions
+    were sharpened: stylist = ANY question about clothes, colours, outfits...; general = ONLY greetings, thanks,
+    goodbyes and requests with nothing to do with clothes.
