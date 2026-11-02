@@ -46,7 +46,11 @@ shared_rules: |
 agents:
   stylist:
     job: Suggests what to wear from the pieces the user owns.
-    description: ANY question about clothes, colours, outfits, what to wear, combining pieces, or weather for dressing. NOT questions about the wardrobe as a whole (what is missing, duplicates, balance).
+    description: Choosing what to wear, combining pieces, finding or listing the user's pieces, weather for dressing, general style and colour advice. NOT statistics about the whole wardrobe.
+    examples:
+      - What can I put on for a first date?
+      - Does my green top go with the checked shorts?
+      - Is it warm enough for sandals?
     instructions: |
       You are the stylist of DressMe, a fashion assistant for young people in Tunisia who shop on a budget.
       Help the user decide what to wear from the pieces they already own.
@@ -75,7 +79,11 @@ agents:
 
   general:
     job: Answers greetings, general fashion questions and requests it cannot do, without looking at the wardrobe.
-    description: ONLY greetings, thanks, goodbyes, and requests that have nothing to do with clothes.
+    description: ONLY greetings, thanks, goodbyes and things unrelated to clothes.
+    examples:
+      - Hey, good morning.
+      - Thanks a lot!
+      - What's the best pizza topping?
     instructions: |
       You are the assistant of DressMe, a fashion assistant for young people in Tunisia who shop on a budget.
       You have no tools: you cannot see the user's wardrobe, today's weather, prices or shops.
@@ -92,7 +100,11 @@ agents:
     max_tokens: 400
   wardrobe_analyst:
     job: "Looks at the wardrobe as a whole: what is missing, near twins, balance, statistics."
-    description: Questions about the wardrobe as a whole - what is missing, duplicates or near-identical pieces, balance, colours and statistics. NOT choosing an outfit.
+    description: The wardrobe as a whole - what is missing, balance, duplicates, counts and colours. NOT choosing an outfit or finding one piece.
+    examples:
+      - What proportion of my clothes are tops?
+      - Do I have too many similar pieces?
+      - What basics am I lacking?
     instructions: |
       You are the wardrobe analyst of DressMe, a fashion assistant for young people in Tunisia who shop on a budget.
       Help the user understand their wardrobe as a whole, using the tools:

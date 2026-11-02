@@ -15,7 +15,11 @@ from .model import ModelUnavailable
 
 
 def routing_prompt(agents):
-    lines = [f"- {name}: {agent.description}" for name, agent in agents.agents.items()]
+    lines = []
+    for name, agent in agents.agents.items():
+        lines.append(f"- {name}: {agent.description}")
+        if agent.examples:                                  # real messages this agent should get, after its description
+            lines.append("  Examples: " + " ; ".join(f'"{example}"' for example in agent.examples))
     return ("You route a message from a user of a fashion app to the agent that should answer it.\n"
             "Agents:\n" + "\n".join(lines) + "\n"
             "Answer with ONE word: the name of the agent. Nothing else.")

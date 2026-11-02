@@ -52,8 +52,9 @@ class RouterSettings(Strict):
 class Agent(Strict):
     job: str
     description: str                               # one line the router reads to choose (what it handles / not)
+    examples: list[str] = []                       # messages this agent should get: shown to the router after the description
     instructions: str
-    tools: list[str]                               # may be empty: an agent that only talks (general)
+    tools: list[str]                             # may be empty: an agent that only talks (general)
     keywords: dict[str, list[str]] = {}            # language -> words (en / fr / ar): the router's fallback
     max_rounds: int = Field(gt=0)
     max_tokens: int = Field(gt=0)

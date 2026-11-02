@@ -4,6 +4,8 @@ temperature 0, a few tokens) names the agent; a bad answer or a model that fails
 the first agent. And the general agent, which has no tools, runs a whole turn.
 """
 
+import yaml
+
 from app.assistant import default_registry
 from app.assistant.agents import load_agents
 from app.assistant.model import FakeModel, ModelReply, ModelUnavailable
@@ -69,6 +71,25 @@ def test_the_router_prompt_lists_every_agent_with_its_description():
     system = model.received[0]["messages"][0]["content"]
     assert all(f"- {name}: {agent.description}" in system for name, agent in AGENTS.agents.items())
     assert model.received[0]["messages"][1] == {"role": "user", "content": "Hi!"}
+
+
+def test_the_router_prompt_prints_an_agents_examples_after_its_description():
+    agents = AGENTS.model_copy(deep=True)
+    agents.agents["general"].examples = ["Hello there.", "Thanks!"]
+    for name in ("stylist", "wardrobe_analyst"):
+        agents.agents[name].examples = []
+    model = FakeModel([say("general")])
+    choose_agent("Hi!", agents, model)
+    system = model.received[0]["messages"][0]["content"]
+    assert f'- general: {agents.agents["general"].description}\n  Examples: "Hello there." ; "Thanks!"\n' in system
+    assert system.count("Examples:") == 1                            # an agent without examples prints no line
+
+
+def test_the_real_file_gives_the_router_examples_that_are_not_test_cases():
+    cases = yaml.safe_load((ROOT / "bench" / "assistant" / "router_cases.yaml").read_text(encoding="utf-8"))["cases"]
+    tested = {case["message"].strip().lower() for case in cases}
+    examples = [e for agent in AGENTS.agents.values() for e in agent.examples]
+    assert examples and not [e for e in examples if e.strip().lower() in tested]
 
 
 # ---------------------------------------------------------------- POST /chat

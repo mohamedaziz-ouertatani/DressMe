@@ -54,3 +54,14 @@
     so a01 ("which colours go well with burgundy") and q01 went to `general` in 5 of 5 raw replies. Both descriptions
     were sharpened: stylist = ANY question about clothes, colours, outfits...; general = ONLY greetings, thanks,
     goodbyes and requests with nothing to do with clothes.
+
+## Router examples
+
+The router reads each agent's `description` and its `examples` (a list in `mappings/agents.yaml`,
+printed after the description as `Examples: "a" ; "b" ; "c"`). The stylist, wardrobe_analyst and general examples
+are already in the file. Copy the ones below into `agents.yaml` when each agent is built. None of them is a case of
+`bench/assistant/router_cases.yaml`, so the router test stays honest.
+
+- **explainer:** "Why does this outfit score so low?" ; "Which piece is dragging my outfit down?" ; "How are the points calculated?"
+- **seller:** "What could I sell my old sandals for?" ; "Which clothes should I put up for sale?" ; "Is 40 dinars too much for my leather bag second-hand?"
+- **shopping:** "Is this 70 dinar sweater a good buy for me?" ; "Find cheap white trainers in the shops." ; "Would another black skirt be a waste of money?"
