@@ -10,6 +10,7 @@ import re
 import pytest
 from pymongo import MongoClient
 
+import search
 from app.assistant.model import FakeModel, ModelReply, ToolCall
 from tests.conftest import TEST_DB, sign_up
 from tests.test_golden import WARDROBE, stored
@@ -58,6 +59,15 @@ def test_search_wardrobe_matches_the_search_route(golden_chat):
     assert [refs[p["ref"]] for p in seen["pieces"]] == [r["item"]["id"] for r in route["results"]]
     assert seen["nothing_close"] == route["nothing_close"]
     assert set(seen["pieces"][0]) == {"ref", "category", "type", "colour", "close"}
+
+
+def test_search_wardrobe_keeps_only_the_closest_anyway_pieces_when_nothing_is_close(golden_chat, monkeypatch):
+    real = search.load_rules()
+    monkeypatch.setattr(search, "load_rules", lambda: {**real, "text_cut": 2.0})     # no cosine reaches 2
+    seen, _ = golden_chat(("search_wardrobe", {"query": "black skirt"}))
+    assert seen["nothing_close"] is True
+    assert len(seen["pieces"]) == int(real["closest_anyway"]) == 3                   # same as the route test
+    assert not any(p["close"] for p in seen["pieces"])
 
 
 def test_search_wardrobe_says_when_there_are_no_words(golden_chat):

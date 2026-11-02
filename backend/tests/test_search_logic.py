@@ -63,6 +63,13 @@ def test_the_terms_table_stops_on_a_bad_row(tmp_path):
         search.load_terms(table("robe,fr,,"))
 
 
+def test_the_cuts_are_the_encoder_labs_not_a_calibration_run():
+    """Guards against an accidental overwrite of mappings/search_rules.csv (calibrate_search.py needs --write now)."""
+    rules = search.load_rules()
+    assert rules["text_cut"] == 0.292 and rules["photo_cut"] == 0.792
+    assert rules["target_precision"] == 0.9 and rules["photo_target_precision"] == 0.75
+
+
 def test_the_team_tables_are_complete():
     rules = search.load_rules()
     assert 0 < rules["text_cut"] < 1 and 0 < rules["photo_cut"] < 1 and 0 < rules["target_precision"] <= 1
