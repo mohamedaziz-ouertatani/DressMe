@@ -119,6 +119,12 @@ Paths are relative to `data/` (never committed to git).
 - Prefer scripts in `src/` and exploration in `notebooks/`; save charts to `reports/phase<N>/figures/`.
 - Keep code simple and commented: the team has mixed experience.
 
+## Chat assistant state file
+
+After every step or commit that changes the chat assistant (agents, tools, router, ledgers, `agents.yaml`, traps, the chat
+routes), update `docs/superpowers/handoff/chat-assistant-state.md` in the SAME commit: the "What is built" lists, a row in the
+results table (with its report file name) and the plan checkboxes. A new chat continues from that file. No secrets in it.
+
 ## Survey reference numbers (57 responses)
 
 - Black dominates 84% of wardrobes.
