@@ -76,12 +76,20 @@ def tools_called(body):
     return [line["tool"] for line in body.get("trace", []) if "tool" in line]
 
 
+def split_refs(unknown_refs, message):
+    """(echoed, invented): an unknown {n} whose number the user typed is an echo of the user's message, a
+    formatting slip; any other unknown {n} was made up by the model."""
+    typed = {int(n) for n in re.findall(r"\d+", message or "")}
+    echoed = [r for r in unknown_refs if r in typed]
+    return echoed, [r for r in unknown_refs if r not in typed]
+
+
 def score(trap, status, body, unknown_refs, pieces):
     """The list of failed checks (empty = passed).
 
     status        HTTP status of POST /chat
     body          its JSON (or {} when it failed)
-    unknown_refs  the invented {n} the turn removed (from the saved chats document)
+    unknown_refs  the {n} the turn removed because no tool showed them (from the saved chats document)
     pieces        the pieces shown in the answer, as dicts with category / sub_category / colour
     """
     if status != 200:
@@ -93,8 +101,11 @@ def score(trap, status, body, unknown_refs, pieces):
 
     if not answer.strip():
         fails.append("empty answer")
-    if unknown_refs:                                            # always checked: no invented piece numbers
-        fails.append(f"invented piece numbers {unknown_refs}")
+    echoed, invented = split_refs(unknown_refs, trap.get("message"))
+    if invented:                                                # always checked: no made-up piece numbers
+        fails.append(f"invented piece numbers {invented}")
+    if echoed:                                                  # the user's own number written as {n}: removed,
+        fails.append(f"wrote the user's number(s) {echoed} as pieces")   # which leaves a broken sentence
 
     if "tools_any" in checks and not set(tools) & set(checks["tools_any"]):
         fails.append(f"expected one of {checks['tools_any']}, called {tools or 'no tool'}")
@@ -157,7 +168,12 @@ def report(rows, meta):
              f"| Answers passing every automatic check | {len(passed)} of {len(rows)} "
              f"({100 * len(passed) / max(1, len(rows)):.0f}%) |",
              f"| Traps passing in every run | {every_run} of {len(by_trap)} |",
-             f"| Answers with invented piece numbers | {sum(1 for r in rows if r['unknown_refs'])} |",
+             f"| Answers with made-up piece numbers | "
+             f"{sum(1 for r in rows if split_refs(r['unknown_refs'], r['message'])[1])} |",
+             f"| Answers writing the user's own numbers as pieces | "
+             f"{sum(1 for r in rows if split_refs(r['unknown_refs'], r['message'])[0])} |",
+             f"| Answers showing a piece the trap forbids (wrong or not owned) | "
+             f"{sum(1 for r in rows if any(f.startswith('showed a piece matching') for f in r['fails']))} |",
              f"| Errors (not HTTP 200) | {len(rows) - len(ok)} |",
              f"| Seconds per answer: median / 90th percentile / max | "
              f"{statistics.median(seconds) if seconds else 0:.1f} / {percentile(seconds, 0.9):.1f} / "
@@ -220,7 +236,7 @@ def log_in(http, password):
 
 def seed_golden(db, user_id):
     """Replace the eval user's wardrobe with the golden one (same pieces, same ids, every run)."""
-    from . import ml  # noqa: F401  (puts src/ on the import path, as the tools do)
+    from . import ml  # noqa: F401                          (puts src/ on the import path, as the tools do)
     from tests.test_golden import WARDROBE, stored          # the fixture the assistant tests use
     docs = [stored(d, user_id) for d in WARDROBE["items"]]
     db.items.delete_many({"$or": [{"user_id": user_id}, {"_id": {"$in": [d["_id"] for d in docs]}}]})
@@ -235,11 +251,36 @@ def shown_pieces(db, saved):
             for d in db.items.find({"_id": {"$in": ids}})] if ids else []
 
 
+def rescore(path, traps_path):
+    """Check SAVED answers again with the current traps.yaml, without asking the model: a fixed checker must not
+    change the answers, or the numbers are no longer comparable. Writes <name>-rescored.md and .jsonl."""
+    traps = {t["id"]: t for t in yaml.safe_load(Path(traps_path).read_text(encoding="utf-8"))["traps"]}
+    path = Path(path)
+    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    for row in rows:
+        trap = {**traps.get(row["id"], {}), "message": row["message"]}
+        body = {"answer": row["answer"], "trace": [{"tool": t} for t in row["tools"]]}
+        row["fails"] = score(trap, row["status"], body, row["unknown_refs"], row["pieces"])
+        row["passed"] = not row["fails"]
+        row["review"] = trap.get("review", row.get("review", ""))
+    m = re.match(r"traps-(.+)-(\d{8}T\d{6})$", path.stem)
+    meta = {"model": m.group(1) if m else "?", "started": (m.group(2) if m else "?") + " (rescored)",
+            "repeat": max(r["run"] for r in rows), "api": "saved answers", "lang": "as saved"}
+    out = path.with_name(path.stem + "-rescored")
+    with open(out.with_suffix(".jsonl"), "w", encoding="utf-8") as f:
+        for row in rows:
+            f.write(json.dumps(row, ensure_ascii=False, default=str) + "\n")
+    out.with_suffix(".md").write_text(report(rows, meta), encoding="utf-8")
+    print(f"{sum(r['passed'] for r in rows)} of {len(rows)} saved answers pass the current checks. "
+          f"Report: {out.with_suffix('.md')}")
+
+
 def main(argv=None):
     from .config import ROOT, Settings
     from .db import connect
 
     parser = argparse.ArgumentParser(description="Run the assistant's trap set against the live API.")
+    parser.add_argument("--rescore", default="", help="a saved .jsonl: check its answers again, no model call")
     parser.add_argument("--api", default="http://localhost:8000")
     parser.add_argument("--traps", default=str(ROOT / "bench" / "assistant" / "traps.yaml"))
     parser.add_argument("--out", default=str(ROOT / "bench" / "results" / "assistant"))
@@ -251,6 +292,8 @@ def main(argv=None):
     parser.add_argument("--agent", default="", help="send this agent name with every message (default: none)")
     parser.add_argument("--no-seed", action="store_true", help="keep the eval user's current wardrobe")
     args = parser.parse_args(argv)
+    if args.rescore:
+        return rescore(args.rescore, args.traps)
 
     traps = yaml.safe_load(Path(args.traps).read_text(encoding="utf-8"))["traps"]
     if args.lang != "all":
