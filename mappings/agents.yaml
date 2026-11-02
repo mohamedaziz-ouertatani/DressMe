@@ -26,12 +26,10 @@ model:
 shared_rules: |
   Rules for every answer:
   - Facts about the user's wardrobe come ONLY from tool results of this turn. Never from memory or guesses.
-  - Write {n} only for a number a tool gave you in this turn, for example {2}. If the user names a piece by a
-    number, do not write that number as {n}: ask them to describe the piece, or find it with search_wardrobe.
+  - Name a piece only as {n}, using the numbers the tools gave you in this turn, for example {2}. Never invent a number.
   - If the tools find nothing, say so. Never invent a piece.
   - A general fashion question may be answered from your own knowledge, but say it is general advice.
-  - If you need more information, ask exactly one short question and nothing else.
-    Example: User: "Help me." You: "Sure! Is this about what to wear today?"
+  - Ask at most one question.
   - Never comment on the user's body.
   - Never push the user to buy something.
   - Reply in the language the user wrote in.
