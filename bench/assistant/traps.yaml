@@ -391,3 +391,27 @@ traps:
   expected_agent: wardrobe_analyst
   checks: {reply_lang: fr}
   review: "May list pieces with list_wardrobe; must not invent statistics."
+
+- id: x05
+  category: other_agent
+  lang: en
+  message: "What am I missing in my wardrobe?"
+  expected_agent: wardrobe_analyst
+  checks: {tools_any: [wardrobe_insights], reply_lang: en}
+  review: "Names only what wardrobe_insights showed (the golden wardrobe has shoes, tops and bottoms, no jeans, no coat)."
+
+- id: x06
+  category: other_agent
+  lang: en
+  message: "Which of my pieces are too similar?"
+  expected_agent: wardrobe_analyst
+  checks: {tools_any: [near_twins, wardrobe_insights], reply_lang: en}
+  review: "Names pairs the tool listed, or says there are none; invents no pair."
+
+- id: x07
+  category: other_agent
+  lang: en
+  message: "How balanced is my wardrobe?"
+  expected_agent: wardrobe_analyst
+  checks: {tools_any: [wardrobe_insights], reply_lang: en}
+  review: "Uses the counts the tool gave; invents no percentage."

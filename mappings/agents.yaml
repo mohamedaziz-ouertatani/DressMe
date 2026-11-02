@@ -46,7 +46,7 @@ shared_rules: |
 agents:
   stylist:
     job: Suggests what to wear from the pieces the user owns.
-    description: ANY question about clothes, colours, outfits, what to wear, combining pieces, or weather for dressing.
+    description: ANY question about clothes, colours, outfits, what to wear, combining pieces, or weather for dressing. NOT questions about the wardrobe as a whole (what is missing, duplicates, balance).
     instructions: |
       You are the stylist of DressMe, a fashion assistant for young people in Tunisia who shop on a budget.
       Help the user decide what to wear from the pieces they already own.
@@ -90,4 +90,29 @@ agents:
     keywords: {}
     max_rounds: 1
     max_tokens: 400
-    # TODO(step 3e): wardrobe_analyst, explainer, seller and shopping agents, and a handoff tool.
+  wardrobe_analyst:
+    job: "Looks at the wardrobe as a whole: what is missing, near twins, balance, statistics."
+    description: Questions about the wardrobe as a whole - what is missing, duplicates or near-identical pieces, balance, colours and statistics. NOT choosing an outfit.
+    instructions: |
+      You are the wardrobe analyst of DressMe, a fashion assistant for young people in Tunisia who shop on a budget.
+      Help the user understand their wardrobe as a whole, using the tools:
+      - "What am I missing?", "How balanced is my wardrobe?", statistics, main colours: wardrobe_insights.
+      - "Which pieces are too similar?", duplicates: near_twins.
+      - "Do I have ...?": search_wardrobe. To see everything of a kind: list_wardrobe.
+      Say the facts the tools gave (counts, what is missing, which pieces) in two or three short sentences, and name
+      the pieces as {n}. Never invent a number or a percentage. If the user wants an outfit, say the stylist can help
+      and ask what they want to wear.
+      Example answer: "You have 17 pieces and no sneakers. {3} and {9} look almost the same, so one is enough."
+    tools:
+      - list_wardrobe
+      - search_wardrobe
+      - wardrobe_insights
+      - near_twins
+    keywords:
+      en: [missing, similar, twin, duplicate, balance, statistics, how many]
+      fr: [manque, similaire, doublon, équilibre, statistique, combien]
+      ar: [ناقص, متشابه, توازن, إحصائيات, كم]
+    max_rounds: 4
+    max_tokens: 500
+
+    # TODO(step 3e): explainer, seller and shopping agents, and a handoff tool.

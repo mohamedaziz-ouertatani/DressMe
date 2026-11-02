@@ -4,6 +4,7 @@ mappings/agents.yaml, a model interface and the loop that ties them together. Se
 """
 
 from .tools import Registry
+from .tools_analyst import NEAR_TWINS, WARDROBE_INSIGHTS
 from .tools_stylist import BUILD_OUTFIT, GET_WEATHER, SCORE_OUTFIT, SUGGEST_OUTFITS
 from .tools_wardrobe import LIST_WARDROBE, SEARCH_WARDROBE
 
@@ -11,6 +12,7 @@ from .tools_wardrobe import LIST_WARDROBE, SEARCH_WARDROBE
 def default_registry():
     """Every tool the assistant has (an agent uses the ones mappings/agents.yaml gives it)."""
     registry = Registry()
-    for tool in (LIST_WARDROBE, SEARCH_WARDROBE, GET_WEATHER, SUGGEST_OUTFITS, BUILD_OUTFIT, SCORE_OUTFIT):
+    for tool in (LIST_WARDROBE, SEARCH_WARDROBE, GET_WEATHER, SUGGEST_OUTFITS, BUILD_OUTFIT, SCORE_OUTFIT,
+                 WARDROBE_INSIGHTS, NEAR_TWINS):
         registry.register(tool)
     return registry
