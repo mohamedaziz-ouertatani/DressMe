@@ -70,6 +70,18 @@ def test_no_model_answers_503_assistant_unavailable(client):
     assert client.app.state.db.chats.count_documents({}) == 0       # a failed turn saves nothing
 
 
+def test_a_number_typed_by_the_user_reaches_the_model_without_braces(make_client):
+    model = FakeModel([ModelReply(text="Fine.")])
+    client = make_client(chat_model=model)
+    headers = sign_up(client)
+
+    r = client.post("/chat", json={"message": "Does {12} go with {3}?"}, headers=headers)
+    assert r.status_code == 200, r.text
+    assert model.received[0]["messages"][-1] == {"role": "user", "content": "Does 12 go with 3?"}
+    saved = client.app.state.db.chats.find_one({})
+    assert saved["message"] == "Does {12} go with {3}?"             # what is saved is what the user wrote
+
+
 def test_the_request_is_checked(make_client):
     client = make_client(chat_model=FakeModel([ModelReply(text="Hi")]))
     headers = sign_up(client)

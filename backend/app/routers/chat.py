@@ -11,6 +11,7 @@ can show their photos. Each turn is saved as one document in `chats` (the messag
 The event log keeps counts and times, never the message text. No model set up: 503 `assistant_unavailable`.
 """
 
+import re
 import time
 import uuid
 from datetime import datetime, timezone
@@ -28,6 +29,7 @@ from ..security import current_user
 from ..wardrobe import item_out
 
 router = APIRouter(tags=["assistant"])
+USER_REF = re.compile(r"\{(\d+)\}")      # a {number} typed by the user
 
 
 class ChatBody(BaseModel):
@@ -47,10 +49,13 @@ def chat(body: ChatBody, request: Request, user=Depends(current_user)):
         raise HTTPException(422, "unknown_agent")
 
     started = time.perf_counter()
+    # the model must never see a {n} it did not get from a tool, or it may copy it as a piece number;
+    # only this copy changes, the saved message stays as the user wrote it
+    for_model = USER_REF.sub(r"\1", body.message)
     # the tools reuse the screens' functions, which read the request (app state) and the user document (step 3d)
     ctx = ToolContext(user_id=user["_id"], db=state.db, ledger=PieceLedger(), user=user, request=request)
     try:
-        turn = run_turn(agents.agents[name], body.message, state.chat_model, state.registry, ctx,
+        turn = run_turn(agents.agents[name], for_model, state.chat_model, state.registry, ctx,
                         shared_rules=agents.shared_rules)
     except ModelUnavailable:
         raise HTTPException(503, "assistant_unavailable")
