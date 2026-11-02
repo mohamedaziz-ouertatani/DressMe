@@ -17,6 +17,7 @@ from tests.conftest import sign_up
 
 SETTINGS = load_agents(ROOT / "mappings" / "agents.yaml", default_registry().names()).model
 NOWHERE = "http://127.0.0.1:9"          # nothing listens there: connection refused
+NO_WAIT = dict(sleep=lambda seconds: None)   # the retries do not really wait in the tests
 TOOLS = [{"type": "function", "function": {"name": "list_wardrobe", "description": "List.", "parameters": {}}}]
 
 
@@ -28,7 +29,7 @@ def client_answering(answer, sent=None, status=200):
         if isinstance(answer, Exception):
             raise answer
         return httpx.Response(status, json=answer)
-    return OllamaClient("http://ollama.test", "qwen3.5:4b", SETTINGS, transport=httpx.MockTransport(handle))
+    return OllamaClient("http://ollama.test", "qwen3.5:4b", SETTINGS, transport=httpx.MockTransport(handle), **NO_WAIT)
 
 
 def reply(content="", tool_calls=None):
@@ -73,7 +74,7 @@ def test_a_think_block_is_stripped_and_flagged():
 
 
 @pytest.mark.parametrize("client", [
-    OllamaClient(NOWHERE, "qwen3.5:4b", SETTINGS),                                    # connection refused
+    OllamaClient(NOWHERE, "qwen3.5:4b", SETTINGS, **NO_WAIT),                         # connection refused
     client_answering(httpx.ReadTimeout("too slow")),                                 # timeout
     client_answering({"error": "model 'qwen3.5:4b' not found"}, status=404),        # model not pulled
     client_answering({"error": "boom"}, status=500),
@@ -92,7 +93,7 @@ def test_available_asks_api_show_once_a_minute():
 
 
 def test_status_and_chat_when_ollama_cannot_be_reached(make_client):
-    client = make_client(chat_model=OllamaClient(NOWHERE, "qwen3.5:4b", SETTINGS))
+    client = make_client(chat_model=OllamaClient(NOWHERE, "qwen3.5:4b", SETTINGS, **NO_WAIT))
     headers = sign_up(client)
     assert client.get("/assistant/status").status_code in (401, 403)          # a login is needed
     r = client.get("/assistant/status", headers=headers)

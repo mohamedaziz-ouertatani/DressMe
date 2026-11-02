@@ -1,0 +1,221 @@
+{
+  "2.1_rows": {
+    "found": {
+      "total": 35432,
+      "train": 28331,
+      "val": 3477,
+      "test": 3624
+    },
+    "expected": {
+      "total": 35432,
+      "train": 28331,
+      "val": 3477,
+      "test": 3624
+    },
+    "all_pass": true,
+    "unexpected_split_values": [],
+    "unreadable_kaggle_ids": 0,
+    "item_id_mismatch": 0
+  },
+  "2.2_funnel": [
+    {
+      "rule": "1. colour from a human label",
+      "split": "train",
+      "removed": 5,
+      "left": 28326
+    },
+    {
+      "rule": "1. colour from a human label",
+      "split": "val",
+      "removed": 0,
+      "left": 3477
+    },
+    {
+      "rule": "1. colour from a human label",
+      "split": "test",
+      "removed": 1,
+      "left": 3623
+    },
+    {
+      "rule": "2. not a duplicate picture",
+      "split": "train",
+      "removed": 608,
+      "left": 27718
+    },
+    {
+      "rule": "2. not a duplicate picture",
+      "split": "val",
+      "removed": 75,
+      "left": 3402
+    },
+    {
+      "rule": "2. not a duplicate picture",
+      "split": "test",
+      "removed": 75,
+      "left": 3548
+    },
+    {
+      "rule": "3. type and colour filled in",
+      "split": "train",
+      "removed": 0,
+      "left": 27718
+    },
+    {
+      "rule": "3. type and colour filled in",
+      "split": "val",
+      "removed": 0,
+      "left": 3402
+    },
+    {
+      "rule": "3. type and colour filled in",
+      "split": "test",
+      "removed": 0,
+      "left": 3548
+    }
+  ],
+  "2.2_eligible": {
+    "train": 27718,
+    "val": 3402,
+    "test": 3548
+  },
+  "2.3_styles": {
+    "rows_read": 44424,
+    "damaged_lines_skipped": 22,
+    "damaged_among_ours": 7
+  },
+  "2.3_label_check": {
+    "train": {
+      "compared": 27712,
+      "matching": 27712,
+      "different": 0,
+      "not_found": 6,
+      "match_rate": 1.0
+    },
+    "val": {
+      "compared": 3401,
+      "matching": 3401,
+      "different": 0,
+      "not_found": 1,
+      "match_rate": 1.0
+    },
+    "test": {
+      "compared": 3548,
+      "matching": 3548,
+      "different": 0,
+      "not_found": 0,
+      "match_rate": 1.0
+    }
+  },
+  "2.4_image_match": {
+    "train": {
+      "eligible": 27718,
+      "matched": 27718,
+      "missing": 0,
+      "missing_ids": []
+    },
+    "val": {
+      "eligible": 3402,
+      "matched": 3402,
+      "missing": 0,
+      "missing_ids": []
+    },
+    "test": {
+      "eligible": 3548,
+      "matched": 3548,
+      "missing": 0,
+      "missing_ids": []
+    }
+  },
+  "2.5_open": {
+    "opened": 6950,
+    "readable": 6950,
+    "unreadable": 0,
+    "removed": [],
+    "median_width": 1080,
+    "median_height": 1440,
+    "smallest": "150x200 (fp_30243)",
+    "modes": {
+      "RGB": 6950
+    }
+  },
+  "final_counts": {
+    "val": 3402,
+    "test": 3548,
+    "train": 27718
+  },
+  "2.6_split_checks": {
+    "groups_in_two_splits_kept": 0,
+    "groups_in_two_splits_export": 0,
+    "item_in_val_and_test": 0
+  },
+  "2.6_rare_types": {
+    "hair-accessory": {
+      "val": 0,
+      "test": 1
+    },
+    "hat": {
+      "val": 0,
+      "test": 1
+    },
+    "waist-bag": {
+      "val": 0,
+      "test": 2
+    },
+    "blazer": {
+      "val": 1,
+      "test": 0
+    },
+    "jumpsuit": {
+      "val": 1,
+      "test": 2
+    },
+    "messenger-bag": {
+      "val": 2,
+      "test": 2
+    },
+    "gloves": {
+      "val": 2,
+      "test": 3
+    },
+    "swimsuit": {
+      "val": 2,
+      "test": 3
+    },
+    "waistcoat": {
+      "val": 3,
+      "test": 1
+    },
+    "suspenders": {
+      "val": 4,
+      "test": 6
+    },
+    "jewellery-set": {
+      "val": 6,
+      "test": 4
+    },
+    "duffel-bag": {
+      "val": 7,
+      "test": 6
+    },
+    "laptop-bag": {
+      "val": 11,
+      "test": 3
+    },
+    "leggings": {
+      "val": 14,
+      "test": 9
+    }
+  },
+  "settings": {
+    "seed": 0,
+    "versions": {
+      "python": "3.13.15",
+      "pandas": "2.3.3",
+      "numpy": "2.1.3",
+      "pillow": "13.0.0"
+    },
+    "splits_csv": "/kaggle/input/datasets/medokh34/dressme-splits/dressme_splits.csv",
+    "styles_csv": "/kaggle/input/datasets/paramaggarwal/fashion-product-images-dataset/fashion-dataset/styles.csv",
+    "images_dir": "/kaggle/input/datasets/paramaggarwal/fashion-product-images-dataset/fashion-dataset/images"
+  }
+}
