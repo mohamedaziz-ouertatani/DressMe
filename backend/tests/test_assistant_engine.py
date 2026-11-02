@@ -54,10 +54,10 @@ def make_agent(max_rounds=6):
                  max_rounds=max_rounds, max_tokens=100)
 
 
-def turn(script, max_rounds=6):
+def turn(script, max_rounds=6, user_text="hello"):
     model = FakeModel(script)
     ctx = ToolContext(user_id="u1", db=None, ledger=PieceLedger())
-    result = run_turn(make_agent(max_rounds), "hello", model, make_registry(), ctx, shared_rules="Rule one.")
+    result = run_turn(make_agent(max_rounds), user_text, model, make_registry(), ctx, shared_rules="Rule one.")
     return result, model
 
 
@@ -109,8 +109,24 @@ def test_a_stripped_think_block_is_noted_in_the_trace():
 def test_known_placeholders_stay_and_unknown_ones_are_removed_and_reported():
     ledger = PieceLedger()
     ledger.add("id-a"), ledger.add("id-b")
-    assert resolve("Try {2} with {1}. {99}", ledger) == ("Try {2} with {1}.", [2, 1], [99])
-    assert resolve("Nothing here.", ledger) == ("Nothing here.", [], [])
+    assert resolve("Try {2} with {1}. {99}", ledger) == ("Try {2} with {1}.", [2, 1], [99], [])
+    assert resolve("Nothing here.", ledger) == ("Nothing here.", [], [], [])
+
+
+def test_a_number_the_user_typed_is_shown_as_plain_text_not_deleted():
+    ledger = PieceLedger()
+    ledger.add("id-a")
+    clean, used, unknown, echoed = resolve("Piece {12} is not here. {99} {12} {1}", ledger, "Does 12 go with my skirt?")
+    assert clean == "Piece 12 is not here. 12 {1}"       # {12} -> 12, {99} deleted, the gap tidied
+    assert (used, unknown, echoed) == ([1], [99], [12])
+    # a number the tools did show stays a piece even if the user typed it too
+    assert resolve("Wear {1}.", ledger, "what about 1?") == ("Wear {1}.", [1], [], [])
+
+
+def test_the_loop_passes_the_users_text_so_their_number_is_echoed():
+    result, _ = turn([say("{12} is not in your wardrobe. {99}")], user_text="Does {12} go with it?")
+    assert result.answer == "12 is not in your wardrobe."
+    assert (result.refs, result.unknown_refs, result.echoed_refs) == ([], [99], [12])
 
 
 def test_an_invented_placeholder_in_the_answer_is_removed_by_the_loop():

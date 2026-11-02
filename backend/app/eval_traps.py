@@ -172,6 +172,8 @@ def report(rows, meta):
              f"{sum(1 for r in rows if split_refs(r['unknown_refs'], r['message'])[1])} |",
              f"| Answers writing the user's own numbers as pieces | "
              f"{sum(1 for r in rows if split_refs(r['unknown_refs'], r['message'])[0])} |",
+             f"| Answers where code repaired the user's number (shown as plain text) | "
+             f"{sum(1 for r in rows if r.get('echoed_refs'))} |",
              f"| Answers showing a piece the trap forbids (wrong or not owned) | "
              f"{sum(1 for r in rows if any(f.startswith('showed a piece matching') for f in r['fails']))} |",
              f"| Errors (not HTTP 200) | {len(rows) - len(ok)} |",
@@ -339,6 +341,7 @@ def main(argv=None):
             seconds = round(time.perf_counter() - t0, 1)
             saved = db.chats.find_one({"chat_id": chat_id, "user_id": user_id}) if code == 200 else None
             unknown = (saved or {}).get("unknown_refs", [])
+            repaired = (saved or {}).get("echoed_refs", [])      # the user's number the code showed as plain text
             pieces = shown_pieces(db, saved)
             fails = score(trap, code, answer_body, unknown, pieces)
             rows.append({"id": trap["id"], "run": run, "category": trap["category"], "lang": trap["lang"],
@@ -347,7 +350,7 @@ def main(argv=None):
                          "answer": answer_body.get("answer") or "", "tools": tools_called(answer_body),
                          "n_tool_calls": len(tools_called(answer_body)),
                          "stop_reason": answer_body.get("stop_reason"), "unknown_refs": unknown,
-                         "pieces": pieces, "thinking_stripped": any(
+                         "echoed_refs": repaired, "pieces": pieces, "thinking_stripped": any(
                              line.get("note") == "thinking_stripped" for line in answer_body.get("trace", [])),
                          "model": answer_body.get("model", model), "fails": fails, "passed": not fails,
                          "review": trap.get("review", "")})

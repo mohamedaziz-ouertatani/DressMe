@@ -14,7 +14,7 @@ goes up, to the route.
 """
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .placeholders import resolve
 from .tools import ToolResult
@@ -28,6 +28,7 @@ class TurnResult:
     trace: list
     stop_reason: str
     rounds: int
+    echoed_refs: list = field(default_factory=list)       # unknown {n} the user had typed: shown as plain numbers
 
 
 def call_key(call):
@@ -80,5 +81,5 @@ def run_turn(agent, user_text, model, registry, ctx, shared_rules=""):
         reply = model.chat(messages, [], agent.max_tokens)
         if reply.thinking_stripped:
             trace.append({"round": rounds + 1, "note": "thinking_stripped"})
-    answer, refs, unknown = resolve(reply.text or "", ctx.ledger)
-    return TurnResult(answer, refs, unknown, trace, stop_reason, rounds)
+    answer, refs, unknown, echoed = resolve(reply.text or "", ctx.ledger, user_text)
+    return TurnResult(answer, refs, unknown, trace, stop_reason, rounds, echoed)

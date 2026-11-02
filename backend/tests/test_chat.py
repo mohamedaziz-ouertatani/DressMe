@@ -82,6 +82,17 @@ def test_a_number_typed_by_the_user_reaches_the_model_without_braces(make_client
     assert saved["message"] == "Does {12} go with {3}?"             # what is saved is what the user wrote
 
 
+def test_the_users_own_number_is_saved_as_echoed_not_unknown(make_client):
+    client = make_client(chat_model=FakeModel([ModelReply(text="Piece {12} is not here. {99}")]))
+    headers = sign_up(client)
+
+    r = client.post("/chat", json={"message": "Does {12} go with my skirt?"}, headers=headers)
+    assert r.status_code == 200, r.text
+    assert r.json()["answer"] == "Piece 12 is not here."
+    saved = client.app.state.db.chats.find_one({})
+    assert (saved["echoed_refs"], saved["unknown_refs"]) == ([12], [99])
+
+
 def test_the_request_is_checked(make_client):
     client = make_client(chat_model=FakeModel([ModelReply(text="Hi")]))
     headers = sign_up(client)

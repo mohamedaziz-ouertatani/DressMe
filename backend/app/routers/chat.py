@@ -70,7 +70,7 @@ def chat(body: ChatBody, request: Request, user=Depends(current_user)):
     state.db.chats.insert_one({
         "user_id": user["_id"], "chat_id": chat_id, "created_at": datetime.now(timezone.utc), "agent": name,
         "message": body.message, "answer": turn.answer, "item_ids": item_ids, "unknown_refs": turn.unknown_refs,
-        "trace": turn.trace, "stop_reason": turn.stop_reason, "model": state.chat_model.name})
+        "echoed_refs": turn.echoed_refs, "trace": turn.trace, "stop_reason": turn.stop_reason, "model": state.chat_model.name})
     log_event(state.db, "assistant", user["_id"], agent=name, rounds=turn.rounds, stop_reason=turn.stop_reason,
               n_tool_calls=sum(1 for line in turn.trace if "tool" in line), n_unknown_refs=len(turn.unknown_refs),
               ms=round((time.perf_counter() - started) * 1000))      # never the message text
