@@ -285,6 +285,9 @@ export interface Similar {
   catalog: (CatalogHit & { why?: SimilarWhy })[]
   shop?: (ShopHit & { why?: SimilarWhy })[]   // missing or empty when the server has no shop catalogue
   listings?: (ListingHit & { why?: SimilarWhy })[]   // shop listings in stock now (empty until the collector has run)
+  /** the piece everything above is compared with (a wardrobe item or a scan); missing on an older server */
+  query?: { id: string; kind: 'item' | 'candidate'; image_url: string; category: Category; sub_category: string; colour: string }
+  budget_cap?: number | null   // TND: listings were kept up to this price (budget x the team's share); null = no cap
 }
 
 /** A shop product collected by src/phase4/collect_listings.py (backend/app/listings.py, listing_out).
@@ -487,6 +490,30 @@ export interface Weather {
   lat: number
   lon: number
 }
+
+/** GET /price-estimate (backend/app/routers/price.py, src/phase4/price.py): a second-hand price band in TND.
+ *  The band fields are null (never 0) when the model cannot price this channel; `note` is always set and
+ *  must be shown with the band, which is a range, never a single price. */
+export type PriceChannel = 'friperie' | 'classified'
+export interface PriceEstimate {
+  low: number | null
+  median: number | null
+  high: number | null
+  channel: string
+  based_on: 'category' | 'all' | null   // the piece's own category, or all categories (too few of its kind)
+  count: number | null                  // priced items the band comes from
+  typical_error_factor: number | null   // e.g. 1.53 = typically off by x1.53 either way
+  note: string                          // English, for other consumers: the app builds its own from `channel`
+  // listing_id only: a friperie seller's asked price against the median (mappings/price_model.csv tag_factor);
+  // null = nothing to say, or a shop listing. "priced_high" only when the team switches it on (show_priced_high).
+  tag?: PriceTag | null
+  // item / scan only: the condition the user picked (default good) and its factor, already applied to the band
+  condition?: PriceCondition
+  condition_factor?: number
+}
+export type PriceTag = 'good_deal' | 'priced_high'
+/** The garment's condition, which the model cannot see (mappings/price_model.csv condition_*). */
+export type PriceCondition = 'new_tags' | 'like_new' | 'good' | 'stained' | 'torn'
 
 /** A collector run started from Admin > Listings (backend/app/jobs.py). */
 export type JobStatus = 'running' | 'stopping' | 'finished' | 'failed' | 'stopped' | 'lost'

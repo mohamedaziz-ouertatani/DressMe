@@ -12,6 +12,7 @@ import { brandName, shopName, useListingFormat } from '../ui/listingText'
 import { Page } from '../shell'
 import { Button, Chip } from '../ui/controls'
 import { ItemPhoto } from '../ui/ItemPhoto'
+import { PriceBandView, PriceTagChip, usePriceEstimate } from '../ui/PriceBand'
 import { VerdictCard } from '../ui/VerdictCard'
 import { Empty, ErrorNote, Skeleton } from '../ui/states'
 import { Ticket } from '../ui/ticket'
@@ -152,6 +153,8 @@ export function ListingPage() {
   }
 
   const l = res.data
+  // a friperie seller's listing only: its usual second-hand price and a "Good price" tag (shops: never asked)
+  const estimate = usePriceEstimate({ listingId: l?.seller && l.id === id ? id : undefined })
   const kind = l ? vocab(SUB_LABELS, l.sub_category, lang) || vocab(CATEGORY_LABELS, l.category, lang) : ''
   return (
     <Page title={t('shopPageTitle')} look="soft">
@@ -173,7 +176,12 @@ export function ListingPage() {
                   <p className="mt-1 text-[14px] text-carbon-soft">
                     {l.seller ? t('friperieSellers') : shopName(l)}{l.shop_colour ? <> · <span dir="auto">{l.shop_colour}</span></> : null}{kind && l.title ? ` · ${kind}` : ''}
                   </p>
-                  {l.price_tnd !== null && <p className="mt-2 font-mono text-[18px] text-carbon tabular">{price(l.price_tnd, l.price_original)}</p>}
+                  {l.price_tnd !== null && (
+                    <p className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-[18px] text-carbon tabular">{price(l.price_tnd, l.price_original)}</span>
+                      {l.seller && <PriceTagChip tag={estimate?.tag} />}
+                    </p>
+                  )}
                   {l.price_original && <p className="text-[12px] text-carbon-soft">{t('priceConverted', { o: l.price_original })}</p>}
                   <p className="mt-1 text-[13px] text-carbon-soft">
                     {l.status === 'gone' ? t('listingGone') : <StockLine listing={l} />}
@@ -186,6 +194,10 @@ export function ListingPage() {
                 </div>
               </div>
             </Ticket>
+
+            {l.seller && estimate && estimate.low !== null && estimate.high !== null && (
+              <div className="mt-3"><PriceBandView band={estimate} /></div>
+            )}
 
             {l.seller && (
               <p className="ticket mt-3 flex items-center gap-2 px-4 py-3 text-[15px] text-carbon">

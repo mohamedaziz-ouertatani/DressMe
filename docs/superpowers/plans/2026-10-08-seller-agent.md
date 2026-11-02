@@ -8,6 +8,12 @@
 
 **Tech Stack:** FastAPI, pymongo, numpy, pytest with fakes; React + TypeScript + react-router + Tailwind.
 
+> **Update (2026-11-01, PR #68):** this plan is kept as written. Since then `price_hint` uses the trained
+> price model when it is loaded (its friperie band, `"source": "price_model"`) and falls back to the
+> `resale.py` look-alikes × 0.3 below (`"source": "listings"`). The job sentence and the tool docstring
+> still say "similar listings" until the next chat retrain (proposed wording in PR #68). See `AGENTS.md`
+> and the spec's "Price hint" section.
+
 **Spec:** `docs/superpowers/specs/2026-10-08-seller-agent-design.md` (builds on `docs/superpowers/specs/2026-10-08-ai-agents-design.md`, `AGENTS.md`)
 
 ## Global Constraints

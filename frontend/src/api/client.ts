@@ -5,6 +5,7 @@ import type {
   Listing, ListingFilters, ListingPage, ListingPatch, ModelQuality, ReviewListing, SellForm, Occasion, Outfit, Season, Similar, Stats, User, Gender,
   TryOnResult, Weather, Explanation, GuessField, OutfitExplanation,
   Decision, DecisionAnswer, OutfitLabel, WearEntry, WearSummary, OccasionChip, TodayOutfits, BuildResult, SearchResponse,
+  PriceChannel, PriceCondition, PriceEstimate,
 } from './types'
 
 const BASE = '/api'
@@ -175,12 +176,26 @@ export const api = {
   wearSummary: () => request<WearSummary>('/wear/summary'),
   /** Undo: only on the day it was worn (409 later). */
   unwear: (id: string) => request<void>(`/wear/${id}`, { method: 'DELETE' }),
-  similar: (ref: { itemId?: string; candidateId?: string }, k = 6, all = false) => {
+  /** allPrices: also the shop listings above the budget cap (see Similar.budget_cap). */
+  similar: (ref: { itemId?: string; candidateId?: string }, k = 6, all = false, allPrices = false) => {
     const q = new URLSearchParams({ k: String(k) })
     if (ref.itemId) q.set('item_id', ref.itemId)
     if (ref.candidateId) q.set('candidate_id', ref.candidateId)
     if (all) q.set('gender', 'all')
+    if (allPrices) q.set('all_prices', 'true')
     return request<Similar>(`/similar?${q}`)
+  },
+  /** A second-hand price band for an item, a scan or a seller's listing (503 = no price model on the server).
+   *  A listing is always priced against friperie prices and also gets a `tag`. `condition` (item / scan only)
+   *  scales the band by the team's factor; left out = the server's default, good. */
+  priceEstimate: (ref: { itemId?: string; candidateId?: string; listingId?: string }, channel: PriceChannel = 'friperie',
+    condition?: PriceCondition) => {
+    const q = new URLSearchParams({ channel })
+    if (ref.itemId) q.set('item_id', ref.itemId)
+    if (ref.candidateId) q.set('candidate_id', ref.candidateId)
+    if (ref.listingId) q.set('listing_id', ref.listingId)
+    if (condition) q.set('condition', condition)
+    return request<PriceEstimate>(`/price-estimate?${q}`)
   },
   subCategoryGender: () => request<Record<string, 'men' | 'women' | 'unisex'>>('/vocab/sub-category-gender'),
   explain: (ref: { itemId?: string; candidateId?: string }, head?: GuessField, value?: string) => {
