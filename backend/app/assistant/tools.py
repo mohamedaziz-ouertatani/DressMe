@@ -13,7 +13,7 @@ Two safety rules live here:
 """
 
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Callable
 
 from pydantic import BaseModel, ValidationError
@@ -28,6 +28,9 @@ class ToolContext:
     ledger: PieceLedger
     user: dict | None = None        # step 3d: the logged-in user's document (gender rules, profile)
     request: Any = None             # step 3d: the /chat request, for the screens' functions (they read .app.state)
+    # step 3e: shop listings are NOT pieces, so they get their own numbers (listing 1, 2, 3...). Same class as the
+    # ledger, another list: a listing number can never be read as a piece, and the model never writes it as {n}.
+    listings: PieceLedger = field(default_factory=PieceLedger)
 
 
 @dataclass
@@ -37,6 +40,7 @@ class Tool:
     args_model: type[BaseModel]
     fn: Callable                    # fn(ctx, args) -> dict
     piece_args: tuple = ()          # argument names that hold piece refs (an int, or a list of ints)
+    listing_args: tuple = ()        # step 3e: argument names that hold listing numbers (an int, or a list of ints)
 
 
 @dataclass
@@ -91,9 +95,12 @@ class Registry:
             args = tool.args_model(**call.arguments)
         except (ValidationError, TypeError) as error:
             return failed("invalid_arguments", str(error), started)
-        args, unknown = self._translate_refs(tool, args, ctx.ledger)
+        args, unknown = self._translate_refs(tool.piece_args, args, ctx.ledger)
         if unknown is not None:
             return failed("unknown_piece", f"Piece {unknown} was not shown in this conversation turn.", started)
+        args, unknown = self._translate_refs(tool.listing_args, args, ctx.listings)
+        if unknown is not None:
+            return failed("unknown_listing", f"Listing {unknown} was not shown in this conversation turn.", started)
         try:
             data = tool.fn(ctx, args)
         except ToolError as error:                        # a refusal the tool expected
@@ -103,10 +110,11 @@ class Registry:
         return ToolResult(True, data=data, ms=round((time.perf_counter() - started) * 1000))
 
     @staticmethod
-    def _translate_refs(tool, args, ledger):
-        """Swap each piece ref in the arguments for its item id. Returns (args, the first unknown ref or None)."""
+    def _translate_refs(names, args, ledger):
+        """Swap each ref in the named arguments for its id (a piece's item id, or a listing's id, by the ledger given).
+        Returns (args, the first unknown ref or None)."""
         changes = {}
-        for name in tool.piece_args:
+        for name in names:
             value = getattr(args, name)
             refs = value if isinstance(value, list) else [value]
             ids = [ledger.item_id(r) for r in refs]

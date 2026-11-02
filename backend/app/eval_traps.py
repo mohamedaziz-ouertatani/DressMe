@@ -285,6 +285,43 @@ def seed_golden(db, user_id):
     return len(docs)
 
 
+FAKE_CONTACT = "FAKE-CONTACT-0000"      # a contact the answers must never show (traps e.g. "forbid_patterns")
+FAKE_LISTINGS = [
+    # (id suffix, title, brand, category, sub_category, colour, price TND, gender, golden piece the picture vector copies)
+    (1, "Black leather handbag", "zara", "bag", "handbag", "black", 45, "women", 16),
+    (2, "Black mini backpack", "bershka", "bag", "handbag", "black", 69, "women", 16),
+    (3, "Brown leather loafers", "pullandbear", "shoes", "casual-shoes", "brown", 55, "women", 14),
+    (4, "Denim jacket", "", "outerwear", "jacket", "black", 45, "women", 11),          # a friperie seller's listing
+    (5, "White sneakers", "bershka", "shoes", "sneakers", "white", 70, "unisex", 14),
+]
+
+
+def seed_listings(db):
+    """Five fixed fake listings, ONLY when the listings collection is empty (the evaluation, never the app), so the
+    shopping traps have something to find. Fixed ids: the same listings every run. Returns how many were added."""
+    from datetime import datetime, timezone
+    from bson import ObjectId
+    from tests.test_golden import WARDROBE, stored
+    if db.listings.count_documents({}):
+        return 0
+    golden = {i: stored(d, None) for i, d in enumerate(WARDROBE["items"], 1)}
+    now = datetime.now(timezone.utc)
+    docs = []
+    for n, title, brand, category, sub, colour, price, gender, donor in FAKE_LISTINGS:
+        seller = brand == ""
+        docs.append({
+            "_id": ObjectId(f"5f0c02{n:018x}"), "source_id": "sellers" if seller else "eval_fake", "external_id": f"fake-{n}",
+            "title": title, "brand": brand, "shop_colour": colour, "gender": gender, "url": "", "price_tnd": price,
+            "sizes": [], "sizes_in_stock": [], "in_stock": True, "availability_level": "colour", "image_url": "",
+            "category": category, "sub_category": sub, "pattern": "solid", "colour": colour, "predicted": {},
+            "corrected": [], "vector": golden[donor]["vector"], "status": "active", "review_note": "",
+            "created_at": now, "seen_at": now, "checked_at": None, "snapshot": False,
+            **({"seller_id": ObjectId("5f0c0300000000000000ffff"), "city": "Sfax", "contact": FAKE_CONTACT}
+               if seller else {})})
+    db.listings.insert_many(docs)
+    return len(docs)
+
+
 def shown_pieces(db, saved):
     from .db import object_id
     ids = [object_id(i) for i in (saved or {}).get("item_ids", []) if i]
@@ -353,6 +390,9 @@ def main(argv=None):
     user_id = db.users.find_one({"email": EVAL_EMAIL})["_id"]
     if not args.no_seed:
         print(f"wardrobe: {seed_golden(db, user_id)} golden pieces for {EVAL_EMAIL}")
+        added = seed_listings(db)                            # only if there are no listings at all
+        if added:
+            print(f"listings: {added} fake listings added (the collection was empty)")
 
     status = http.get("/assistant/status").json()
     if not status.get("available"):

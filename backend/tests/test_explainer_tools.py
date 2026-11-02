@@ -62,7 +62,8 @@ def golden_chat(make_client, settings):
 
     def later(call):
         def reply(m):
-            pieces = reads_of(m.received[-1])[0]["pieces"]
+            run.reads = reads_of(m.received[-1])             # everything the model has read so far (a call may use it)
+            pieces = run.reads[0]["pieces"]
             name, args = call(pieces) if callable(call) else call
             return tool_call(name, args)
         return reply
@@ -78,7 +79,8 @@ def golden_chat(make_client, settings):
         assert all(len(json.dumps(x)) <= MAX_CHARS for x in reads)
         return r.json(), reads
 
-    run.client, run.headers = client, headers
+    run.client, run.headers, run.db = client, headers, db
+    run.reads = []
     return run
 
 
