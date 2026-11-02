@@ -20,6 +20,8 @@ export interface User {
   language: Language
   gender: Gender | null
   needs_gender: boolean       // account from before the question: asked once
+  budget_tnd: number | null   // optional spending budget (set on the Wardrobe view)
+  consent_at: string | null   // when the user agreed; null = an older account, asked once
 }
 
 export interface Alternative {
@@ -66,6 +68,8 @@ export interface Item {
   predicted: Partial<Record<GuessField, Guess>>
   corrected: string[]
   image_url?: string
+  /** The scan this item was saved from ("Bought it"); missing for an upload. */
+  promoted_from?: { kind: string; id: string } | null
 }
 
 export type ItemPatch = Partial<Pick<Item, 'category' | 'sub_category' | 'pattern' | 'colour' | 'coverage' | 'season' | 'usage'>>
@@ -78,6 +82,9 @@ export interface OutfitItem {
   image_url: string
 }
 
+/** How far an outfit is from the user's usual style (src/phase4/dress.py). null/missing = no taste vector yet. */
+export type OutfitLabel = 'safe' | 'bolder' | 'experimental'
+
 export interface Outfit {
   score: number
   parts: Record<'style' | 'colour' | 'pattern' | 'structure', number | null>
@@ -85,6 +92,63 @@ export interface Outfit {
   items: OutfitItem[]
   contributions?: Contribution[]   // points per part (app routes only)
   explanations?: ExplainLine[]     // strengths (+) and problems (-) as codes
+  label?: OutfitLabel | null       // suggest / score / complete only (step 2)
+  confidence?: Confidence          // the same routes: how many things lower it (0 high, 1 medium, 2+ low)
+  confidence_reasons?: ConfidenceReason[]   // what lowers it (step 2b)
+  pick?: boolean                   // POST /outfits/build: the pieces you chose already make this outfit
+  complete?: boolean               // step 6b: a top + a bottom, or a dress (shoes not needed); the score is the same either way
+  missing?: 'bottom' | 'top' | 'core' | null   // what an incomplete outfit lacks
+}
+
+/** What lowers an outfit's confidence: small_wardrobe {owned, minimum}, guessed_field {item_id, field}. */
+export interface ConfidenceReason {
+  code: string
+  params: Record<string, string | number>
+}
+
+/** One chip of the Dress page (mappings/dress_occasions.csv): main ones show, the others sit under "More". */
+export interface OccasionChip {
+  chip: string
+  main: boolean
+}
+
+/** GET /outfits/today: three outfits for today. */
+export interface TodayOutfits {
+  date: string                     // today in Tunis
+  occasion: string
+  season: Season                   // from the weather, else the calendar
+  weather: { temp_c: number; condition: WeatherCondition | null; season: Season } | null
+  outfits: Outfit[]                // up to 3, one per label when the candidates allow it
+  missing: Insights['missing']     // what the wardrobe lacks, only when outfits is empty
+}
+
+/** POST /outfits/build: up to three outfits around the chosen pieces. */
+export interface BuildResult {
+  occasion: string | null
+  outfits: Outfit[]                // `pick: true` first when the chosen pieces already make an outfit
+  notes: { code: 'clash_swapped'; params: { dropped: string; kept: string } }[]
+  used_item_ids: string[]          // the chosen pieces after a clash was swapped
+}
+
+/** One entry of the wear log (POST /wear): what was worn on a day in Tunis. */
+export interface WearEntry {
+  id: string
+  item_ids: string[]
+  worn_on: string                  // YYYY-MM-DD, the date in Africa/Tunis
+  occasion: string | null
+  event_name: string | null
+  score_shown: number | null
+  label_shown: OutfitLabel | null
+  source: 'card' | 'build'
+  created_at: string
+}
+
+/** GET /wear/summary: the Wardrobe view's "Worn" section (numbers in mappings/wardrobe_view.csv). */
+export interface WearSummary {
+  worn_lately: { item_id: string; last_worn_on: string }[]   // most recent first
+  never_worn: string[]                                       // item ids, the longest-waiting first
+  window_days: number
+  grace_days: number
 }
 
 export type OutfitRating = 1 | -1
@@ -93,13 +157,51 @@ export interface Completion extends Outfit {
   item: Item
 }
 
+export type Confidence = 'high' | 'medium' | 'low'
+
+/** A reason code of the verdict (src/phase4/verdict.py): small_wardrobe, no_pairing_piece, guessed_field
+ *  (these lower the confidence); fills_gap, far_from_style, over_budget (these only inform). */
+export interface VerdictCode {
+  code: string
+  params: Record<string, string | number>
+}
+
 export interface BuyAdvice {
   verdict: Verdict
   good_outfits: number
   reasons: string[]
+  confidence: Confidence
+  codes: VerdictCode[]
   candidate: Item
   best: Outfit[]
   explanation?: BuyExplanation
+}
+
+/** What the user did after a verdict (POST /decisions). */
+export type DecisionAnswer = 'bought' | 'left'
+
+export interface Decision {
+  id: string
+  candidate_id: string
+  listing_id: string | null
+  answer: DecisionAnswer
+  price_tnd: number | null
+  price_paid: number | null
+  category: string
+  sub_category: string
+  colour: string
+  pattern: string
+  last_advice: {
+    verdict: Verdict
+    good_outfits: number
+    codes: VerdictCode[]
+    confidence: Confidence
+    thresholds: { good_outfit: number; buy_min: number; think_min: number }
+    price_tnd: number | null
+    computed_at: string
+  }
+  item_id: string | null      // the wardrobe item made by "bought"
+  created_at: string
 }
 
 export interface CatalogHit {
@@ -132,6 +234,9 @@ export interface Similar {
   catalog: (CatalogHit & { why?: SimilarWhy })[]
   shop?: (ShopHit & { why?: SimilarWhy })[]   // missing or empty when the server has no shop catalogue
   listings?: (ListingHit & { why?: SimilarWhy })[]   // shop listings in stock now (empty until the collector has run)
+  /** the piece everything above is compared with (a wardrobe item or a scan); missing on an older server */
+  query?: { id: string; kind: 'item' | 'candidate'; image_url: string; category: Category; sub_category: string; colour: string }
+  budget_cap?: number | null   // TND: listings were kept up to this price (budget x the team's share); null = no cap
 }
 
 /** A shop product collected by src/phase4/collect_listings.py (backend/app/listings.py, listing_out).
@@ -293,6 +398,8 @@ export interface DayStats {
   correction: number
   chat: number
   tryon?: number
+  decision?: number            // "bought it" / "left it" answers (step 1)
+  wear?: number                // outfits marked as worn (step 2)
 }
 
 export interface Stats {
@@ -373,6 +480,30 @@ export interface Weather {
   lon: number
 }
 
+/** GET /price-estimate (backend/app/routers/price.py, src/phase4/price.py): a second-hand price band in TND.
+ *  The band fields are null (never 0) when the model cannot price this channel; `note` is always set and
+ *  must be shown with the band, which is a range, never a single price. */
+export type PriceChannel = 'friperie' | 'classified'
+export interface PriceEstimate {
+  low: number | null
+  median: number | null
+  high: number | null
+  channel: string
+  based_on: 'category' | 'all' | null   // the piece's own category, or all categories (too few of its kind)
+  count: number | null                  // priced items the band comes from
+  typical_error_factor: number | null   // e.g. 1.53 = typically off by x1.53 either way
+  note: string                          // English, for other consumers: the app builds its own from `channel`
+  // listing_id only: a friperie seller's asked price against the median (mappings/price_model.csv tag_factor);
+  // null = nothing to say, or a shop listing. "priced_high" only when the team switches it on (show_priced_high).
+  tag?: PriceTag | null
+  // item / scan only: the condition the user picked (default good) and its factor, already applied to the band
+  condition?: PriceCondition
+  condition_factor?: number
+}
+export type PriceTag = 'good_deal' | 'priced_high'
+/** The garment's condition, which the model cannot see (mappings/price_model.csv condition_*). */
+export type PriceCondition = 'new_tags' | 'like_new' | 'good' | 'stained' | 'torn'
+
 /** A collector run started from Admin > Listings (backend/app/jobs.py). */
 export type JobStatus = 'running' | 'stopping' | 'finished' | 'failed' | 'stopped' | 'lost'
 export interface Job {
@@ -441,7 +572,7 @@ export type PartName = 'style' | 'colour' | 'pattern' | 'structure'
 
 export interface ExplainLine {
   code: string
-  part: PartName
+  part: PartName | 'context'       // 'context' = fits_context (the occasion and the weather)
   sign: '+' | '-'
   params: Record<string, string | number | string[]>
 }

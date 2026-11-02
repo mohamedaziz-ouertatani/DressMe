@@ -1,0 +1,394 @@
+{
+ "default": [
+  {
+   "score": 88.8,
+   "parts": {
+    "style": 0.679,
+    "colour": 1.0,
+    "pattern": 1.0,
+    "structure": 1.0
+   },
+   "reasons": [],
+   "items": [
+    {
+     "id": "5f0c04000000000000000004",
+     "category": "top",
+     "sub_category": "sweatshirt",
+     "colour": "grey",
+     "image_url": "/items/5f0c04000000000000000004/image"
+    },
+    {
+     "id": "5f0c04000000000000000007",
+     "category": "bottom",
+     "sub_category": "trousers",
+     "colour": "grey",
+     "image_url": "/items/5f0c04000000000000000007/image"
+    },
+    {
+     "id": "5f0c0400000000000000000b",
+     "category": "shoes",
+     "sub_category": "casual-shoes",
+     "colour": "black",
+     "image_url": "/items/5f0c0400000000000000000b/image"
+    },
+    {
+     "id": "5f0c04000000000000000009",
+     "category": "outerwear",
+     "sub_category": "jacket",
+     "colour": "olive",
+     "image_url": "/items/5f0c04000000000000000009/image"
+    }
+   ],
+   "label": "safe",
+   "confidence": "high",
+   "confidence_reasons": [],
+   "complete": true,
+   "missing": null,
+   "contributions": [
+    {
+     "part": "style",
+     "weight": 0.35,
+     "counted": true,
+     "value": 0.679,
+     "points": 23.8,
+     "max_points": 35.0,
+     "why_not": null
+    },
+    {
+     "part": "colour",
+     "weight": 0.3,
+     "counted": true,
+     "value": 1.0,
+     "points": 30.0,
+     "max_points": 30.0,
+     "why_not": null
+    },
+    {
+     "part": "pattern",
+     "weight": 0.15,
+     "counted": true,
+     "value": 1.0,
+     "points": 15.0,
+     "max_points": 15.0,
+     "why_not": null
+    },
+    {
+     "part": "structure",
+     "weight": 0.2,
+     "counted": true,
+     "value": 1.0,
+     "points": 20.0,
+     "max_points": 20.0,
+     "why_not": null
+    }
+   ],
+   "explanations": [
+    {
+     "code": "colour_pair",
+     "part": "colour",
+     "sign": "+",
+     "params": {
+      "a": "grey",
+      "b": "black"
+     }
+    },
+    {
+     "code": "pattern_one_bold",
+     "part": "pattern",
+     "sign": "+",
+     "params": {
+      "pattern": "striped"
+     }
+    },
+    {
+     "code": "structure_complete",
+     "part": "structure",
+     "sign": "+",
+     "params": {}
+    }
+   ]
+  },
+  {
+   "score": 87.5,
+   "parts": {
+    "style": 0.642,
+    "colour": 1.0,
+    "pattern": 1.0,
+    "structure": 1.0
+   },
+   "reasons": [],
+   "items": [
+    {
+     "id": "5f0c04000000000000000004",
+     "category": "top",
+     "sub_category": "sweatshirt",
+     "colour": "grey",
+     "image_url": "/items/5f0c04000000000000000004/image"
+    },
+    {
+     "id": "5f0c04000000000000000008",
+     "category": "bottom",
+     "sub_category": "shorts",
+     "colour": "white",
+     "image_url": "/items/5f0c04000000000000000008/image"
+    },
+    {
+     "id": "5f0c0400000000000000000b",
+     "category": "shoes",
+     "sub_category": "casual-shoes",
+     "colour": "black",
+     "image_url": "/items/5f0c0400000000000000000b/image"
+    },
+    {
+     "id": "5f0c04000000000000000009",
+     "category": "outerwear",
+     "sub_category": "jacket",
+     "colour": "olive",
+     "image_url": "/items/5f0c04000000000000000009/image"
+    }
+   ],
+   "label": "safe",
+   "confidence": "high",
+   "confidence_reasons": [],
+   "complete": true,
+   "missing": null,
+   "contributions": [
+    {
+     "part": "style",
+     "weight": 0.35,
+     "counted": true,
+     "value": 0.642,
+     "points": 22.5,
+     "max_points": 35.0,
+     "why_not": null
+    },
+    {
+     "part": "colour",
+     "weight": 0.3,
+     "counted": true,
+     "value": 1.0,
+     "points": 30.0,
+     "max_points": 30.0,
+     "why_not": null
+    },
+    {
+     "part": "pattern",
+     "weight": 0.15,
+     "counted": true,
+     "value": 1.0,
+     "points": 15.0,
+     "max_points": 15.0,
+     "why_not": null
+    },
+    {
+     "part": "structure",
+     "weight": 0.2,
+     "counted": true,
+     "value": 1.0,
+     "points": 20.0,
+     "max_points": 20.0,
+     "why_not": null
+    }
+   ],
+   "explanations": [
+    {
+     "code": "colour_pair",
+     "part": "colour",
+     "sign": "+",
+     "params": {
+      "a": "grey",
+      "b": "white"
+     }
+    },
+    {
+     "code": "pattern_calm",
+     "part": "pattern",
+     "sign": "+",
+     "params": {}
+    },
+    {
+     "code": "structure_complete",
+     "part": "structure",
+     "sign": "+",
+     "params": {}
+    }
+   ]
+  },
+  {
+   "score": 77.0,
+   "parts": {
+    "style": 0.599,
+    "colour": 1.0,
+    "pattern": 0.4,
+    "structure": 1.0
+   },
+   "reasons": [
+    "two bold patterns (striped + striped)"
+   ],
+   "items": [
+    {
+     "id": "5f0c04000000000000000003",
+     "category": "top",
+     "sub_category": "shirt",
+     "colour": "blue",
+     "image_url": "/items/5f0c04000000000000000003/image"
+    },
+    {
+     "id": "5f0c04000000000000000007",
+     "category": "bottom",
+     "sub_category": "trousers",
+     "colour": "grey",
+     "image_url": "/items/5f0c04000000000000000007/image"
+    },
+    {
+     "id": "5f0c0400000000000000000c",
+     "category": "shoes",
+     "sub_category": "formal-shoes",
+     "colour": "black",
+     "image_url": "/items/5f0c0400000000000000000c/image"
+    }
+   ],
+   "label": "bolder",
+   "confidence": "high",
+   "confidence_reasons": [],
+   "complete": true,
+   "missing": null,
+   "contributions": [
+    {
+     "part": "style",
+     "weight": 0.35,
+     "counted": true,
+     "value": 0.599,
+     "points": 21.0,
+     "max_points": 35.0,
+     "why_not": null
+    },
+    {
+     "part": "colour",
+     "weight": 0.3,
+     "counted": true,
+     "value": 1.0,
+     "points": 30.0,
+     "max_points": 30.0,
+     "why_not": null
+    },
+    {
+     "part": "pattern",
+     "weight": 0.15,
+     "counted": true,
+     "value": 0.4,
+     "points": 6.0,
+     "max_points": 15.0,
+     "why_not": null
+    },
+    {
+     "part": "structure",
+     "weight": 0.2,
+     "counted": true,
+     "value": 1.0,
+     "points": 20.0,
+     "max_points": 20.0,
+     "why_not": null
+    }
+   ],
+   "explanations": [
+    {
+     "code": "colour_pair",
+     "part": "colour",
+     "sign": "+",
+     "params": {
+      "a": "blue",
+      "b": "grey"
+     }
+    },
+    {
+     "code": "structure_complete",
+     "part": "structure",
+     "sign": "+",
+     "params": {}
+    },
+    {
+     "code": "pattern_clash",
+     "part": "pattern",
+     "sign": "-",
+     "params": {
+      "a": "striped",
+      "b": "striped"
+     }
+    }
+   ]
+  }
+ ],
+ "beach": [
+  {
+   "score": 100.0,
+   "parts": {
+    "style": null,
+    "colour": null,
+    "pattern": null,
+    "structure": 1.0
+   },
+   "reasons": [],
+   "items": [
+    {
+     "id": "5f0c0400000000000000000e",
+     "category": "swimwear",
+     "sub_category": "swim-shorts",
+     "colour": "blue",
+     "image_url": "/items/5f0c0400000000000000000e/image"
+    }
+   ],
+   "label": "experimental",
+   "confidence": "high",
+   "confidence_reasons": [],
+   "complete": true,
+   "missing": null,
+   "contributions": [
+    {
+     "part": "style",
+     "weight": 0.35,
+     "counted": false,
+     "value": null,
+     "points": 0.0,
+     "max_points": 0.0,
+     "why_not": "no_vectors"
+    },
+    {
+     "part": "colour",
+     "weight": 0.3,
+     "counted": false,
+     "value": null,
+     "points": 0.0,
+     "max_points": 0.0,
+     "why_not": "no_colours"
+    },
+    {
+     "part": "pattern",
+     "weight": 0.15,
+     "counted": false,
+     "value": null,
+     "points": 0.0,
+     "max_points": 0.0,
+     "why_not": "no_patterns"
+    },
+    {
+     "part": "structure",
+     "weight": 0.2,
+     "counted": true,
+     "value": 1.0,
+     "points": 100.0,
+     "max_points": 100.0,
+     "why_not": null
+    }
+   ],
+   "explanations": [
+    {
+     "code": "structure_complete",
+     "part": "structure",
+     "sign": "+",
+     "params": {}
+    }
+   ]
+  }
+ ]
+}

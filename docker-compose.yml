@@ -1,0 +1,62 @@
+# DressMe with one command: MongoDB + backend + frontend (README "Run with Docker").
+# A DEVELOPMENT setup (live code, dev server), not for putting the app on the internet.
+# The images hold the environment only; this folder is mounted, so code, data/, models/
+# and backend/.env come from your PC. Ollama (the chat model) runs on your PC, not here.
+# The backend runs the models on the CPU (small image, enough for the app). To use an
+# NVIDIA GPU instead: docker compose -f docker-compose.yml -f docker-compose.gpu.yml up
+name: dressme
+
+services:
+  mongo:
+    image: mongo:7.0.45
+    ports: ["27017:27017"]
+    volumes: [mongo-data:/data/db]
+    healthcheck:                    # "healthy" = MongoDB answers a ping
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      start_period: 30s
+      start_interval: 2s
+      retries: 5
+
+  backend:
+    build: {context: ., dockerfile: docker/backend.Dockerfile}
+    volumes:
+      - .:/app
+      - model-cache:/cache          # FashionCLIP + rembg downloads, kept across rebuilds
+    environment:
+      # these win over backend/.env, so the same .env works with and without Docker
+      MONGO_URL: mongodb://mongo:27017
+      OLLAMA_URL: http://host.docker.internal:11434
+      HF_HOME: /cache/huggingface
+      U2NET_HOME: /cache/u2net
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    ports: ["8000:8000"]
+    depends_on:
+      mongo: {condition: service_healthy}
+    healthcheck:                    # "healthy" = the models are loaded and /health answers
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"]
+      interval: 30s
+      # the first start downloads FashionCLIP (~0.6 GB) before it can answer: ~13 min
+      # at 0.75 MB/s. It turns healthy as soon as /health answers, so this is only a limit
+      start_period: 30m
+      start_interval: 5s
+      retries: 3
+
+  frontend:
+    build: {context: ., dockerfile: docker/frontend.Dockerfile}
+    volumes:
+      - ./frontend:/app/frontend
+      - /app/frontend/node_modules  # hides the PC's Windows node_modules (empty here)
+    environment:
+      DRESSME_API: http://backend:8000   # the dev server forwards /api/... there
+      # Windows does not tell the container when a file changes, so the dev server
+      # checks the files itself (every 0.3 s) to reload the page after an edit
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "300"
+    ports: ["5173:5173"]
+    depends_on:
+      backend: {condition: service_healthy}   # the page opens when the API is ready
+
+volumes:
+  mongo-data:
+  model-cache:

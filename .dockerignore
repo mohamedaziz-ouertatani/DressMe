@@ -1,0 +1,16 @@
+# Keep the build context small: the images hold the environment only, and
+# docker-compose.yml mounts the repository (code, data, models) at run time.
+.git
+.venv
+venv
+data
+models
+logs
+backend/storage
+backend/.env
+frontend/node_modules
+frontend/dist
+**/__pycache__
+notebooks
+reports
+kaggle

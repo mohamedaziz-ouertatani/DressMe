@@ -1,0 +1,13 @@
+# Optional: run the backend's models on an NVIDIA GPU (faster photo analysis).
+# The image is much bigger (~3-4 GB more to download: PyTorch's CUDA build).
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
+services:
+  backend:
+    image: dressme-backend-gpu       # kept apart from the default (CPU) image
+    build:
+      args:
+        TORCH_INDEX: https://download.pytorch.org/whl/cu126
+    deploy:
+      resources:
+        reservations:
+          devices: [{driver: nvidia, count: all, capabilities: [gpu]}]

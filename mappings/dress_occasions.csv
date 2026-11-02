@@ -1,0 +1,8 @@
+chip,usage_values,mode,order,main,note
+everyday,casual,usage,1,yes,"REVIEW: start value. The chip of the Dress page (mode 'usage': the pieces whose usage includes one of these values, or has none, are used). One outfit list is made per usage value and merged."
+work,work|formal,usage,2,yes,"REVIEW: start value. Pieces for work or formal."
+university,casual,usage,3,yes,"REVIEW: start value. The same as everyday for now (no 'university' usage in the schema)."
+outing,casual|formal,usage,4,yes,"REVIEW: start value. A night out: casual or formal pieces."
+eid,eid,usage,5,no,"REVIEW: start value. Under 'More' in the app (main = no)."
+wedding,wedding,usage,6,no,"REVIEW: start value. Under 'More' in the app."
+beach,,beach,7,no,"REVIEW: start value. Mode 'beach': outfits around a swimsuit, no shoes, always summer (as GET /outfits/suggest?beach=true). Under 'More' in the app."

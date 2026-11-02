@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, ChartBar, CheckCheck, Lightbulb, Search, Trash2 } from 'lucide-react'
+import { ArrowLeft, ChartBar, CheckCheck, Lightbulb, ScanLine, Search, Shirt, Trash2 } from 'lucide-react'
 import { api } from '../api/client'
 import type { Category, Item, ItemPatch } from '../api/types'
 import { useAuth } from '../auth'
 import { useI18n } from '../i18n'
 import { plural } from '../i18n/plurals'
-import { CATEGORY_LABELS, SUB_LABELS, secondLine, vocab } from '../i18n/vocab'
+import { CATEGORY_LABELS, SUB_LABELS, vocab } from '../i18n/vocab'
 import { Page } from '../shell'
 import { Button, Chip } from '../ui/controls'
 import { ExplainPanel } from '../ui/ExplainPanel'
@@ -14,7 +14,7 @@ import { FieldRow } from '../ui/Field'
 import { ItemPhoto } from '../ui/ItemPhoto'
 import { PhotoPicker } from '../ui/PhotoPicker'
 import { Empty, ErrorNote, Skeleton } from '../ui/states'
-import { SecondLine, Serial, Ticket } from '../ui/ticket'
+import { Serial, Ticket } from '../ui/ticket'
 import { useLoad } from '../useLoad'
 
 const ORDER: Category[] = ['top', 'bottom', 'dress', 'outerwear', 'shoes', 'bag', 'accessory', 'traditional', 'swimwear']
@@ -50,7 +50,7 @@ export function WardrobePage() {
   const shown = filter ? all.filter((i) => i.category === filter) : all
 
   return (
-    <Page title={t('wardrobeTitle')}>
+    <Page title={t('wardrobeTitle')} look="soft" kicker={items.data ? plural('pieces', all.length, lang) : undefined}>
       <section className="ticket mb-6 flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center justify-between gap-4 sm:justify-start">
           <p className="text-[15px] text-carbon">
@@ -74,7 +74,7 @@ export function WardrobePage() {
           {Array.from({ length: 8 }, (_, i) => <Skeleton key={i} className="h-[190px]" />)}
         </div>
       ) : all.length === 0 ? (
-        <Empty title={t('wardrobeEmptyTitle')} body={t('wardrobeEmptyBody')} />
+        <Empty icon={Shirt} title={t('wardrobeEmptyTitle')} body={t('wardrobeEmptyBody')} />
       ) : (
         <>
           <div className="-mx-4 mb-4 flex gap-2 no-scrollbar overflow-x-auto px-4 pb-1 lg:mx-0 lg:flex-wrap lg:px-0">
@@ -96,7 +96,6 @@ export function WardrobePage() {
                       <p className={`truncate pb-0.5 text-[15px] font-semibold text-carbon ${guessed ? 'field-guess' : 'field-sure'} inline-block max-w-full`}>
                         {vocab(SUB_LABELS, it.sub_category, lang) || vocab(CATEGORY_LABELS, it.category, lang)}
                       </p>
-                      <SecondLine>{secondLine(SUB_LABELS, it.sub_category, lang) || secondLine(CATEGORY_LABELS, it.category, lang)}</SecondLine>
                       <Serial id={it.id} className="mt-1 block" />
                     </div>
                   </Link>
@@ -152,9 +151,9 @@ export function ItemPage() {
   }
 
   return (
-    <Page title={it ? vocab(SUB_LABELS, it.sub_category, lang) || vocab(CATEGORY_LABELS, it.category, lang) : t('loading')}>
+    <Page look="soft" title={it ? vocab(SUB_LABELS, it.sub_category, lang) || vocab(CATEGORY_LABELS, it.category, lang) : t('loading')}>
       <div className="mx-auto max-w-[640px]">
-        <Link to="/wardrobe" className="mb-4 inline-flex min-h-10 items-center gap-2 text-[14px] text-ink">
+        <Link to="/wardrobe" className="mb-4 inline-flex min-h-11 items-center gap-2 text-[14px] font-semibold text-carbon underline decoration-1 underline-offset-4">
           <ArrowLeft className="size-4 mirror-rtl" aria-hidden /> {t('wardrobeTitle')}
         </Link>
         {item.error ? (
@@ -166,11 +165,13 @@ export function ItemPage() {
             <Ticket stub={<Serial id={it.id} className="[writing-mode:vertical-rl]" />}>
               <div className="flex items-end gap-4 p-3">
                 <ItemPhoto src={it.image_url} alt={vocab(SUB_LABELS, it.sub_category, lang)} size={160} zoomable />
-                <div className="pb-1">
-                  <SecondLine>{secondLine(SUB_LABELS, it.sub_category, lang) || secondLine(CATEGORY_LABELS, it.category, lang)}</SecondLine>
-                </div>
               </div>
             </Ticket>
+            {it.promoted_from && (
+              <p className="mt-3 flex items-center gap-2 text-[13px] text-carbon-soft">
+                <ScanLine className="size-4 shrink-0" aria-hidden /> {t('addedFromScan')}
+              </p>
+            )}
             <section className="ticket mt-3 px-4 pb-4 pt-3" aria-busy={saving || undefined}>
               <p className="mb-1 text-[13px] text-carbon-soft">{t('checkFieldsHint')}</p>
               <div className="divide-y divide-perf/40">

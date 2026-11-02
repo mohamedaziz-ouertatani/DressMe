@@ -19,6 +19,7 @@ from .common import Agent, list_wardrobe_tool
 TOP = 5                # pieces listed per answer: keeps the prompt small
 MAX_LISTINGS = 10
 MAX_PRICE = 100000     # same limit as POST /listings/sell
+MODEL_KEYS = ("low", "high", "median", "based_on", "count")   # price_hint's keys, whichever way it prices
 
 
 def tools(request, user):
@@ -50,11 +51,20 @@ def tools(request, user):
         doc, _ = own_piece(item_id)
         if not doc or not doc.get("vector"):
             return {"error": "no such item or analysed photo"}
+        # the trained price model when it is loaded: the same estimate as the listing page's tag,
+        # so the suggested price and the "Good price" tag agree; else look-alike listings as before
+        model = getattr(request.app.state, "price", None)
+        if model is not None:
+            band = model.estimate(vector_from_bson(doc["vector"]), category=doc.get("category"),
+                                  channel="friperie")
+            if band is not None:
+                return {**{k: band.get(k) for k in MODEL_KEYS}, "source": "price_model"}
         rules = load_rules()
         hits = request.app.state.listing_index.search(
             request.app.state.db, vector_from_bson(doc["vector"]), k=rules["neighbours"],
             category=doc["category"], exclude_seller=user["_id"])
-        return price_range(hits, rules) or {"error": "no similar listings with a price yet"}
+        found = price_range(hits, rules)
+        return {**found, "source": "listings"} if found else {"error": "no similar listings with a price yet"}
 
     def my_listings() -> dict:
         """The user's own friperie listings, newest first: price and status (pending = waiting

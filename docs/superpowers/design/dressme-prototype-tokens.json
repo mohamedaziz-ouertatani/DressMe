@@ -1,0 +1,69 @@
+{
+ "name": "DressMe",
+ "version": 1,
+ "color": {
+  "themes": [{"id": "light", "name": "Light"}, {"id": "dark", "name": "Dark"}],
+  "tokens": [
+   {"name": "ground", "value": {"light": "#f3f2ee", "dark": "#121110"}, "usage": "App background behind every screen."},
+   {"name": "surface", "value": {"light": "#ffffff", "dark": "#1c1a18"}, "usage": "Cards, sheets, the tab bar and unselected chips, on `ground`."},
+   {"name": "sunken", "value": {"light": "#e8e6e0", "dark": "#282522"}, "usage": "Input fields, tracks of bars and meters, disabled buttons."},
+   {"name": "photo", "value": {"light": "#e8e6e0", "dark": "#d4d1ca"}, "usage": "The tile behind a garment cut-out, on `ground` or `surface`. Stays light in the dark theme so black clothes remain visible. No text sits on it."},
+   {"name": "photo-on-tint", "value": {"light": "#ffffff", "dark": "#e4e1da"}, "usage": "The tile behind a cut-out inside an OutfitCard, on a `tint-*`. Stays light in the dark theme."},
+   {"name": "line", "value": {"light": "#dcd9d2", "dark": "#38342f"}, "usage": "Hairline dividers inside a card. Decorative only, never the only edge of a control."},
+   {"name": "line-strong", "value": {"light": "#8a867e", "dark": "#857f76"}, "usage": "Borders of controls on `surface` or `ground` (secondary button, text field). 3:1 on both."},
+   {"name": "ink", "value": {"light": "#151413", "dark": "#f3f1ec"}, "usage": "All text and the primary action. Reads on `ground`, `surface`, `sunken`, every `tint-*` and every `*-soft`."},
+   {"name": "ink-soft", "value": {"light": "#5a5751", "dark": "#b5b0a8"}, "usage": "Secondary text and inactive icons. Reads on `ground`, `surface`, `sunken` and every `tint-*`."},
+   {"name": "on-ink", "value": {"light": "#ffffff", "dark": "#151413"}, "usage": "Text and icons on an `ink` fill (primary button, selected chip, active tab)."},
+   {"name": "accent", "value": {"light": "#2743d2", "dark": "#a3b3ff"}, "usage": "Links, focus ring, job progress and the mark on a tag she edited. Never a button fill for the main action. Text on `ground`, `surface`, `accent-soft`."},
+   {"name": "on-accent", "value": {"light": "#ffffff", "dark": "#0f1848"}, "usage": "Text and icons on an `accent` fill."},
+   {"name": "accent-soft", "value": {"light": "#e2e7fc", "dark": "#1e2755"}, "usage": "Fill of a tag she edited herself, and of an info banner."},
+   {"name": "tint-sage", "value": {"light": "#dce8d6", "dark": "#263120"}, "usage": "Card ground of the safe outfit. `ink` and `ink-soft` text."},
+   {"name": "tint-butter", "value": {"light": "#f5eab8", "dark": "#3a3214"}, "usage": "Card ground of the bolder outfit. `ink` and `ink-soft` text."},
+   {"name": "tint-lilac", "value": {"light": "#e5ddf7", "dark": "#2d2642"}, "usage": "Card ground of the experimental outfit. `ink` and `ink-soft` text."},
+   {"name": "tint-peach", "value": {"light": "#fadfcc", "dark": "#3c2718"}, "usage": "Ground of the style-profile and gap cards on Wardrobe."},
+   {"name": "tint-sky", "value": {"light": "#d6e6f0", "dark": "#1b2d39"}, "usage": "Ground of empty states and the icon disc on a state card."},
+   {"name": "buy", "value": {"light": "#17633f", "dark": "#7fd3a6"}, "usage": "The verdict buy and every reason in its favour: text and icons on `surface`, `ground`, `buy-soft`. Always with a word or icon."},
+   {"name": "buy-soft", "value": {"light": "#d8eedf", "dark": "#173325"}, "usage": "Fill of the buy verdict pill."},
+   {"name": "unsure", "value": {"light": "#7d4a00", "dark": "#f0be62"}, "usage": "Low confidence and an unsure tag: text, icons and dashed border on `surface`, `ground`, `unsure-soft`. Always with a word."},
+   {"name": "unsure-soft", "value": {"light": "#fae8c2", "dark": "#3a2b0c"}, "usage": "Fill of an unsure tag chip and a low-confidence banner."},
+   {"name": "leave", "value": {"light": "#a02e1c", "dark": "#f4a092"}, "usage": "The verdict leave, every reason against, and delete: text and icons on `surface`, `ground`, `leave-soft`. Always with a word or icon."},
+   {"name": "leave-soft", "value": {"light": "#f8dcd6", "dark": "#41190f"}, "usage": "Fill of the leave verdict pill."}
+  ]
+ },
+ "type": {
+  "families": {"display": "\"Bricolage Grotesque\", \"Figtree\", system-ui, sans-serif", "body": "\"Figtree\", system-ui, sans-serif"},
+  "groups": [
+   {"name": "Display", "family": "display", "styles": [
+    {"name": "score", "fontSize": "64px", "lineHeight": "64px", "fontWeight": 700, "letterSpacing": "-0.03em", "usage": "The verdict score, once per screen."},
+    {"name": "display", "fontSize": "32px", "lineHeight": "36px", "fontWeight": 700, "letterSpacing": "-0.02em", "usage": "The one headline of a screen."},
+    {"name": "title", "fontSize": "24px", "lineHeight": "28px", "fontWeight": 600, "letterSpacing": "-0.01em", "usage": "Card and sheet titles, the verdict word."}]},
+   {"name": "Text", "family": "body", "styles": [
+    {"name": "heading", "fontSize": "18px", "lineHeight": "24px", "fontWeight": 600, "usage": "Section headings."},
+    {"name": "body", "fontSize": "16px", "lineHeight": "24px", "fontWeight": 400, "usage": "Reasons and running text."},
+    {"name": "body-strong", "fontSize": "16px", "lineHeight": "24px", "fontWeight": 600, "usage": "Button labels and emphasised values."},
+    {"name": "label", "fontSize": "14px", "lineHeight": "20px", "fontWeight": 500, "usage": "Chips, tab labels, item names."},
+    {"name": "caption", "fontSize": "12px", "lineHeight": "16px", "fontWeight": 500, "usage": "Meta lines under a name. Never smaller than this."}]}
+  ]
+ },
+ "spacing": {"tokens": [
+  {"name": "space-1", "value": "4px", "usage": "Icon to label inside a chip."},
+  {"name": "space-2", "value": "8px", "usage": "Between chips, between a title and its caption."},
+  {"name": "space-3", "value": "12px", "usage": "Gap between cards in a grid."},
+  {"name": "space-4", "value": "16px", "usage": "Padding inside a card."},
+  {"name": "space-5", "value": "20px", "usage": "Screen side gutter."},
+  {"name": "space-6", "value": "24px", "usage": "Between sections of a screen."},
+  {"name": "space-8", "value": "32px", "usage": "Above the headline, above the primary action."}]},
+ "radius": {"tokens": [
+  {"name": "radius-sm", "value": "12px", "usage": "Thumbnails and small tiles inside a card."},
+  {"name": "radius-md", "value": "20px", "usage": "Photo tiles, text fields, item cards."},
+  {"name": "radius-lg", "value": "28px", "usage": "Cards, sheets, banners."},
+  {"name": "radius-full", "value": "999px", "usage": "Buttons, chips, icon buttons, the tab bar."}]},
+ "shadow": {"tokens": [
+  {"name": "shadow-float", "value": {"light": "0 8px 24px #1514131f", "dark": "0 8px 24px #00000066"}, "usage": "The floating tab bar and a bottom sheet. Nothing else casts a shadow."}]},
+ "size": {"tokens": [
+  {"name": "size-tap", "value": "48px", "usage": "Smallest touch target: icon buttons and tab items."},
+  {"name": "size-button", "value": "56px", "usage": "Height of primary and secondary buttons."},
+  {"name": "size-chip", "value": "40px", "usage": "Height of filter and tag chips."},
+  {"name": "size-tabbar", "value": "64px", "usage": "Height of the floating tab bar."},
+  {"name": "size-screen", "value": "390px", "usage": "Width of the phone frame every screen is designed at."}]}
+}

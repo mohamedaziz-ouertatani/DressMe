@@ -32,6 +32,8 @@ def item_out(doc, kind="items"):
     }
     if kind == "items":
         out["image_url"] = f"/items/{out['id']}/image"
+        if doc.get("promoted_from"):                         # only an item saved from a scan; uploads answer as before
+            out["promoted_from"] = doc["promoted_from"]
     elif kind == "candidates":
         out["image_url"] = f"/candidates/{out['id']}/image"
     return out
@@ -49,6 +51,13 @@ def to_compat(doc):
         "vector": vector_from_bson(doc.get("vector")), "coverage": doc.get("coverage"),
         "season": set(doc.get("season", [])), "usage": set(doc.get("usage", [])),
     }
+
+
+def candidate_view(doc):
+    """A scan (or a listing copied into the candidates) as src/phase4/verdict.py wants it: the
+    compat item plus what the model guessed, what the user corrected and the price on the tag."""
+    return {**to_compat(doc), "predicted": doc.get("predicted", {}), "corrected": doc.get("corrected", []),
+            "price_tnd": doc.get("price_tnd")}
 
 
 def describe(compat_item, docs_by_id):
@@ -74,10 +83,16 @@ def outfit_out(result, docs_by_id, explain=False, rules=None):
            "parts": {k: (round(v, 3) if v is not None else None) for k, v in result["parts"].items()},
            "reasons": result["reasons"],
            "items": [describe(i, docs_by_id) for i in result.get("items", [])]}
+    if "label" in result:                    # step 2 (src/phase4/dress.py): only the routes that label outfits
+        out["label"] = result["label"]
+        out["confidence"] = result["confidence"]
+        out["confidence_reasons"] = result.get("confidence_reasons", [])
     if explain:
         import compatibility
+        import dress
         import explain_outfit
         rules = rules or compatibility.RULES
+        out.update(dress.outfit_completeness(result.get("items", []), rules))      # step 6b: a flag, the score stays
         out["contributions"] = explain_outfit.contributions(result, rules.weights)
         out["explanations"] = (explain_outfit.strengths(result.get("items", []), result["parts"], rules)
                                + result.get("problems", []))

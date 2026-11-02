@@ -161,7 +161,7 @@ export function ChatPage() {
           <div className="mt-4"><ErrorNote error={error} /></div>
         ) : null}
 
-        <form onSubmit={send} className="sticky bottom-[96px] mt-5 flex gap-2 lg:bottom-6">
+        <form onSubmit={send} className="sticky bottom-[calc(var(--tabbar-h,57px)+0.5rem)] mt-5 flex gap-2 lg:bottom-6">
           <label className="sr-only" htmlFor="chat-input">{t('chatPlaceholder')}</label>
           <input
             id="chat-input"

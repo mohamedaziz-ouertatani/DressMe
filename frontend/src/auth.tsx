@@ -11,7 +11,9 @@ interface Auth {
   login: (email: string, password: string) => Promise<void>
   register: (email: string, password: string, name: string, gender: Gender) => Promise<void>
   logout: () => void
-  updateProfile: (patch: Partial<Pick<User, 'name' | 'min_coverage' | 'language' | 'gender'>>) => Promise<void>
+  updateProfile: (patch: Partial<Pick<User, 'name' | 'min_coverage' | 'language' | 'gender' | 'budget_tnd'>>) => Promise<void>
+  acceptConsent: () => Promise<void>
+  deleteAccount: (password: string) => Promise<void>   // 403 = wrong password; the caller then logs out
 }
 
 const Ctx = createContext<Auth | null>(null)
@@ -54,19 +56,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [signedIn])
 
   const register = useCallback(async (email: string, password: string, name: string, gender: Gender) => {
-    const r = await api.register(email, password, name, gender)
+    const r = await api.register(email, password, name, gender, true)       // the sign-up form requires the checkbox
     setToken(r.token)
     // a new account starts in the language chosen before signing up
     const lang = document.documentElement.lang as User['language']
     signedIn(lang && lang !== r.user.language ? await api.updateMe({ language: lang }) : r.user)
   }, [signedIn])
 
-  const updateProfile = useCallback(async (patch: Partial<Pick<User, 'name' | 'min_coverage' | 'language' | 'gender'>>) => {
+  const updateProfile = useCallback(async (patch: Partial<Pick<User, 'name' | 'min_coverage' | 'language' | 'gender' | 'budget_tnd'>>) => {
     signedIn(await api.updateMe(patch))
   }, [signedIn])
 
-  const value = useMemo(() => ({ user, ready, unreachable, retry, login, register, logout, updateProfile }),
-    [user, ready, unreachable, retry, login, register, logout, updateProfile])
+  const acceptConsent = useCallback(async () => { signedIn(await api.consent()) }, [signedIn])
+  const deleteAccount = useCallback(async (password: string) => { await api.deleteMe(password) }, [])
+
+  const value = useMemo(() => ({ user, ready, unreachable, retry, login, register, logout, updateProfile, acceptConsent, deleteAccount }),
+    [user, ready, unreachable, retry, login, register, logout, updateProfile, acceptConsent, deleteAccount])
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 

@@ -1,0 +1,317 @@
+{
+ "verdict": "think",
+ "good_outfits": 2,
+ "reasons": [],
+ "confidence": "high",
+ "codes": [],
+ "candidate": {
+  "id": "5f0c02000000000000000002",
+  "category": "top",
+  "sub_category": "shirt",
+  "pattern": "solid",
+  "colour": "black",
+  "coverage": null,
+  "season": [],
+  "usage": [],
+  "predicted": {
+   "category": {
+    "value": "top",
+    "conf": 0.95,
+    "alternatives": [
+     {
+      "value": "top",
+      "conf": 0.95
+     }
+    ],
+    "unsure": false
+   },
+   "sub_category": {
+    "value": "shirt",
+    "conf": 0.47,
+    "alternatives": [
+     {
+      "value": "shirt",
+      "conf": 0.47
+     }
+    ],
+    "unsure": false
+   },
+   "pattern": {
+    "value": "solid",
+    "conf": 0.961,
+    "alternatives": [
+     {
+      "value": "solid",
+      "conf": 0.961
+     }
+    ],
+    "unsure": false
+   },
+   "colour": {
+    "value": "black",
+    "conf": 0.955,
+    "alternatives": [
+     {
+      "value": "black",
+      "conf": 0.955
+     }
+    ],
+    "unsure": false
+   }
+  },
+  "corrected": [],
+  "image_url": "/candidates/5f0c02000000000000000002/image"
+ },
+ "best": [
+  {
+   "score": 84.6,
+   "parts": {
+    "style": 0.561,
+    "colour": 1.0,
+    "pattern": 1.0,
+    "structure": 1.0
+   },
+   "reasons": [],
+   "items": [
+    {
+     "id": "5f0c02000000000000000002",
+     "category": "top",
+     "sub_category": "shirt",
+     "colour": "black",
+     "image_url": "/items/5f0c02000000000000000002/image"
+    },
+    {
+     "id": "5f0c01000000000000000006",
+     "category": "bottom",
+     "sub_category": "skirt",
+     "colour": "black",
+     "image_url": "/items/5f0c01000000000000000006/image"
+    },
+    {
+     "id": "5f0c0100000000000000000f",
+     "category": "shoes",
+     "sub_category": "heels",
+     "colour": "",
+     "image_url": "/items/5f0c0100000000000000000f/image"
+    },
+    {
+     "id": "5f0c0100000000000000000b",
+     "category": "outerwear",
+     "sub_category": "jacket",
+     "colour": "pink",
+     "image_url": "/items/5f0c0100000000000000000b/image"
+    }
+   ],
+   "complete": true,
+   "missing": null,
+   "contributions": [
+    {
+     "part": "style",
+     "weight": 0.35,
+     "counted": true,
+     "value": 0.561,
+     "points": 19.6,
+     "max_points": 35.0,
+     "why_not": null
+    },
+    {
+     "part": "colour",
+     "weight": 0.3,
+     "counted": true,
+     "value": 1.0,
+     "points": 30.0,
+     "max_points": 30.0,
+     "why_not": null
+    },
+    {
+     "part": "pattern",
+     "weight": 0.15,
+     "counted": true,
+     "value": 1.0,
+     "points": 15.0,
+     "max_points": 15.0,
+     "why_not": null
+    },
+    {
+     "part": "structure",
+     "weight": 0.2,
+     "counted": true,
+     "value": 1.0,
+     "points": 20.0,
+     "max_points": 20.0,
+     "why_not": null
+    }
+   ],
+   "explanations": [
+    {
+     "code": "colour_pair",
+     "part": "colour",
+     "sign": "+",
+     "params": {
+      "a": "black",
+      "b": "pink"
+     }
+    },
+    {
+     "code": "pattern_calm",
+     "part": "pattern",
+     "sign": "+",
+     "params": {}
+    },
+    {
+     "code": "structure_complete",
+     "part": "structure",
+     "sign": "+",
+     "params": {}
+    }
+   ]
+  },
+  {
+   "score": 81.0,
+   "parts": {
+    "style": 0.458,
+    "colour": 1.0,
+    "pattern": 1.0,
+    "structure": 1.0
+   },
+   "reasons": [],
+   "items": [
+    {
+     "id": "5f0c02000000000000000002",
+     "category": "top",
+     "sub_category": "shirt",
+     "colour": "black",
+     "image_url": "/items/5f0c02000000000000000002/image"
+    },
+    {
+     "id": "5f0c01000000000000000007",
+     "category": "bottom",
+     "sub_category": "leggings",
+     "colour": "green",
+     "image_url": "/items/5f0c01000000000000000007/image"
+    },
+    {
+     "id": "5f0c0100000000000000000f",
+     "category": "shoes",
+     "sub_category": "heels",
+     "colour": "",
+     "image_url": "/items/5f0c0100000000000000000f/image"
+    }
+   ],
+   "complete": true,
+   "missing": null,
+   "contributions": [
+    {
+     "part": "style",
+     "weight": 0.35,
+     "counted": true,
+     "value": 0.458,
+     "points": 16.0,
+     "max_points": 35.0,
+     "why_not": null
+    },
+    {
+     "part": "colour",
+     "weight": 0.3,
+     "counted": true,
+     "value": 1.0,
+     "points": 30.0,
+     "max_points": 30.0,
+     "why_not": null
+    },
+    {
+     "part": "pattern",
+     "weight": 0.15,
+     "counted": true,
+     "value": 1.0,
+     "points": 15.0,
+     "max_points": 15.0,
+     "why_not": null
+    },
+    {
+     "part": "structure",
+     "weight": 0.2,
+     "counted": true,
+     "value": 1.0,
+     "points": 20.0,
+     "max_points": 20.0,
+     "why_not": null
+    }
+   ],
+   "explanations": [
+    {
+     "code": "colour_pair",
+     "part": "colour",
+     "sign": "+",
+     "params": {
+      "a": "black",
+      "b": "green"
+     }
+    },
+    {
+     "code": "pattern_one_bold",
+     "part": "pattern",
+     "sign": "+",
+     "params": {
+      "pattern": "floral"
+     }
+    },
+    {
+     "code": "structure_complete",
+     "part": "structure",
+     "sign": "+",
+     "params": {}
+    }
+   ]
+  }
+ ],
+ "explanation": {
+  "path": {
+   "good": 2,
+   "buy_min": 5,
+   "think_min": 1,
+   "verdict": "think"
+  },
+  "beats": [
+   {
+    "item_ids": [
+     "5f0c02000000000000000002",
+     "5f0c01000000000000000006",
+     "5f0c0100000000000000000f",
+     "5f0c0100000000000000000b"
+    ],
+    "owned_id": "5f0c01000000000000000002",
+    "owned_score": 82.9,
+    "margin": 1.7,
+    "owned": {
+     "id": "5f0c01000000000000000002",
+     "category": "top",
+     "sub_category": "top",
+     "colour": "pink",
+     "image_url": "/items/5f0c01000000000000000002/image"
+    }
+   },
+   {
+    "item_ids": [
+     "5f0c02000000000000000002",
+     "5f0c01000000000000000007",
+     "5f0c0100000000000000000f"
+    ],
+    "owned_id": "5f0c01000000000000000003",
+    "owned_score": 77.4,
+    "margin": 3.6,
+    "owned": {
+     "id": "5f0c01000000000000000003",
+     "category": "top",
+     "sub_category": "top",
+     "colour": "white",
+     "image_url": "/items/5f0c01000000000000000003/image"
+    }
+   }
+  ],
+  "lost_to": [],
+  "near_misses": 0,
+  "to_next_verdict": 3,
+  "twins": []
+ }
+}

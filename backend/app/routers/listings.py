@@ -236,6 +236,8 @@ def listing_candidate(listing_id: str, request: Request, user=Depends(gendered_u
     cand = {"user_id": user["_id"], "category": doc["category"], "sub_category": doc["sub_category"],
             "pattern": doc["pattern"], "colour": doc["colour"], "predicted": doc.get("predicted", {}),
             "vector": doc["vector"], "coverage": None, "season": [], "usage": [], "corrected": [],
+            # listings keep their price in TND (foreign prices are converted when collected), or null
+            "price_tnd": doc.get("price_tnd"),
             "listing_id": doc["_id"], "created_at": datetime.now(timezone.utc)}
     cand["_id"] = db.candidates.insert_one(cand).inserted_id
     storage = request.app.state.settings.storage_dir

@@ -50,9 +50,13 @@ signatures did not change.
 - `wardrobe_insights`, `wardrobe_stats`: the Insights page's facts and counts.
 - `find_near_twins`: pairs of items above the team's `similar_item` similarity.
 - `pieces_to_sell`: the Insights facts again (pieces in no good outfit, the second of each near-twin pair).
-- `price_hint`: look-alike listings (same category) → a friperie price range: friperie prices as they are,
-  shop prices × the team's second-hand factor (`mappings/resale_pricing.csv`, REVIEW); the user's own
-  listings are left out. `backend/app/resale.py`.
+- `price_hint`: a friperie price range (low, high, median, based_on, count) for an item or the last scan.
+  With the trained price model loaded (`app.state.price`, `src/phase4/price.py`) and a stored vector, it is
+  the model's friperie band, the same estimate as the listing page's price tag (`"source": "price_model"`).
+  Otherwise look-alike listings (same category, `backend/app/resale.py`): friperie prices as they are, shop
+  prices × the team's second-hand factor (`mappings/resale_pricing.csv`, 0.3, REVIEW), the user's own
+  listings left out (`"source": "listings"`, plus `examples`). The agent's job sentence and the tool's
+  docstring still say "similar listings" until the next chat retrain (proposed wording in PR #68).
 - `my_listings`: the user's own seller listings and their status (never city or contact).
 - `prepare_sell`: posts nothing. It returns a chat action, a link to the Sell page already filled
   (photo, price, title, size); the user adds city and contact and presses Send, then an admin reviews it.

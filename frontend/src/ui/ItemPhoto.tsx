@@ -7,9 +7,11 @@ import { PhotoViewer } from './PhotoViewer'
 /** Every item photo at one fixed scale on a white plate, sitting on a shared
  *  baseline, so pieces in a strip compare like registered plates.
  *  `src` is an API path (loaded with the auth header) or a local blob: URL.
- *  `zoomable`: a tap opens the photo full screen, where it can be zoomed. */
-export function ItemPhoto({ src, alt, size = 96, zoomable = false }: {
-  src?: string; alt: string; size?: number; zoomable?: boolean
+ *  `zoomable`: a tap opens the photo full screen, where it can be zoomed.
+ *  `blend`: no white plate; the photo's white ground melts into the tile behind it (the grey `photo` tile of the
+ *  verdict, step H2), so a piece reads like a cut-out without a box around it. */
+export function ItemPhoto({ src, alt, size = 96, zoomable = false, blend = false }: {
+  src?: string; alt: string; size?: number; zoomable?: boolean; blend?: boolean
 }) {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
@@ -29,11 +31,11 @@ export function ItemPhoto({ src, alt, size = 96, zoomable = false }: {
   const url = local ?? (loaded && loaded.src === src ? loaded.url : null)
   const plate = (
     <div
-      className="flex shrink-0 items-end justify-center overflow-hidden bg-white"
+      className={`flex shrink-0 items-end justify-center overflow-hidden ${blend ? '' : 'bg-white'}`}
       style={{ width: size, height: size }}
     >
       {url ? (
-        <img src={url} alt={alt} className="h-full w-full object-contain object-bottom" />
+        <img src={url} alt={alt} className={`h-full w-full object-contain object-bottom ${blend ? 'mix-blend-multiply' : ''}`} />
       ) : src && failed !== src ? (
         <div aria-label={alt} className="skeleton h-full w-full" />
       ) : (

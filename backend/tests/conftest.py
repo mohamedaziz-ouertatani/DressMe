@@ -179,6 +179,23 @@ class FakeWeather(OpenMeteo):
         return self.raw
 
 
+class FakePriceModel:
+    """Like src/phase4/price.PriceModel.estimate, without the trained file: a fixed
+    band for the friperie / classified channels, None for any other (as the real one).
+    `calls` lists (category, channel) and the vector length, so tests see what was read."""
+
+    def __init__(self):
+        self.calls = []
+
+    def estimate(self, vector, category=None, channel="friperie", rules=None):
+        self.calls.append((len(vector), category, channel))
+        if channel not in ("friperie", "classified"):
+            return None
+        return {"low": 20, "median": 25, "high": 32, "channel": channel, "based_on": "category",
+                "count": 53, "percentile": 0.42, "typical_error_factor": 1.53,
+                "note": "Estimated against friperie and Instagram resale prices."}
+
+
 def open_meteo_answer(feels=(20, 28), rain=10, code=2, now=26):
     return {"current": {"temperature_2m": now, "apparent_temperature": now + 0.4, "weather_code": code},
             "daily": {"temperature_2m_min": [feels[0] - 1], "temperature_2m_max": [feels[1] - 1],
@@ -207,10 +224,11 @@ def make_client(settings):
     MongoClient(settings.mongo_url).drop_database(TEST_DB)
     clients = []
 
-    def make(chat_engine=None, remover=None, tryon=None, weather=None):
+    def make(chat_engine=None, remover=None, tryon=None, weather=None, price=None):
         app = create_app(settings, analyzer=FakeAnalyzer(), catalog=FakeCatalog(),
                          chat_engine=chat_engine or FakeChatEngine(), remover=remover,
-                         tryon_engine=tryon or FakeTryOn(), weather_engine=weather or FakeWeather())
+                         tryon_engine=tryon or FakeTryOn(), weather_engine=weather or FakeWeather(),
+                         price=price or FakePriceModel())
         c = TestClient(app)
         c.__enter__()            # runs the start-up (database connection)
         clients.append(c)

@@ -7,6 +7,7 @@ import { useI18n } from '../i18n'
 import { Wordmark } from '../shell'
 import { Button, TextField } from '../ui/controls'
 import { GenderChoice } from '../ui/GenderChoice'
+import { LookContext } from '../ui/look'
 import { Stamp } from '../ui/Stamp'
 
 export function LanguageSwitch() {
@@ -21,7 +22,7 @@ export function LanguageSwitch() {
           lang={code}
           aria-pressed={lang === code}
           onClick={() => setLang(code)}
-          className={`min-h-9 px-2.5 text-[13px] font-medium ${lang === code ? 'bg-ink text-paper' : 'text-ink hover:bg-paper'}`}
+          className={`press min-h-11 rounded-pill px-3 text-[13px] font-semibold ${lang === code ? 'bg-pill text-pill-text' : 'text-carbon hover:bg-surface'}`}
         >
           {label}
         </button>
@@ -46,6 +47,10 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
       setError(t('genderRequired'))
       return
     }
+    if (signup && !form.get('consent')) {
+      setError(t('consentRequired'))
+      return
+    }
     setBusy(true)
     setError('')
     try {
@@ -61,7 +66,8 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col px-4 pb-10 pt-[max(16px,env(safe-area-inset-top))]">
+    <LookContext.Provider value="soft">
+    <div className="look-soft flex min-h-dvh flex-col px-5 pb-10 pt-[max(16px,env(safe-area-inset-top))]">
       <div className="flex items-center justify-between">
         <Wordmark />
         <LanguageSwitch />
@@ -74,7 +80,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
           <div className="pointer-events-none absolute -top-8 end-3">
             <Stamp big="DM" ring="DRESSME · FRIPERIE · DRESSME · FRIPERIE ·" size={74} angle={12} label="" tone="ink" />
           </div>
-          <h1 className="text-[22px] font-semibold text-carbon">{signup ? t('signupTitle') : t('loginTitle')}</h1>
+          <h1 className="font-display text-[32px] font-bold leading-9 text-carbon">{signup ? t('signupTitle') : t('loginTitle')}</h1>
           {signup && <TextField label={t('name')} name="name" required autoComplete="given-name" maxLength={60} />}
           {signup && (
             <div className="flex flex-col gap-2">
@@ -94,8 +100,14 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
             hint={signup ? t('passwordHint') : undefined}
             dir="ltr"
           />
+          {signup && (
+            <label className="flex items-start gap-3 text-[14px] text-carbon">
+              <input type="checkbox" name="consent" required className="mt-0.5 size-5 shrink-0" />
+              <span>{t('consentCheckbox')}</span>
+            </label>
+          )}
           {error && (
-            <p role="alert" className="border-[1.5px] border-carbon px-3 py-2 text-[14px] text-carbon">
+            <p role="alert" className="rounded-photo bg-leave-soft px-4 py-3 text-[14px] font-medium text-leave">
               {error}
             </p>
           )}
@@ -105,11 +117,12 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
         </form>
 
         <p className="mt-5 text-center text-[14px]">
-          <Link to={signup ? '/login' : '/signup'} className="text-ink underline decoration-1 underline-offset-4 hover:decoration-2">
+          <Link to={signup ? '/login' : '/signup'} className="inline-flex min-h-11 items-center font-semibold text-carbon underline decoration-1 underline-offset-4 hover:decoration-2">
             {signup ? t('toLogin') : t('toSignup')}
           </Link>
         </p>
       </div>
     </div>
+    </LookContext.Provider>
   )
 }

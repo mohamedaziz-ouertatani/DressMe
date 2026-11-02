@@ -1,0 +1,337 @@
+{
+ "verdict": "think",
+ "good_outfits": 2,
+ "reasons": [],
+ "confidence": "low",
+ "codes": [
+  {
+   "code": "small_wardrobe",
+   "params": {
+    "owned": 5,
+    "minimum": 8
+   }
+  }
+ ],
+ "candidate": {
+  "id": "5f0c02000000000000000003",
+  "category": "outerwear",
+  "sub_category": "coat",
+  "pattern": "solid",
+  "colour": "black",
+  "coverage": null,
+  "season": [],
+  "usage": [],
+  "predicted": {
+   "category": {
+    "value": "outerwear",
+    "conf": 0.699,
+    "alternatives": [
+     {
+      "value": "outerwear",
+      "conf": 0.699
+     }
+    ],
+    "unsure": false
+   },
+   "sub_category": {
+    "value": "coat",
+    "conf": 0.485,
+    "alternatives": [
+     {
+      "value": "coat",
+      "conf": 0.485
+     }
+    ],
+    "unsure": false
+   },
+   "pattern": {
+    "value": "solid",
+    "conf": 0.865,
+    "alternatives": [
+     {
+      "value": "solid",
+      "conf": 0.865
+     }
+    ],
+    "unsure": false
+   },
+   "colour": {
+    "value": "black",
+    "conf": 0.933,
+    "alternatives": [
+     {
+      "value": "black",
+      "conf": 0.933
+     }
+    ],
+    "unsure": false
+   }
+  },
+  "corrected": [],
+  "image_url": "/candidates/5f0c02000000000000000003/image"
+ },
+ "best": [
+  {
+   "score": 82.3,
+   "parts": {
+    "style": 0.588,
+    "colour": 0.89,
+    "pattern": 1.0,
+    "structure": 1.0
+   },
+   "reasons": [],
+   "items": [
+    {
+     "id": "5f0c01000000000000000002",
+     "category": "top",
+     "sub_category": "top",
+     "colour": "pink",
+     "image_url": "/items/5f0c01000000000000000002/image"
+    },
+    {
+     "id": "5f0c01000000000000000006",
+     "category": "bottom",
+     "sub_category": "skirt",
+     "colour": "black",
+     "image_url": "/items/5f0c01000000000000000006/image"
+    },
+    {
+     "id": "5f0c0100000000000000000e",
+     "category": "shoes",
+     "sub_category": "casual-shoes",
+     "colour": "brown",
+     "image_url": "/items/5f0c0100000000000000000e/image"
+    },
+    {
+     "id": "5f0c02000000000000000003",
+     "category": "outerwear",
+     "sub_category": "coat",
+     "colour": "black",
+     "image_url": "/items/5f0c02000000000000000003/image"
+    },
+    {
+     "id": "5f0c01000000000000000011",
+     "category": "bag",
+     "sub_category": "handbag",
+     "colour": "pink",
+     "image_url": "/items/5f0c01000000000000000011/image"
+    }
+   ],
+   "complete": true,
+   "missing": null,
+   "contributions": [
+    {
+     "part": "style",
+     "weight": 0.35,
+     "counted": true,
+     "value": 0.588,
+     "points": 20.6,
+     "max_points": 35.0,
+     "why_not": null
+    },
+    {
+     "part": "colour",
+     "weight": 0.3,
+     "counted": true,
+     "value": 0.89,
+     "points": 26.7,
+     "max_points": 30.0,
+     "why_not": null
+    },
+    {
+     "part": "pattern",
+     "weight": 0.15,
+     "counted": true,
+     "value": 1.0,
+     "points": 15.0,
+     "max_points": 15.0,
+     "why_not": null
+    },
+    {
+     "part": "structure",
+     "weight": 0.2,
+     "counted": true,
+     "value": 1.0,
+     "points": 20.0,
+     "max_points": 20.0,
+     "why_not": null
+    }
+   ],
+   "explanations": [
+    {
+     "code": "colour_pair",
+     "part": "colour",
+     "sign": "+",
+     "params": {
+      "a": "pink",
+      "b": "black"
+     }
+    },
+    {
+     "code": "pattern_calm",
+     "part": "pattern",
+     "sign": "+",
+     "params": {}
+    },
+    {
+     "code": "structure_complete",
+     "part": "structure",
+     "sign": "+",
+     "params": {}
+    }
+   ]
+  },
+  {
+   "score": 78.5,
+   "parts": {
+    "style": 0.479,
+    "colour": 0.89,
+    "pattern": 1.0,
+    "structure": 1.0
+   },
+   "reasons": [],
+   "items": [
+    {
+     "id": "5f0c01000000000000000001",
+     "category": "top",
+     "sub_category": "t-shirt",
+     "colour": "pink",
+     "image_url": "/items/5f0c01000000000000000001/image"
+    },
+    {
+     "id": "5f0c01000000000000000006",
+     "category": "bottom",
+     "sub_category": "skirt",
+     "colour": "black",
+     "image_url": "/items/5f0c01000000000000000006/image"
+    },
+    {
+     "id": "5f0c0100000000000000000e",
+     "category": "shoes",
+     "sub_category": "casual-shoes",
+     "colour": "brown",
+     "image_url": "/items/5f0c0100000000000000000e/image"
+    },
+    {
+     "id": "5f0c02000000000000000003",
+     "category": "outerwear",
+     "sub_category": "coat",
+     "colour": "black",
+     "image_url": "/items/5f0c02000000000000000003/image"
+    },
+    {
+     "id": "5f0c01000000000000000011",
+     "category": "bag",
+     "sub_category": "handbag",
+     "colour": "pink",
+     "image_url": "/items/5f0c01000000000000000011/image"
+    }
+   ],
+   "complete": true,
+   "missing": null,
+   "contributions": [
+    {
+     "part": "style",
+     "weight": 0.35,
+     "counted": true,
+     "value": 0.479,
+     "points": 16.8,
+     "max_points": 35.0,
+     "why_not": null
+    },
+    {
+     "part": "colour",
+     "weight": 0.3,
+     "counted": true,
+     "value": 0.89,
+     "points": 26.7,
+     "max_points": 30.0,
+     "why_not": null
+    },
+    {
+     "part": "pattern",
+     "weight": 0.15,
+     "counted": true,
+     "value": 1.0,
+     "points": 15.0,
+     "max_points": 15.0,
+     "why_not": null
+    },
+    {
+     "part": "structure",
+     "weight": 0.2,
+     "counted": true,
+     "value": 1.0,
+     "points": 20.0,
+     "max_points": 20.0,
+     "why_not": null
+    }
+   ],
+   "explanations": [
+    {
+     "code": "colour_pair",
+     "part": "colour",
+     "sign": "+",
+     "params": {
+      "a": "pink",
+      "b": "black"
+     }
+    },
+    {
+     "code": "pattern_one_bold",
+     "part": "pattern",
+     "sign": "+",
+     "params": {
+      "pattern": "printed"
+     }
+    },
+    {
+     "code": "structure_complete",
+     "part": "structure",
+     "sign": "+",
+     "params": {}
+    }
+   ]
+  }
+ ],
+ "explanation": {
+  "path": {
+   "good": 2,
+   "buy_min": 5,
+   "think_min": 1,
+   "verdict": "think"
+  },
+  "beats": [
+   {
+    "item_ids": [
+     "5f0c01000000000000000002",
+     "5f0c01000000000000000006",
+     "5f0c0100000000000000000e",
+     "5f0c02000000000000000003",
+     "5f0c01000000000000000011"
+    ],
+    "owned_id": null,
+    "owned_score": 0,
+    "margin": 82.3,
+    "owned": null
+   },
+   {
+    "item_ids": [
+     "5f0c01000000000000000001",
+     "5f0c01000000000000000006",
+     "5f0c0100000000000000000e",
+     "5f0c02000000000000000003",
+     "5f0c01000000000000000011"
+    ],
+    "owned_id": null,
+    "owned_score": 0,
+    "margin": 78.5,
+    "owned": null
+   }
+  ],
+  "lost_to": [],
+  "near_misses": 0,
+  "to_next_verdict": 3,
+  "twins": []
+ }
+}

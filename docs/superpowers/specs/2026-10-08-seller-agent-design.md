@@ -46,6 +46,14 @@ All bound to `(request, user)`, every read filtered by `user["_id"]`; another us
 
 ### Price hint (`backend/app/resale.py`)
 
+> **Update (2026-11-01, PR #68):** `price_hint` now uses the trained price model first. With
+> `app.state.price` loaded and a stored vector, it returns the model's friperie band
+> (`PriceModel.estimate(vector, category, channel="friperie")`: `low`, `high`, `median`, `based_on`
+> = `category` | `all`, `count`) with `"source": "price_model"`, the same estimate as the listing page's
+> price tag. Without the model, or when it cannot price the piece, the look-alike listings below are
+> used unchanged, with `"source": "listings"`. The job sentence and the tool docstring still say
+> "similar listings" until the next chat retrain (proposed wording in PR #68).
+
 Pure functions, so they test without a database:
 
 - `load_rules(path=mappings/resale_pricing.csv) -> {"factor": {category: float}, "neighbours": int, "min_friperie": int}`.

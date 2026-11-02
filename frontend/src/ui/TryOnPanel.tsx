@@ -54,7 +54,7 @@ export function TryOnPill() {
   // once finished, the try-on page itself shows the outcome: no pill there
   if (job.state === 'stopped' || (job.state !== 'running' && onItsPage)) return null
   return (
-    <div className="tryon-pill fixed bottom-[calc(84px+env(safe-area-inset-bottom))] end-3 z-30 lg:bottom-6 lg:end-6">
+    <div className="tryon-pill fixed bottom-[calc(var(--tabbar-h,88px)+0.75rem)] end-3 z-30 lg:bottom-6 lg:end-6">
       {job.state === 'running' ? <RunningPill /> : <FinishedPill />}
     </div>
   )

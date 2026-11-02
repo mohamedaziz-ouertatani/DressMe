@@ -256,6 +256,45 @@ python -m app.make_admin you@example.com # give an existing account the admin ro
 - **Design:** the visual system ("Ticket & Recharge-Card Stock") is documented in [`DESIGN.md`](DESIGN.md), and the product brief in [`PRODUCT.md`](PRODUCT.md).
 - **Demo data:** demo accounts show dataset photos and say so in the app; they are for the academic demo only.
 
+## Phase 4: run the app with Docker
+
+The same environment on every PC: `docker compose up` starts MongoDB, the backend and the frontend, with exact versions of Python, PyTorch and every package. Nothing to install but Docker Desktop and Ollama. It is a **development** setup (live code, dev server), not a way to put the app on the internet. The setup above without Docker still works.
+
+- **What runs:** `mongo` (MongoDB 7.0, data in the `mongo-data` volume), `backend` (Python 3.13 + PyTorch, on the CPU), `frontend` (Vite dev server). The images hold the environment only: this folder is mounted, so code edits, `data/`, `models/` and `backend/.env` come from your PC. Ollama runs on your PC, outside Docker; the backend reaches it at `host.docker.internal:11434`.
+- **Why the CPU:** the app runs the trained models on one photo at a time, which the CPU does in about a second, and PyTorch's CPU build is ~0.2 GB instead of ~3-4 GB. Training still needs the GPU setup above.
+- **Versions:** `docker/backend.Dockerfile` (Python, PyTorch) and `docker/constraints.txt` (every other package; `scikit-learn==1.6.1` because the colour model was saved with it). To change a version, edit those files and rebuild.
+
+Once per PC:
+
+1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and [Ollama](https://ollama.com).
+2. Clone this repository and put the files from a teammate (never in git) in the same folders: `models/checkpoints/`, `data/processed/` (with `embeddings/`), `models/llm/dressme-chat-v4/` (the chat model) and, optionally, the pictures in `data/raw/`.
+3. Run the setup script: it creates `backend/.env` (with a new secret key) if it is missing, registers the chat model in Ollama, and lists the files still missing.
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File docker\setup.ps1
+   ```
+4. Build and start (the first time takes a few minutes; the backend then downloads FashionCLIP once, ~0.6 GB):
+   ```bash
+   docker compose up --build
+   ```
+5. Demo accounts (once, in a second terminal; needs the PolyVore pictures):
+   ```bash
+   docker compose exec backend python -m app.seed_demo
+   ```
+
+Every day: `docker compose up`, then open http://localhost:5173 (the page opens when the API has loaded its models, ~1 min). `Ctrl+C` stops it. Start Ollama first (tray icon), or the chat answers "Ollama is not running". The first start on a PC also downloads FashionCLIP and the background-removal models (~0.9 GB, kept in the `model-cache` volume).
+
+Editing code: frontend changes show up at once (the page reloads); after a backend change, run `docker compose restart backend`.
+
+```bash
+docker compose exec backend python -m pytest      # the backend tests, inside the container
+docker compose ps                                 # which services run, and whether they are healthy
+docker compose logs -f backend                    # what the backend prints
+docker compose restart backend                    # after a backend code change (~1 min)
+docker compose down                               # stop and remove the containers (data kept)
+docker compose down -v                            # ... and DELETE the database and the model downloads
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build   # NVIDIA GPU (+~3-4 GB)
+```
+
 ## Phase 4: H&M shop catalogue
 
 The shops block scraping (Zara / Bershka / Pull&Bear, team decision 2026-10-03), so the "buy something like this" suggestions come from the H&M catalogue published on Kaggle: real retail products with their type, colour and pattern. It is **not** merged into `dressme.csv`: it is not training data, it is what the user could buy. There is no price in the data.
@@ -279,6 +318,69 @@ The full picture set is ~30 GB and Kaggle allows only ~500 single-file downloads
 python src/phase3/make_colour_labelling_sheet.py   # 400 items + offline labelling page in data/interim/colour_labelling/
 python src/phase3/evaluate_colour_labels.py        # after labelling: accuracy -> reports/phase3/colour_validation.*
 ```
+
+## Phase 4: price model
+
+The **Worth it?** card shows a price band for a garment: "30 to 70 TND", the
+market it was priced against, and how far off the estimate typically is. The
+model is an RBF-kernel SVR over the item's FashionCLIP vector, trained on
+1,523 tayara.tn ads and 183 friperie (Instagram resale) garments. Typical error
+is ×1.42 on friperie prices (×1.53 with the ridge). It was a ridge regression until 1 Nov 2026; the
+benchmark that chose the SVR is in
+[`src/phase4/benchmark/`](src/phase4/benchmark/) and
+[`reports/phase4/benchmark/`](reports/phase4/benchmark/).
+Evidence and limits: [`reports/phase4/price_evaluation.md`](reports/phase4/price_evaluation.md).
+
+| file | what it is |
+|---|---|
+| `src/phase4/price.py` | `PriceModel.estimate(vector, category, channel)`, loaded by the API |
+| `src/phase4/train_price.py` | fits the model, writes the artifact |
+| `mappings/price_model.csv` | band percentiles, minimum items per category, rounding |
+| `models/checkpoints/price_model.joblib` | the fitted model (gitignored) |
+
+### Train it
+
+The two training files are gitignored. Ask Yassine for them and put them here:
+
+```
+data/processed/tayara_fashionclip.csv
+data/processed/friperie_fashionclip.csv
+```
+
+Then train **inside the backend container**. The SVR is saved as a pickled
+scikit-learn pipeline, and it loads only with the scikit-learn version that
+wrote it, so it must be the container's version:
+
+```bash
+docker exec -w /app dressme-backend-1 python src/phase4/train_price.py --dry-run
+```
+
+```bash
+docker exec -w /app dressme-backend-1 python src/phase4/train_price.py
+```
+
+```bash
+docker compose up -d --build backend
+```
+
+The first command only measures and writes nothing. The second writes
+`models/checkpoints/price_model.joblib`. The default is `--model svr`: C and
+epsilon are chosen by grouped CV on the training data, and it takes a few
+minutes. `--model ridge` trains the earlier linear model (40 KB instead of
+6.4 MB, any scikit-learn version). An artifact made before the SVR still
+loads, as the ridge. The kind, the chosen parameters and the measured errors
+are in the artifact's `meta`.
+
+### Without the artifact
+
+The app runs normally. `make_price_model()` returns `None`, the price route
+answers 503, and the card is hidden. No other screen depends on it.
+
+### Changing the band
+
+Edit `mappings/price_model.csv`, not the code. An unknown or missing setting
+makes the price route fail with an error naming the line (or the missing
+setting); the rest of the app is unaffected.
 
 ## Datasets and licences
 

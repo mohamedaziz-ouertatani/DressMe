@@ -1,0 +1,736 @@
+{
+ "default": [
+  {
+   "score": 82.9,
+   "parts": {
+    "style": 0.54,
+    "colour": 0.967,
+    "pattern": 1.0,
+    "structure": 1.0
+   },
+   "reasons": [],
+   "items": [
+    {
+     "id": "5f0c01000000000000000002",
+     "category": "top",
+     "sub_category": "top",
+     "colour": "pink",
+     "image_url": "/items/5f0c01000000000000000002/image"
+    },
+    {
+     "id": "5f0c01000000000000000006",
+     "category": "bottom",
+     "sub_category": "skirt",
+     "colour": "black",
+     "image_url": "/items/5f0c01000000000000000006/image"
+    },
+    {
+     "id": "5f0c0100000000000000000f",
+     "category": "shoes",
+     "sub_category": "heels",
+     "colour": "",
+     "image_url": "/items/5f0c0100000000000000000f/image"
+    },
+    {
+     "id": "5f0c0100000000000000000b",
+     "category": "outerwear",
+     "sub_category": "jacket",
+     "colour": "pink",
+     "image_url": "/items/5f0c0100000000000000000b/image"
+    }
+   ],
+   "label": "safe",
+   "confidence": "high",
+   "confidence_reasons": [],
+   "complete": true,
+   "missing": null,
+   "contributions": [
+    {
+     "part": "style",
+     "weight": 0.35,
+     "counted": true,
+     "value": 0.54,
+     "points": 18.9,
+     "max_points": 35.0,
+     "why_not": null
+    },
+    {
+     "part": "colour",
+     "weight": 0.3,
+     "counted": true,
+     "value": 0.967,
+     "points": 29.0,
+     "max_points": 30.0,
+     "why_not": null
+    },
+    {
+     "part": "pattern",
+     "weight": 0.15,
+     "counted": true,
+     "value": 1.0,
+     "points": 15.0,
+     "max_points": 15.0,
+     "why_not": null
+    },
+    {
+     "part": "structure",
+     "weight": 0.2,
+     "counted": true,
+     "value": 1.0,
+     "points": 20.0,
+     "max_points": 20.0,
+     "why_not": null
+    }
+   ],
+   "explanations": [
+    {
+     "code": "colour_pair",
+     "part": "colour",
+     "sign": "+",
+     "params": {
+      "a": "pink",
+      "b": "black"
+     }
+    },
+    {
+     "code": "pattern_calm",
+     "part": "pattern",
+     "sign": "+",
+     "params": {}
+    },
+    {
+     "code": "structure_complete",
+     "part": "structure",
+     "sign": "+",
+     "params": {}
+    }
+   ]
+  },
+  {
+   "score": 81.6,
+   "parts": {
+    "style": 0.489,
+    "colour": 0.983,
+    "pattern": 1.0,
+    "structure": 1.0
+   },
+   "reasons": [],
+   "items": [
+    {
+     "id": "5f0c01000000000000000004",
+     "category": "top",
+     "sub_category": "top",
+     "colour": "white",
+     "image_url": "/items/5f0c01000000000000000004/image"
+    },
+    {
+     "id": "5f0c01000000000000000006",
+     "category": "bottom",
+     "sub_category": "skirt",
+     "colour": "black",
+     "image_url": "/items/5f0c01000000000000000006/image"
+    },
+    {
+     "id": "5f0c0100000000000000000f",
+     "category": "shoes",
+     "sub_category": "heels",
+     "colour": "",
+     "image_url": "/items/5f0c0100000000000000000f/image"
+    },
+    {
+     "id": "5f0c0100000000000000000b",
+     "category": "outerwear",
+     "sub_category": "jacket",
+     "colour": "pink",
+     "image_url": "/items/5f0c0100000000000000000b/image"
+    },
+    {
+     "id": "5f0c01000000000000000011",
+     "category": "bag",
+     "sub_category": "handbag",
+     "colour": "pink",
+     "image_url": "/items/5f0c01000000000000000011/image"
+    }
+   ],
+   "label": "safe",
+   "confidence": "high",
+   "confidence_reasons": [],
+   "complete": true,
+   "missing": null,
+   "contributions": [
+    {
+     "part": "style",
+     "weight": 0.35,
+     "counted": true,
+     "value": 0.489,
+     "points": 17.1,
+     "max_points": 35.0,
+     "why_not": null
+    },
+    {
+     "part": "colour",
+     "weight": 0.3,
+     "counted": true,
+     "value": 0.983,
+     "points": 29.5,
+     "max_points": 30.0,
+     "why_not": null
+    },
+    {
+     "part": "pattern",
+     "weight": 0.15,
+     "counted": true,
+     "value": 1.0,
+     "points": 15.0,
+     "max_points": 15.0,
+     "why_not": null
+    },
+    {
+     "part": "structure",
+     "weight": 0.2,
+     "counted": true,
+     "value": 1.0,
+     "points": 20.0,
+     "max_points": 20.0,
+     "why_not": null
+    }
+   ],
+   "explanations": [
+    {
+     "code": "colour_pair",
+     "part": "colour",
+     "sign": "+",
+     "params": {
+      "a": "white",
+      "b": "black"
+     }
+    },
+    {
+     "code": "pattern_one_bold",
+     "part": "pattern",
+     "sign": "+",
+     "params": {
+      "pattern": "printed"
+     }
+    },
+    {
+     "code": "structure_complete",
+     "part": "structure",
+     "sign": "+",
+     "params": {}
+    }
+   ]
+  }
+ ],
+ "summer_casual": [
+  {
+   "score": 80.5,
+   "parts": {
+    "style": 0.558,
+    "colour": 0.867,
+    "pattern": 1.0,
+    "structure": 1.0
+   },
+   "reasons": [],
+   "items": [
+    {
+     "id": "5f0c01000000000000000002",
+     "category": "top",
+     "sub_category": "top",
+     "colour": "pink",
+     "image_url": "/items/5f0c01000000000000000002/image"
+    },
+    {
+     "id": "5f0c01000000000000000006",
+     "category": "bottom",
+     "sub_category": "skirt",
+     "colour": "black",
+     "image_url": "/items/5f0c01000000000000000006/image"
+    },
+    {
+     "id": "5f0c0100000000000000000e",
+     "category": "shoes",
+     "sub_category": "casual-shoes",
+     "colour": "brown",
+     "image_url": "/items/5f0c0100000000000000000e/image"
+    },
+    {
+     "id": "5f0c01000000000000000011",
+     "category": "bag",
+     "sub_category": "handbag",
+     "colour": "pink",
+     "image_url": "/items/5f0c01000000000000000011/image"
+    }
+   ],
+   "label": "safe",
+   "confidence": "high",
+   "confidence_reasons": [],
+   "complete": true,
+   "missing": null,
+   "contributions": [
+    {
+     "part": "style",
+     "weight": 0.35,
+     "counted": true,
+     "value": 0.558,
+     "points": 19.5,
+     "max_points": 35.0,
+     "why_not": null
+    },
+    {
+     "part": "colour",
+     "weight": 0.3,
+     "counted": true,
+     "value": 0.867,
+     "points": 26.0,
+     "max_points": 30.0,
+     "why_not": null
+    },
+    {
+     "part": "pattern",
+     "weight": 0.15,
+     "counted": true,
+     "value": 1.0,
+     "points": 15.0,
+     "max_points": 15.0,
+     "why_not": null
+    },
+    {
+     "part": "structure",
+     "weight": 0.2,
+     "counted": true,
+     "value": 1.0,
+     "points": 20.0,
+     "max_points": 20.0,
+     "why_not": null
+    }
+   ],
+   "explanations": [
+    {
+     "code": "colour_pair",
+     "part": "colour",
+     "sign": "+",
+     "params": {
+      "a": "pink",
+      "b": "black"
+     }
+    },
+    {
+     "code": "pattern_calm",
+     "part": "pattern",
+     "sign": "+",
+     "params": {}
+    },
+    {
+     "code": "structure_complete",
+     "part": "structure",
+     "sign": "+",
+     "params": {}
+    }
+   ]
+  },
+  {
+   "score": 79.3,
+   "parts": {
+    "style": 0.481,
+    "colour": 0.917,
+    "pattern": 1.0,
+    "structure": 1.0
+   },
+   "reasons": [],
+   "items": [
+    {
+     "id": "5f0c01000000000000000004",
+     "category": "top",
+     "sub_category": "top",
+     "colour": "white",
+     "image_url": "/items/5f0c01000000000000000004/image"
+    },
+    {
+     "id": "5f0c01000000000000000006",
+     "category": "bottom",
+     "sub_category": "skirt",
+     "colour": "black",
+     "image_url": "/items/5f0c01000000000000000006/image"
+    },
+    {
+     "id": "5f0c0100000000000000000e",
+     "category": "shoes",
+     "sub_category": "casual-shoes",
+     "colour": "brown",
+     "image_url": "/items/5f0c0100000000000000000e/image"
+    },
+    {
+     "id": "5f0c01000000000000000011",
+     "category": "bag",
+     "sub_category": "handbag",
+     "colour": "pink",
+     "image_url": "/items/5f0c01000000000000000011/image"
+    }
+   ],
+   "label": "safe",
+   "confidence": "high",
+   "confidence_reasons": [],
+   "complete": true,
+   "missing": null,
+   "contributions": [
+    {
+     "part": "style",
+     "weight": 0.35,
+     "counted": true,
+     "value": 0.481,
+     "points": 16.8,
+     "max_points": 35.0,
+     "why_not": null
+    },
+    {
+     "part": "colour",
+     "weight": 0.3,
+     "counted": true,
+     "value": 0.917,
+     "points": 27.5,
+     "max_points": 30.0,
+     "why_not": null
+    },
+    {
+     "part": "pattern",
+     "weight": 0.15,
+     "counted": true,
+     "value": 1.0,
+     "points": 15.0,
+     "max_points": 15.0,
+     "why_not": null
+    },
+    {
+     "part": "structure",
+     "weight": 0.2,
+     "counted": true,
+     "value": 1.0,
+     "points": 20.0,
+     "max_points": 20.0,
+     "why_not": null
+    }
+   ],
+   "explanations": [
+    {
+     "code": "colour_pair",
+     "part": "colour",
+     "sign": "+",
+     "params": {
+      "a": "white",
+      "b": "black"
+     }
+    },
+    {
+     "code": "pattern_one_bold",
+     "part": "pattern",
+     "sign": "+",
+     "params": {
+      "pattern": "printed"
+     }
+    },
+    {
+     "code": "structure_complete",
+     "part": "structure",
+     "sign": "+",
+     "params": {}
+    }
+   ]
+  }
+ ],
+ "formal": [
+  {
+   "score": 82.8,
+   "parts": {
+    "style": 0.509,
+    "colour": 1.0,
+    "pattern": 1.0,
+    "structure": 1.0
+   },
+   "reasons": [],
+   "items": [
+    {
+     "id": "5f0c01000000000000000002",
+     "category": "top",
+     "sub_category": "top",
+     "colour": "pink",
+     "image_url": "/items/5f0c01000000000000000002/image"
+    },
+    {
+     "id": "5f0c01000000000000000006",
+     "category": "bottom",
+     "sub_category": "skirt",
+     "colour": "black",
+     "image_url": "/items/5f0c01000000000000000006/image"
+    },
+    {
+     "id": "5f0c0100000000000000000f",
+     "category": "shoes",
+     "sub_category": "heels",
+     "colour": "",
+     "image_url": "/items/5f0c0100000000000000000f/image"
+    }
+   ],
+   "label": "safe",
+   "confidence": "high",
+   "confidence_reasons": [],
+   "complete": true,
+   "missing": null,
+   "contributions": [
+    {
+     "part": "style",
+     "weight": 0.35,
+     "counted": true,
+     "value": 0.509,
+     "points": 17.8,
+     "max_points": 35.0,
+     "why_not": null
+    },
+    {
+     "part": "colour",
+     "weight": 0.3,
+     "counted": true,
+     "value": 1.0,
+     "points": 30.0,
+     "max_points": 30.0,
+     "why_not": null
+    },
+    {
+     "part": "pattern",
+     "weight": 0.15,
+     "counted": true,
+     "value": 1.0,
+     "points": 15.0,
+     "max_points": 15.0,
+     "why_not": null
+    },
+    {
+     "part": "structure",
+     "weight": 0.2,
+     "counted": true,
+     "value": 1.0,
+     "points": 20.0,
+     "max_points": 20.0,
+     "why_not": null
+    }
+   ],
+   "explanations": [
+    {
+     "code": "colour_pair",
+     "part": "colour",
+     "sign": "+",
+     "params": {
+      "a": "pink",
+      "b": "black"
+     }
+    },
+    {
+     "code": "pattern_calm",
+     "part": "pattern",
+     "sign": "+",
+     "params": {}
+    },
+    {
+     "code": "structure_complete",
+     "part": "structure",
+     "sign": "+",
+     "params": {}
+    }
+   ]
+  },
+  {
+   "score": 80.9,
+   "parts": {
+    "style": 0.455,
+    "colour": 1.0,
+    "pattern": 1.0,
+    "structure": 1.0
+   },
+   "reasons": [],
+   "items": [
+    {
+     "id": "5f0c01000000000000000004",
+     "category": "top",
+     "sub_category": "top",
+     "colour": "white",
+     "image_url": "/items/5f0c01000000000000000004/image"
+    },
+    {
+     "id": "5f0c01000000000000000006",
+     "category": "bottom",
+     "sub_category": "skirt",
+     "colour": "black",
+     "image_url": "/items/5f0c01000000000000000006/image"
+    },
+    {
+     "id": "5f0c0100000000000000000f",
+     "category": "shoes",
+     "sub_category": "heels",
+     "colour": "",
+     "image_url": "/items/5f0c0100000000000000000f/image"
+    },
+    {
+     "id": "5f0c01000000000000000011",
+     "category": "bag",
+     "sub_category": "handbag",
+     "colour": "pink",
+     "image_url": "/items/5f0c01000000000000000011/image"
+    }
+   ],
+   "label": "safe",
+   "confidence": "high",
+   "confidence_reasons": [],
+   "complete": true,
+   "missing": null,
+   "contributions": [
+    {
+     "part": "style",
+     "weight": 0.35,
+     "counted": true,
+     "value": 0.455,
+     "points": 15.9,
+     "max_points": 35.0,
+     "why_not": null
+    },
+    {
+     "part": "colour",
+     "weight": 0.3,
+     "counted": true,
+     "value": 1.0,
+     "points": 30.0,
+     "max_points": 30.0,
+     "why_not": null
+    },
+    {
+     "part": "pattern",
+     "weight": 0.15,
+     "counted": true,
+     "value": 1.0,
+     "points": 15.0,
+     "max_points": 15.0,
+     "why_not": null
+    },
+    {
+     "part": "structure",
+     "weight": 0.2,
+     "counted": true,
+     "value": 1.0,
+     "points": 20.0,
+     "max_points": 20.0,
+     "why_not": null
+    }
+   ],
+   "explanations": [
+    {
+     "code": "colour_pair",
+     "part": "colour",
+     "sign": "+",
+     "params": {
+      "a": "white",
+      "b": "black"
+     }
+    },
+    {
+     "code": "pattern_one_bold",
+     "part": "pattern",
+     "sign": "+",
+     "params": {
+      "pattern": "printed"
+     }
+    },
+    {
+     "code": "structure_complete",
+     "part": "structure",
+     "sign": "+",
+     "params": {}
+    }
+   ]
+  },
+  {
+   "score": 76.8,
+   "parts": {
+    "style": 0.435,
+    "colour": 1.0,
+    "pattern": null,
+    "structure": 1.0
+   },
+   "reasons": [],
+   "items": [
+    {
+     "id": "5f0c0100000000000000000a",
+     "category": "dress",
+     "sub_category": "dress",
+     "colour": "grey",
+     "image_url": "/items/5f0c0100000000000000000a/image"
+    },
+    {
+     "id": "5f0c0100000000000000000e",
+     "category": "shoes",
+     "sub_category": "casual-shoes",
+     "colour": "brown",
+     "image_url": "/items/5f0c0100000000000000000e/image"
+    }
+   ],
+   "label": "bolder",
+   "confidence": "high",
+   "confidence_reasons": [],
+   "complete": true,
+   "missing": null,
+   "contributions": [
+    {
+     "part": "style",
+     "weight": 0.35,
+     "counted": true,
+     "value": 0.435,
+     "points": 17.9,
+     "max_points": 41.2,
+     "why_not": null
+    },
+    {
+     "part": "colour",
+     "weight": 0.3,
+     "counted": true,
+     "value": 1.0,
+     "points": 35.3,
+     "max_points": 35.3,
+     "why_not": null
+    },
+    {
+     "part": "pattern",
+     "weight": 0.15,
+     "counted": false,
+     "value": null,
+     "points": 0.0,
+     "max_points": 0.0,
+     "why_not": "no_patterns"
+    },
+    {
+     "part": "structure",
+     "weight": 0.2,
+     "counted": true,
+     "value": 1.0,
+     "points": 23.6,
+     "max_points": 23.5,
+     "why_not": null
+    }
+   ],
+   "explanations": [
+    {
+     "code": "colour_pair",
+     "part": "colour",
+     "sign": "+",
+     "params": {
+      "a": "grey",
+      "b": "brown"
+     }
+    },
+    {
+     "code": "structure_complete",
+     "part": "structure",
+     "sign": "+",
+     "params": {}
+    }
+   ]
+  }
+ ]
+}
