@@ -4,6 +4,8 @@ import { CalendarDays, LayoutGrid, LogOut, MessageCircle, ScanLine, Shapes, Shie
 import { useAuth } from './auth'
 import { useI18n } from './i18n'
 import type { StringKey } from './i18n/strings'
+import { TryOnProvider } from './tryon'
+import { TryOnPanel, TryOnPill } from './ui/TryOnPanel'
 
 // phone: false = only in the desktop rail (the phone tab bar has 5 slots; Shops
 // is an icon in the phone header instead)
@@ -67,6 +69,14 @@ export function Page({ title, children, aside, serial }: {
 }
 
 export function AppShell() {
+  return (
+    <TryOnProvider>
+      <Shell />
+    </TryOnProvider>
+  )
+}
+
+function Shell() {
   const { t } = useI18n()
   const { user, logout } = useAuth()
 
@@ -142,6 +152,10 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
+
+      {/* a try-on keeps running between pages: its panel in front, or its pill in the corner */}
+      <TryOnPanel />
+      <TryOnPill />
 
       {/* phone tab bar: stubs torn along a perforation; Scan is the big centre slot */}
       <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-20 border-t-[1.5px] border-dashed border-perf bg-paper pb-[env(safe-area-inset-bottom)] lg:hidden">

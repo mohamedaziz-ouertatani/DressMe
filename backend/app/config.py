@@ -18,7 +18,11 @@ Settings, read from environment variables (or backend/.env, never committed).
     BACKGROUND_MODEL   rembg model for that (default u2net)
     CLOTH_MODEL        rembg model that keeps only the garment when it is worn
                        (default u2net_cloth_seg; empty = keep the whole person)
-    TRYON_ENGINE     space (default: a Hugging Face Space, see tryon.py) or off
+    TRYON_ENGINE     space (default: a Hugging Face Space, see tryon.py), local or off
+    TRYON_SERVICE_URL   the local IDM-VTON service (TRYON_ENGINE=local), default http://localhost:8001
+    TRYON_LOCAL_STEPS   its diffusion steps per garment (default 10, ~5 s each on the RTX 2050)
+    TRYON_LOCAL_TIMEOUT seconds to wait for one garment (default 300)
+    TRYON_LOCAL_EXTRAS  experimental extras the local service may dress: "shoes,scarf,glasses" (default none)
     TRYON_SPACES     Hugging Face Spaces tried in order (see tryon.py), comma-separated
     TRYON_STEPS      diffusion steps per garment (default 30: fewer = faster, rougher)
     HF_TOKEN         optional Hugging Face token: a bigger free GPU quota on the Space
@@ -59,12 +63,16 @@ class Settings:
     gemini_model: str = field(default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-3.8-flash"))
     storage_dir: Path = field(default_factory=lambda: Path(os.getenv("STORAGE_DIR", BACKEND_DIR / "storage")))
     tryon_engine: str = field(default_factory=lambda: os.getenv("TRYON_ENGINE", "space").lower())
+    tryon_service_url: str = field(default_factory=lambda: os.getenv("TRYON_SERVICE_URL", "http://localhost:8001"))
+    tryon_local_steps: int = field(default_factory=lambda: int(os.getenv("TRYON_LOCAL_STEPS", "10")))
+    tryon_local_timeout: float = field(default_factory=lambda: float(os.getenv("TRYON_LOCAL_TIMEOUT", "300")))
+    tryon_local_extras: str = field(default_factory=lambda: os.getenv("TRYON_LOCAL_EXTRAS", ""))
     tryon_spaces: str = field(default_factory=lambda: os.getenv(
         "TRYON_SPACES",
         "zhengchong/CatVTON, Kwai-Kolors/Kolors-Virtual-Try-On, yisol/IDM-VTON, levihsu/OOTDiffusion"))
     tryon_steps: int = field(default_factory=lambda: int(os.getenv("TRYON_STEPS", "30")))
     tryon_timeout: float = 180.0       # seconds per garment (a sleeping Space wakes up first)
-    tryon_max_garments: int = 3        # chained garments per try-on (each costs GPU quota)
+    tryon_max_garments: int = 4        # chained pieces per try-on, e.g. top + bottom + shoes + glasses
     hf_token: str = field(default_factory=lambda: os.getenv("HF_TOKEN", ""))
     weather_engine: str = field(default_factory=lambda: os.getenv("WEATHER_ENGINE", "open-meteo").lower())
     weather_lat: float = field(default_factory=lambda: float(os.getenv("WEATHER_LAT", "36.81")))

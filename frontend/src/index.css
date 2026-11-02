@@ -138,6 +138,84 @@
     background-size: 200% 100%;
     animation: skeleton 1.4s linear infinite;
   }
+
+  /* Try-on wait (ui/TryOnProgress.tsx): an ink scan line sweeping down the photo,
+     the current piece floating gently, each playful line rising in. */
+  .tryon-scan {
+    background: linear-gradient(180deg, transparent 0%, rgb(30 46 142 / 0.16) 85%, var(--color-ink) 100%);
+    animation: tryon-scan 2.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  }
+  .tryon-float {
+    animation: tryon-float 3.2s ease-in-out infinite;
+  }
+  .tryon-quip {
+    animation: tryon-quip 450ms var(--ease-out-expo) both;
+  }
+  .tryon-late {
+    animation: tryon-late 1.6s ease-in-out infinite;
+  }
+  /* the front panel: the screen dims, the ticket rises; the pill slides in from the edge */
+  .tryon-backdrop {
+    animation: tryon-fade 220ms ease-out both;
+  }
+  .tryon-panel {
+    animation: tryon-rise 380ms var(--ease-out-expo) both;
+  }
+  .tryon-pill {
+    animation: tryon-rise 320ms var(--ease-out-expo) both;
+  }
+  /* the result appears out of a soft blur, like a photo developing */
+  .tryon-reveal {
+    animation: tryon-reveal 900ms var(--ease-out-expo) both;
+  }
+}
+
+@keyframes tryon-scan {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(400%);
+  }
+}
+
+@keyframes tryon-float {
+  50% {
+    transform: translateY(-6px) rotate(-2deg);
+  }
+}
+
+@keyframes tryon-quip {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes tryon-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes tryon-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+}
+
+@keyframes tryon-late {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes tryon-reveal {
+  from {
+    opacity: 0;
+    filter: blur(12px) saturate(0.4);
+  }
 }
 
 @keyframes stamp-land {
@@ -190,6 +268,22 @@
   }
   .skeleton {
     animation: none;
+  }
+  /* the wait keeps its words and bar, without moving shapes */
+  .tryon-scan,
+  .tryon-float,
+  .tryon-late {
+    animation: none;
+  }
+  .tryon-scan {
+    display: none;
+  }
+  .tryon-quip,
+  .tryon-reveal,
+  .tryon-backdrop,
+  .tryon-panel,
+  .tryon-pill {
+    animation: stamp-fade 200ms ease-out both;
   }
 }
 

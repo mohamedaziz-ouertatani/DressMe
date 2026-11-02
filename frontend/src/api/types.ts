@@ -348,6 +348,15 @@ export interface TryOnResult {
   skipped: { id: string; reason: 'unsupported' }[]   // shoes, bags, accessories
 }
 
+/** GET /tryon/info: read before a try-on starts. */
+export interface TryOnInfo {
+  enabled: boolean             // false = TRYON_ENGINE=off (the page goes straight to the 2D preview)
+  private: boolean             // true = the photo never leaves the computer (local engine)
+  seconds_per_garment: number  // drives the progress estimate
+  max_garments: number
+  kinds: string[]              // what it can put on: upper / lower / overall (+ shoes / glasses)
+}
+
 /** GET /weather (backend/app/weather.py, Open-Meteo). */
 export type WeatherCondition = 'clear' | 'cloudy' | 'fog' | 'rain' | 'snow' | 'storm'
 export interface Weather {

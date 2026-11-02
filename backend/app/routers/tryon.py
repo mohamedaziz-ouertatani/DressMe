@@ -20,7 +20,7 @@ import compatibility
 
 from ..events import log_event
 from ..security import gendered_user
-from ..tryon import KIND, TryOnBusy, TryOnUnavailable, describe, plan
+from ..tryon import BASIC_KINDS, TryOnBusy, TryOnUnavailable, describe, kind_of, plan
 from ..wardrobe import to_compat
 from .items import open_photo, own_item
 
@@ -44,14 +44,28 @@ def as_data_url(img):
     return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()
 
 
+@router.get("/tryon/info")
+def try_on_info(request: Request, user=Depends(gendered_user)):
+    """What the try-on page needs before it starts: is the AI on, does the photo leave
+    this computer (privacy note), and about how long one garment takes (its progress bar)."""
+    engine = request.app.state.tryon
+    return {"enabled": engine is not None,
+            "private": bool(getattr(engine, "private", False)),
+            "seconds_per_garment": getattr(engine, "seconds_per_garment", 60),
+            "max_garments": request.app.state.settings.tryon_max_garments,
+            # what it can put on: upper / lower / overall, + shoes / glasses for the local engine
+            "kinds": sorted(getattr(engine, "kinds", BASIC_KINDS)) if engine else []}
+
+
 @router.post("/tryon")
 async def try_on(request: Request, photo: UploadFile = File(...),
                  item_ids: list[str] = Form(default=[]), candidate_id: str | None = Form(default=None),
                  user=Depends(gendered_user)):
     """Dress the person in `photo` with the given wardrobe items and/or scanned
-    candidate. Shoes, bags and accessories are skipped (the model can't draw
-    them). A garment no Space could put on is listed in `failed` and the
-    others are still dressed; 502 only when none could be put on."""
+    candidate. What the engine can't put on is skipped (bags, belts, jewellery always;
+    shoes and glasses unless the engine lists them in its `kinds`). A garment the
+    engine failed on is listed in `failed` and the others are still dressed; 502
+    only when none could be put on."""
     engine = request.app.state.tryon
     settings = request.app.state.settings
     if engine is None:
@@ -65,9 +79,9 @@ async def try_on(request: Request, photo: UploadFile = File(...),
     why = compatibility.clashes([to_compat(d) for d in docs], rules_of(user))
     if why:
         raise HTTPException(422, "These pieces can't be worn together: " + "; ".join(why))
-    garments, skipped = plan(docs)
+    garments, skipped = plan(docs, getattr(engine, "kinds", BASIC_KINDS))
     if not garments:
-        raise HTTPException(422, "Try-on works for clothes only (not shoes, bags or accessories)")
+        raise HTTPException(422, "None of these pieces can be tried on (bags and most accessories can't)")
     if len(garments) > settings.tryon_max_garments:
         raise HTTPException(422, f"Try on at most {settings.tryon_max_garments} garments at once")
 
@@ -76,14 +90,14 @@ async def try_on(request: Request, photo: UploadFile = File(...),
     for doc in garments:
         try:
             result = await run_in_threadpool(
-                engine.dress, result, item_photo(request, user, doc), KIND[doc["category"]],
+                engine.dress, result, item_photo(request, user, doc), kind_of(doc),
                 describe(doc))
         except TryOnUnavailable as e:
             raise HTTPException(503, str(e))
         except TryOnBusy as e:
             # e.g. no working Space can dress trousers: skip this piece, keep
             # dressing the others; it is listed in `failed`
-            log.warning("try-on failed (%s garment): %s", KIND[doc["category"]], e)
+            log.warning("try-on failed (%s garment): %s", kind_of(doc), e)
             failed.append(str(doc["_id"]))
             reasons.append(str(e))
             continue

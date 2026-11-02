@@ -3,7 +3,7 @@
 import type {
   AdminXai, SourceCheck, AdminSource, Job, JobStart, ListingsOverview, AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Insights, Item, ItemPatch,
   Listing, ListingFilters, ListingPage, ListingPatch, ModelQuality, ReviewListing, SellForm, Occasion, Outfit, Season, Similar, Stats, User, Gender,
-  ChatAttachment, ChatAction, TryOnResult, Weather, Explanation, GuessField, OutfitExplanation,
+  ChatAttachment, ChatAction, TryOnResult, TryOnInfo,Weather, Explanation, GuessField, OutfitExplanation,
 } from './types'
 
 const BASE = '/api'
@@ -168,12 +168,13 @@ export const api = {
   /** "Should I buy this?" on a listing: it becomes a candidate, then use buyAdvice. */
   listingCandidate: (id: string) => request<Item>(`/listings/${id}/candidate`, { method: 'POST' }),
   /** Can take minutes (about one per garment): the AI runs on a shared GPU. */
-  tryOn: (person: Blob, itemIds: string[], candidateId?: string) => {
+  tryOn: (person: Blob, itemIds: string[], candidateId?: string, signal?: AbortSignal) => {
     const form = photoForm(person)
     itemIds.forEach((id) => form.append('item_ids', id))
     if (candidateId) form.append('candidate_id', candidateId)
-    return request<TryOnResult>('/tryon', { method: 'POST', body: form })
+    return request<TryOnResult>('/tryon', { method: 'POST', body: form, signal })
   },
+  tryOnInfo: () => request<TryOnInfo>('/tryon/info'),
 
   chat: (message: string) =>
     request<{ reply: string; tools_used: string[]; agent: string; agent_title: string;
