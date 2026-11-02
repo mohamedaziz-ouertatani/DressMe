@@ -25,9 +25,11 @@ estimates, so "right" would be a guess). The words cut is steady from one seed t
 0.86, and with more queries no photo cut reaches the target: look-alike labels such as blue / navy confuse it). Random wardrobes are easier than real ones (real ones hold many look-alikes),
 and catalogue pictures are not phone photos: read the numbers as an honest start, not a guarantee.
 
-    python src/phase4/calibrate_search.py [--queries 300] [--seed 0] [--no-write]
+    python src/phase4/calibrate_search.py [--queries 300] [--seed 0] [--write]
 
-Writes reports/phase4/search_calibration.csv and the two cuts in mappings/search_rules.csv (unless --no-write).
+By default it only PRINTS. The cuts now in mappings/search_rules.csv (words 0.292, photo 0.792) come from the
+Encoder Validation Lab (Phase 6, tuning rule commit 1fa3bca), not from this script. With --write it replaces them
+and rewrites reports/phase4/search_calibration.csv (the step 3b history; see search_calibration_SUPERSEDED.md).
 """
 
 import argparse
@@ -155,13 +157,14 @@ def write_cuts(cuts, test_precision, args, rules):
         rows = list(csv.DictReader(f))
     why = (f"REVIEW: set by src/phase4/calibrate_search.py on the validation split ({args.queries} queries, seed {args.seed}, "
            f"fake wardrobes of {int(rules['wardrobe_size'])} Fashion Product pieces): the lowest cut where the best result shown "
-           f"as close is right at least {rules['target_precision']:.0%} of the time. On the test split it is right "
+           "as close is right at least {target:.0%} of the time. On the test split it is right "
            "{:.1%} of the time (reports/phase4/search_calibration.csv). Re-run the script after changing the model or the data.")
     for row in rows:
         if row["name"] in ("text_cut", "photo_cut"):
             mode = row["name"].split("_")[0]
             row["value"] = f"{cuts[mode]:g}"
-            row["note"] = why.format(test_precision[mode]) + (" Words are compared with pictures, so the numbers are low."
+            target = rules["target_precision" if mode == "text" else "photo_target_precision"]
+            row["note"] = why.format(test_precision[mode], target=target) + (" Words are compared with pictures, so the numbers are low."
                                                               if mode == "text" else " A picture is compared with pictures, so the numbers are high. This is the less certain cut: with other seeds or more "
                                                               "queries it moves and the target is not always reached (labels such as blue / navy or flats / casual shoes look alike), "
                                                               "so check it with a larger run (--queries 1000).")
@@ -175,11 +178,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--queries", type=int, default=300, help="queries per mode per split")
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--no-write", action="store_true", help="only print; change no file")
+    parser.add_argument("--write", action="store_true",
+                        help="replace the cuts in mappings/search_rules.csv and the report (default: only print)")
     args = parser.parse_args()
 
     rules, terms = search.load_rules(), search.load_terms()
-    size, target = int(rules["wardrobe_size"]), rules["target_precision"]
+    size = int(rules["wardrobe_size"])
+    targets = {"text": rules["target_precision"], "photo": rules["photo_target_precision"]}    # per mode
+    print(f"WARNING: the cuts now in {search.RULES_CSV.relative_to(ROOT)} (words {rules['text_cut']:g}, photo "
+          f"{rules['photo_cut']:g}) come from the Encoder Validation Lab (Phase 6, tuning rule commit 1fa3bca).\n"
+          "         This run only prints what the step 3b method would choose; --write would replace them.\n")
     df, vectors = load_pool()
     model, processor, device = fashionclip.load_model()
     cache = {}
@@ -199,6 +207,7 @@ def main():
             rng = np.random.default_rng([args.seed, mode_no, split_no])
             results[split] = run_queries(mode, pool, unit, args.queries, size, rng, encode_text, terms)
             print(f"{mode:5} {split:4}: {len(pool)} pieces in the pool, {args.queries} queries")
+        target = targets[mode]
         cut, reached = choose_cut(results["val"], target)
         cuts[mode] = cut
         if not reached:
@@ -217,10 +226,12 @@ def main():
     out = pd.DataFrame(table)[["split", "mode", "cut", "n_queries", "precision", "top5_hit_rate", "honest_nothing_rate"]]
     out = out.round({"cut": 3, "precision": 3, "top5_hit_rate": 3, "honest_nothing_rate": 3})
     print("\n" + out.to_string(index=False))
-    if not args.no_write:
+    if args.write:
         out.to_csv(REPORT, index=False, lineterminator="\n")
         write_cuts(cuts, test_precision, args, rules)
         print(f"\nwritten: {REPORT.relative_to(ROOT)} and the cuts in {search.RULES_CSV.relative_to(ROOT)}")
+    else:
+        print("\nnothing written (pass --write to replace the cuts and the report)")
 
 
 if __name__ == "__main__":

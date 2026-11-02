@@ -25,7 +25,8 @@ from item_images import ROOT
 RULES_CSV = ROOT / "mappings" / "search_rules.csv"
 TERMS_CSV = ROOT / "mappings" / "search_terms.csv"
 
-RULE_NAMES = ("text_cut", "photo_cut", "target_precision", "wardrobe_size", "default_limit", "closest_anyway")
+RULE_NAMES = ("text_cut", "photo_cut", "target_precision", "photo_target_precision", "wardrobe_size",
+              "default_limit", "closest_anyway")
 ARTICLES = {"a", "an", "the", "le", "la", "les", "un", "une", "des"}      # words that say nothing about the piece
 ARABIC_THE = "ال"                                                          # "the" is a prefix in Arabic
 LONGEST_PHRASE = 4                                                         # "sac a main" is 3 words: try up to 4
