@@ -98,7 +98,8 @@ def router_section(rows):
     lines += ["", "| How it chose | Answers |", "| --- | --- |"]
     lines += [f"| {how} | {n} |" for how, n in Counter(r.get("router_how") for r in ok).most_common()]
     known = [r for r in ok if r.get("expected_agent") in existing]
-    right = sum(r["agent"] == r["expected_agent"] for r in known)
+    # a trap may list other agents that do no harm for an overlapping question (acceptable_agents)
+    right = sum(r["agent"] == r["expected_agent"] or r["agent"] in r.get("acceptable_agents", []) for r in known)
     lines += ["", f"Accuracy on traps whose expected agent exists ({', '.join(sorted(existing))}): "
                   f"{right} of {len(known)} ({100 * right / max(1, len(known)):.0f}%).", "",
               "Traps whose expected agent does not exist yet (not scored):", "",
@@ -384,6 +385,7 @@ def main(argv=None):
             fails = score(trap, code, answer_body, unknown, pieces)
             rows.append({"id": trap["id"], "run": run, "category": trap["category"], "lang": trap["lang"],
                          "message": trap["message"], "expected_agent": trap.get("expected_agent"),
+                         "acceptable_agents": trap.get("acceptable_agents", []),
                          "agent": answer_body.get("agent"), "router_how": router_how(answer_body),
                          "status": code, "seconds": seconds,
                          "answer": answer_body.get("answer") or "", "tools": tools_called(answer_body),
