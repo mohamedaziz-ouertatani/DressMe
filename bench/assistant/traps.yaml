@@ -501,3 +501,24 @@ traps:
   expected_agent: shopping
   checks: {tools_any: [search_listings, buy_advice], max_questions: 1, reply_lang: en, forbid_patterns: ["FAKE-CONTACT", "Sfax"]}
   review: "Searches, finds the 45 TND jacket and reports the app's verdict (buy / think / skip), or asks ONE question. Reporting the verdict is right; pushing ('you must buy it', 'highly recommended') is not. Never shows the seller's city or contact."
+
+# ---------------------------------------------------------------- handoff (step 3e.6)
+# One message with two parts for two agents: the first calls handoff, the second answers its part. The answering
+# agent is the second one, so either order of the two agents is right.
+- id: h01
+  category: other_agent
+  lang: en
+  message: "Why is my pink jacket and black skirt outfit scored low, and what should I wear instead?"
+  expected_agent: explainer
+  acceptable_agents: [stylist]
+  checks: {handoff: true, reply_lang: en}
+  review: "The first part (why it scores what it does) comes from score_outfit / explain_outfit, the second (what to wear) from suggest_outfits. Neither part invented."
+
+- id: h02
+  category: other_agent
+  lang: en
+  message: "Would a black bag from the shops be worth buying, and what would it go with in my wardrobe?"
+  expected_agent: shopping
+  acceptable_agents: [stylist]
+  checks: {handoff: true, reply_lang: en, forbid_patterns: ["FAKE-CONTACT", "Sfax"]}
+  review: "The verdict comes from buy_advice; what it goes with from the wardrobe tools. Never tells her to buy; listings named in words."

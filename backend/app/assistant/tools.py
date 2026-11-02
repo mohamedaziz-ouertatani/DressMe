@@ -31,6 +31,10 @@ class ToolContext:
     # step 3e: shop listings are NOT pieces, so they get their own numbers (listing 1, 2, 3...). Same class as the
     # ledger, another list: a listing number can never be read as a piece, and the model never writes it as {n}.
     listings: PieceLedger = field(default_factory=PieceLedger)
+    # step 3e.6, handoff: who is answering, who exists, and the handoff the model asked for ({"to", "note"} or None)
+    agent: str | None = None
+    known_agents: tuple = ()
+    handoff: dict | None = None
 
 
 @dataclass

@@ -66,6 +66,7 @@ agents:
       Give one or two outfits, each in one short sentence, and say briefly why they work.
       Example answer: "Wear {2} with {5} and {7}: the white top makes the black skirt look fresh, and the sandals
       suit today's 27 degrees."
+      If the user also asks something that belongs to another agent, call handoff with that agent's name and a short note, and do not answer that part yourself.
     tools:
       - list_wardrobe
       - search_wardrobe
@@ -73,6 +74,7 @@ agents:
       - suggest_outfits
       - build_outfit
       - score_outfit
+      - handoff
     keywords:
       en: [wear, outfit, match, go with, style]
       fr: [porter, tenue, assortir, aller avec, style]
@@ -118,11 +120,13 @@ agents:
       the pieces as {n}. Never invent a number or a percentage. If the user wants an outfit, say the stylist can help
       and ask what they want to wear.
       Example answer: "You have 17 pieces and no sneakers. {3} and {9} look almost the same, so one is enough."
+      If the user also asks something that belongs to another agent, call handoff with that agent's name and a short note, and do not answer that part yourself.
     tools:
       - list_wardrobe
       - search_wardrobe
       - wardrobe_insights
       - near_twins
+      - handoff
     keywords:
       en: [missing, similar, twin, duplicate, balance, statistics, how many]
       fr: [manque, similaire, doublon, équilibre, statistique, combien]
@@ -149,12 +153,14 @@ agents:
       The reasons come as codes with a sign (+ helps, - hurts): say them in plain words. Never invent a score or a reason.
       If no piece is named or found, ask which pieces; if the user wants a new outfit, say the stylist can help.
       Example answer: "{1} with {2} scores 62: the colours work, but the two patterns compete. Swapping {2} for {5} would gain 8 points."
+      If the user also asks something that belongs to another agent, call handoff with that agent's name and a short note, and do not answer that part yourself. For example, if the user also asks what to wear or which outfit to choose, do your own part with your tools first, then call handoff with agent stylist and the note "what to wear".
     tools:
       - list_wardrobe
       - search_wardrobe
       - score_outfit
       - explain_outfit
       - how_scoring_works
+      - handoff
     keywords:
       en: [score, points, why, weakest, swap, scoring]
       fr: [score, points, pourquoi, plus faible, remplacer, notation]
@@ -180,11 +186,13 @@ agents:
       sentences. The user decides what to sell: never push them to sell.
       The tool results are in English, but answer in the language of the user's message (English for an English message).
       Example answer: "{3} could sell for about 25 to 40 TND at the friperie, a rough guide. {3} and {9} look almost the same, so you could sell one."
+      If the user also asks something that belongs to another agent, call handoff with that agent's name and a short note, and do not answer that part yourself.
     tools:
       - list_wardrobe
       - search_wardrobe
       - price_estimate
       - near_twins
+      - handoff
     keywords:
       en: [sell, resale, second-hand, how much could, asking price]
       fr: [vendre, revente, occasion, combien, prix de vente]
@@ -215,12 +223,14 @@ agents:
       words. The user decides: never tell them to buy, and never invent a price, a shop or a listing.
       The tool results are in English, but answer in the language of the user's message (English for an English message).
       Example answer: "The black bag at Zara (45 TND) makes 7 good outfits with what you own, so it looks worth a think."
+      If the user also asks something that belongs to another agent, call handoff with that agent's name and a short note, and do not answer that part yourself. For example, if the user also asks what an item would go with in their wardrobe or what to wear, do your own part with your tools first, then call handoff with agent stylist and the note "what it goes with".
     tools:
       - search_listings
       - similar_pieces
       - buy_advice
       - price_estimate_listing
       - search_wardrobe
+      - handoff
     keywords:
       en: [buy, shop, shops, listing, price, cheap, under, dinars, worth]
       fr: [acheter, boutique, magasin, annonce, prix, pas cher, dinars]

@@ -57,13 +57,23 @@ never `{n}`. `placeholders.resolve`: a known `{n}` stays, an invented one is rem
 user's own number: `chat.py` strips the braces of a `{12}` the user typed before the model sees it; if the model still writes it,
 it is shown as plain text (`echoed_refs`), not deleted.
 
+**Handoff** (`assistant/handoff.py`, tool `handoff(agent, note<=100 chars)` for every agent that has tools, not general): the tool
+only records `{to, note}` in `ToolContext` (target must be ANOTHER agent of the file, one per turn; errors `invalid_target`,
+`unknown_agent`, `already_handed_over`). The loop stops with `stop_reason: "handoff"` (the first agent still writes its own part in
+the usual last no-tools call). `chat.py` then runs the target agent ONCE with the original message + the note, the SAME context
+(same piece and listing ledgers), no handoff tool and no handoff instruction line (`second_run_agent`); the answer is the first
+agent's words then the second's, `agent` in the response is the second one, the trace gets `{"handoff": {from, to, note}}` between the
+two agents' lines, and the `chats` document keeps `agent` (the answering one), `agents` `[first, second]` and `handoff`. Each tool agent's
+instructions have the line "If the user also asks something that belongs to another agent, call handoff ..." and its system prompt lists
+the other agents (`handoff.menu`). **The 4B model never calls the tool** (traps h01 and h02, see Results).
+
 **Model client and endpoints.** `assistant/ollama.py` `OllamaClient` calls Ollama `/api/chat` (stream off, tools only when the agent
 has some, `<think>` stripped); any failure is `ModelUnavailable` -> `POST /chat` answers 503 `assistant_unavailable`. **No retries yet**
 (`TODO(step 3e)` in that file). `GET /assistant/status` -> `{available, model}` (`/api/show`, cached 60 s). `POST /chat`
-(`routers/chat.py`): `{message 1-1000, chat_id?, agent?}` -> `{chat_id, agent, answer, pieces: {"<n>": item}, trace, stop_reason, model}`;
+(`routers/chat.py`): `{message 1-1000, chat_id?, agent?}` -> `{chat_id, agent, answer, pieces: {"<n>": item}, trace, stop_reason, model}` (`agent` is the answering one: the second after a handoff);
 422 `unknown_agent`. Only the user's own items appear in `pieces`; **listings are not in `pieces`**. One document per turn in the
 `chats` collection (user_id, chat_id, created_at, agent, message, answer, item_ids, unknown_refs, echoed_refs, trace, stop_reason,
-model); event type `assistant` (agent, routed, rounds, stop_reason, n_tool_calls, n_unknown_refs, ms; never the message). The
+model, plus `agents` and `handoff`); event type `assistant` (agent, routed, rounds, stop_reason, n_tool_calls, n_unknown_refs, handed_from, ms; never the message). The
 history is NOT sent to the model: every turn stands alone.
 
 **Model.** `CHAT_MODEL=dressme-base` (set in the git-ignored `backend/.env`; the default in `config.py` is `qwen3.5:4b`).
@@ -77,7 +87,8 @@ keep_alive 10m, timeout 90 s, think false). `OLLAMA_URL` defaults to `http://hos
 - Trap set (55 traps in `bench/assistant/traps.yaml`: 36 en, 12 fr, 5 ar, 2 arabizi; default `--lang en`; the eval user gets the
   17-piece golden wardrobe; 5 fixed fake listings, marked `eval_fake: true`, are added at the start of a run only if `listings` is empty and deleted at the end):
   `docker exec dressme-backend-1 python -m app.eval_traps --repeat 10` (options `--only g01,e01`, `--agent stylist`, `--lang all`,
-  `--rescore <file>.jsonl`). A run of 10+ minutes: `docker exec -d dressme-backend-1 sh -c "python -m app.eval_traps --repeat 10 > /app/bench/results/assistant/run-X.log 2>&1"`.
+  `--rescore <file>.jsonl`). A trap may set `checks: {handoff: true|false}`; the report counts answers that used handoff, per trap;
+  the router accuracy is the router's own pick (`routed`), not the answering agent. A run of 10+ minutes: `docker exec -d dressme-backend-1 sh -c "python -m app.eval_traps --repeat 10 > /app/bench/results/assistant/run-X.log 2>&1"`.
 - Router: `docker exec dressme-backend-1 python -m app.eval_router --repeat 5` (dev), `--split test --repeat 5` (once per decision).
 - Tests: `docker exec dressme-backend-1 python -m pytest -p no:cacheprovider -q tests/test_router.py tests/test_agents_yaml.py tests/test_chat.py tests/test_<agent>_tools.py`
   (assistant files: `test_assistant_engine`, `test_ollama_client`, `test_stylist_tools`, `test_analyst_tools`, `test_explainer_tools`,
@@ -104,6 +115,7 @@ Trap set, English, base model. "Every run" = traps passing in all runs. Router =
 | 3e.3 seller (`7e429d1`) | se01-se03 x5 | 15/15 | 3/3 | 0 | 10/15 (67%): se02 went to wardrobe_analyst 5/5, accepted since `9b93614` | `T231624`; router dev 135/135 `T231621`, test 80/80 `T231731` |
 | Traps and wording (`9b93614`) | u01 x10, g01 x10 | 10/10, 10/10 | 1/1, 1/1 | 0 | u01 10/10 stylist | `T232139`, `T232158` |
 | 3e.5 shopping (`c5743e4`) | sh01-sh03 x5 | 15/15 (first run 11/15: two of my own checks were wrong) | 3/3 | 0 | 15/15 | `T233037` (first `T232906`); router dev 160/160 `T232903`, test 95/95 `T233501` |
+| 3e.6 handoff (this commit) | h01, h02 x10 | 0/20 (both traps 0/10 twice; after the one allowed tune of the explainer's and shopping's line: still 0/20, no `handoff` call at all) | 0/2 | 0 | routed explainer 10/10, shopping 10/10 | `T234640`, after the tune `T234959` |
 
 The g01 test of "the Stylist got worse?" (stylist forced, 30 runs): at `540ebaa` 23/30 (`T224311`), A2 code 27/30 (`T224531`), with the
 "If the user gives no occasion, call suggest_outfits without one" line 28/30 (`T224839`, line kept).
@@ -124,7 +136,7 @@ What we learned:
 
 Chat assistant only, next step first. Tick when done.
 - [x] Router + general, wardrobe_analyst, explainer, seller, shopping (3e.1 to 3e.5)
-- [ ] **Handoff:** an agent passes the user to another when the question belongs there (the `TODO(step 3e)` marker for it was removed from `agents.yaml`; the design file still lists it)
+- [~] **Handoff:** built and tested (tool, loop stop, second run with the same ledgers, trace line, both agents saved), but the model never calls it (h01/h02 0/20 after one tune). Decide: trigger it in code (e.g. a second question to the router), or accept and drop
 - [ ] **Fallback:** retry the model call twice, then a message with shortcut buttons (the `TODO(step 3e)` is in `assistant/ollama.py`; today a failure is a 503)
 - [ ] **Chat screen** (a teammate). Spec = the `POST /chat` response shape above; listings are named in words and are not in `pieces`, so the screen cannot show listing cards without a change
 - [ ] **Final measurement:** the full 10-run trap set (all 6 agents), a set of fresh questions never used before, and the router test split once; full suite once

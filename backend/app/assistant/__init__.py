@@ -3,6 +3,7 @@ The new assistant (step 3c, the walking skeleton): tools, a registry, a piece le
 mappings/agents.yaml, a model interface and the loop that ties them together. See docs/learn/step-3c.md.
 """
 
+from .handoff import HANDOFF
 from .tools import Registry
 from .tools_analyst import NEAR_TWINS, WARDROBE_INSIGHTS
 from .tools_explainer import EXPLAIN_OUTFIT, HOW_SCORING_WORKS
@@ -17,6 +18,7 @@ def default_registry():
     registry = Registry()
     for tool in (LIST_WARDROBE, SEARCH_WARDROBE, GET_WEATHER, SUGGEST_OUTFITS, BUILD_OUTFIT, SCORE_OUTFIT,
                  WARDROBE_INSIGHTS, NEAR_TWINS, EXPLAIN_OUTFIT, HOW_SCORING_WORKS,
-                 PRICE_ESTIMATE, SEARCH_LISTINGS, SIMILAR_PIECES, BUY_ADVICE, PRICE_ESTIMATE_LISTING):
+                 PRICE_ESTIMATE, SEARCH_LISTINGS, SIMILAR_PIECES, BUY_ADVICE, PRICE_ESTIMATE_LISTING,
+                 HANDOFF):
         registry.register(tool)
     return registry

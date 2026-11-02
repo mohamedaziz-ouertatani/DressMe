@@ -7,7 +7,8 @@ One turn of the assistant (step 3c): the user's message in, an answer out.
         text and no tool call -> done ("answered")
         tool calls -> run each through the registry, add the results to the messages, ask again
     when the rounds run out, or the model asks for the SAME call again: one last chat() with no tools, so it must
-    answer ("max_rounds" / "repeat"). Finally the {n} rule cleans the answer.
+    answer ("max_rounds" / "repeat"). The same after a handoff ("handoff", step 3e.6): the agent writes its own part
+    from the tool results it has, and the route then runs the other agent. Finally the {n} rule cleans the answer.
 
 The loop never raises for a tool problem (the model reads the error and can correct itself). Only ModelUnavailable
 goes up, to the route.
@@ -29,6 +30,7 @@ class TurnResult:
     stop_reason: str
     rounds: int
     echoed_refs: list = field(default_factory=list)       # unknown {n} the user had typed: shown as plain numbers
+    handoff: dict | None = None                           # step 3e.6: {"to", "note"} when stop_reason is "handoff"
 
 
 def call_key(call):
@@ -73,6 +75,9 @@ def run_turn(agent, user_text, model, registry, ctx, shared_rules=""):
                 trace.append({"round": rounds, "tool": call.name, "args": call.arguments, "ok": result.ok,
                               "error_code": result.error_code, "n_pieces": n_pieces(result), "ms": result.ms})
             messages.append({"role": "tool", "name": call.name, "content": json.dumps(content, ensure_ascii=False)})
+        if ctx.handoff is not None:                       # step 3e.6: the model handed the rest to another agent
+            stop_reason = "handoff"
+            break
         if repeated:
             stop_reason = "repeat"
             break
@@ -82,4 +87,5 @@ def run_turn(agent, user_text, model, registry, ctx, shared_rules=""):
         if reply.thinking_stripped:
             trace.append({"round": rounds + 1, "note": "thinking_stripped"})
     answer, refs, unknown, echoed = resolve(reply.text or "", ctx.ledger, user_text)
-    return TurnResult(answer, refs, unknown, trace, stop_reason, rounds, echoed)
+    return TurnResult(answer, refs, unknown, trace, stop_reason, rounds, echoed,
+                      ctx.handoff if stop_reason == "handoff" else None)

@@ -79,7 +79,7 @@ def golden_chat(make_client, settings):
         assert all(len(json.dumps(x)) <= MAX_CHARS for x in reads)
         return r.json(), reads
 
-    run.client, run.headers, run.db = client, headers, db
+    run.client, run.headers, run.db, run.model = client, headers, db, model
     run.reads = []
     return run
 

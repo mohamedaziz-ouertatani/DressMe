@@ -84,6 +84,22 @@ def router_how(body):
     return None
 
 
+def handoff_of(body):
+    """The {"from", "to", "note"} of a handoff in this answer's trace (step 3e.6), or None."""
+    for line in body.get("trace", []):
+        if "handoff" in line:
+            return line["handoff"]
+    return None
+
+
+def routed_to(body):
+    """The agent the ROUTER chose (the answering agent can be the second one after a handoff)."""
+    for line in body.get("trace", []):
+        if "router" in line:
+            return line["router"]
+    return body.get("agent")
+
+
 def router_section(rows):
     """Which agent the router chose, and how often it was right. Accuracy counts ONLY the traps whose expected agent
     already exists in agents.yaml (the agents built so far); the rest are listed apart, because no router could be
@@ -99,7 +115,9 @@ def router_section(rows):
     lines += [f"| {how} | {n} |" for how, n in Counter(r.get("router_how") for r in ok).most_common()]
     known = [r for r in ok if r.get("expected_agent") in existing]
     # a trap may list other agents that do no harm for an overlapping question (acceptable_agents)
-    right = sum(r["agent"] == r["expected_agent"] or r["agent"] in r.get("acceptable_agents", []) for r in known)
+    # the router's own pick (after a handoff the answering agent is the second one)
+    right = sum((r.get("routed") or r["agent"]) == r["expected_agent"]
+                or (r.get("routed") or r["agent"]) in r.get("acceptable_agents", []) for r in known)
     lines += ["", f"Accuracy on traps whose expected agent exists ({', '.join(sorted(existing))}): "
                   f"{right} of {len(known)} ({100 * right / max(1, len(known)):.0f}%).", "",
               "Traps whose expected agent does not exist yet (not scored):", "",
@@ -169,6 +187,8 @@ def score(trap, status, body, unknown_refs, pieces):
     for pattern in checks.get("forbid_patterns", []):
         if re.search(pattern, answer, re.IGNORECASE | re.DOTALL):
             fails.append(f"answer matches forbidden pattern {pattern!r}")
+    if "handoff" in checks and (handoff_of(body) is not None) != checks["handoff"]:
+        fails.append("expected a handoff" if checks["handoff"] else "handed over, expected no handoff")
     if "max_questions" in checks:
         questions = answer.count("?") + answer.count("؟")
         if questions > checks["max_questions"]:
@@ -218,6 +238,7 @@ def report(rows, meta):
              f"{statistics.median(seconds) if seconds else 0:.1f} / {percentile(seconds, 0.9):.1f} / "
              f"{max(seconds) if seconds else 0:.1f} |",
              f"| Tool calls per answer (mean) | {statistics.mean(r['n_tool_calls'] for r in ok) if ok else 0:.1f} |",
+             f"| Answers that used handoff | {sum(1 for r in rows if r.get('handoff'))} |",
              f"| Stop reasons | {', '.join(f'{k} {v}' for k, v in Counter(r['stop_reason'] for r in ok).items())} |",
              f"| `<think>` blocks stripped | {sum(r['thinking_stripped'] for r in ok)} |", "",
              "Automatic checks catch tool use, invented numbers, pieces that do not exist, language and some "
@@ -241,6 +262,12 @@ def report(rows, meta):
         lines.append(f"| {lang} | {len(results)} | {sum(results)} | {100 * sum(results) / len(results):.0f}% |")
 
     lines += router_section(rows)
+    used = Counter(r["id"] for r in rows if r.get("handoff"))
+    lines += ["", "## Handoff (answers that used it, per trap)", ""]
+    lines += ["| Trap | Answers with handoff | Of | To |", "| --- | --- | --- | --- |"] + [
+        f"| {trap} | {n} | {len(by_trap[trap])} | "
+        f"{', '.join(f'{a} {c}' for a, c in Counter(r['handoff']['to'] for r in rows if r['id'] == trap and r.get('handoff')).most_common())} |"
+        for trap, n in used.items()] if used else ["None."]
 
     failures = [r for r in rows if not r["passed"]]
     lines += ["", f"## Failed checks ({len(failures)})", ""]
@@ -339,7 +366,8 @@ def rescore(path, traps_path):
     rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
     for row in rows:
         trap = {**traps.get(row["id"], {}), "message": row["message"]}
-        body = {"answer": row["answer"], "trace": [{"tool": t} for t in row["tools"]]}
+        body = {"answer": row["answer"], "trace": [{"tool": t} for t in row["tools"]]
+                + ([{"handoff": row["handoff"]}] if row.get("handoff") else [])}
         row["fails"] = score(trap, row["status"], body, row["unknown_refs"], row["pieces"])
         row["passed"] = not row["fails"]
         row["review"] = trap.get("review", row.get("review", ""))
@@ -436,7 +464,8 @@ def measure(args, traps, http, db, user_id):
             rows.append({"id": trap["id"], "run": run, "category": trap["category"], "lang": trap["lang"],
                          "message": trap["message"], "expected_agent": trap.get("expected_agent"),
                          "acceptable_agents": trap.get("acceptable_agents", []),
-                         "agent": answer_body.get("agent"), "router_how": router_how(answer_body),
+                         "agent": answer_body.get("agent"), "routed": routed_to(answer_body) if code == 200 else None,
+                         "handoff": handoff_of(answer_body), "router_how": router_how(answer_body),
                          "status": code, "seconds": seconds,
                          "answer": answer_body.get("answer") or "", "tools": tools_called(answer_body),
                          "n_tool_calls": len(tools_called(answer_body)),
