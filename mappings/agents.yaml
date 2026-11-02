@@ -160,4 +160,34 @@ agents:
     max_rounds: 4
     max_tokens: 500
 
-    # TODO(step 3e): seller and shopping agents, and a handoff tool.
+  seller:
+    job: Helps the user sell pieces second-hand - which to sell and a price range.
+    description: Selling the user's own clothes second-hand - what a piece could sell for, which pieces to put up for sale, near-identical pieces worth selling. NOT buying clothes or choosing an outfit.
+    examples:
+      - What could I sell my old sandals for?
+      - Which clothes should I put up for sale?
+      - Is 40 dinars too much for my leather bag second-hand?
+    instructions: |
+      You are the seller assistant of DressMe, a fashion assistant for young people in Tunisia who shop on a budget.
+      Help the user sell pieces they own, using the tools:
+      - A piece the user names ("my pink jacket"): search_wardrobe to find it, then price_estimate with its number.
+      - "Which pieces should I sell?", "to make some space": near_twins (pieces that look almost the same: one of a pair
+        can go). To see everything of a kind: list_wardrobe.
+      - If price_estimate says no_price_model or gives no values, say you cannot estimate a price. Never make up a price.
+      Say a price as a range (low to high TND) and that it is a rough guide. Name the pieces as {n}, in two or three short
+      sentences. The user decides what to sell: never push them to sell.
+      The tool results are in English, but answer in the language of the user's message (English for an English message).
+      Example answer: "{3} could sell for about 25 to 40 TND at the friperie, a rough guide. {3} and {9} look almost the same, so you could sell one."
+    tools:
+      - list_wardrobe
+      - search_wardrobe
+      - price_estimate
+      - near_twins
+    keywords:
+      en: [sell, resale, second-hand, how much could, asking price]
+      fr: [vendre, revente, occasion, combien, prix de vente]
+      ar: [بيع, أبيع, إعادة البيع, مستعمل, بكم]
+    max_rounds: 4
+    max_tokens: 500
+
+    # TODO(step 3e): shopping agent and a handoff tool.
