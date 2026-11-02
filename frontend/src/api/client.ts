@@ -3,7 +3,7 @@
 import type {
   AdminXai, SourceCheck, AdminSource, Job, JobStart, ListingsOverview, AdminUser, BuyAdvice, Category, Completion, Formula, Insights, Item, ItemPatch,
   Listing, ListingFilters, ListingPage, ListingPatch, ModelQuality, ReviewListing, SellForm, Occasion, Outfit, Season, Similar, Stats, User, Gender,
-  TryOnResult, Weather, Explanation, GuessField, OutfitExplanation,
+  TryOnResult, TryOnInfo, Weather, Explanation, GuessField, OutfitExplanation,
   Decision, DecisionAnswer, OutfitLabel, WearEntry, WearSummary, OccasionChip, TodayOutfits, BuildResult, SearchResponse,
   PriceChannel, PriceCondition, PriceEstimate,
 } from './types'
@@ -224,12 +224,13 @@ export const api = {
   /** "Should I buy this?" on a listing: it becomes a candidate, then use buyAdvice. */
   listingCandidate: (id: string) => request<Item>(`/listings/${id}/candidate`, { method: 'POST' }),
   /** Can take minutes (about one per garment): the AI runs on a shared GPU. */
-  tryOn: (person: Blob, itemIds: string[], candidateId?: string) => {
+  tryOn: (person: Blob, itemIds: string[], candidateId?: string, signal?: AbortSignal) => {
     const form = photoForm(person)
     itemIds.forEach((id) => form.append('item_ids', id))
     if (candidateId) form.append('candidate_id', candidateId)
-    return request<TryOnResult>('/tryon', { method: 'POST', body: form })
+    return request<TryOnResult>('/tryon', { method: 'POST', body: form, signal })
   },
+  tryOnInfo: () => request<TryOnInfo>('/tryon/info'),
 
   admin: {
     stats: (days = 30) => request<Stats>(`/admin/stats?days=${days}`),

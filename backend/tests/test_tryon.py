@@ -39,6 +39,23 @@ def test_outfit_is_chained_bottom_first_and_shoes_skipped(make_client, settings)
     assert client.app.state.db.events.count_documents({"type": "tryon"}) == 1
 
 
+def test_an_engine_that_can_dress_shoes_and_glasses_puts_them_on_last(make_client):
+    engine = FakeTryOn()
+    engine.kinds = {"upper", "lower", "overall", "shoes", "glasses"}      # like the local service
+    client = make_client(tryon=engine)
+    headers = sign_up(client)
+    top, jeans, shoes = (upload(client, headers, c)["id"] for c in (RED, BLUE, BLACK))
+    glasses, belt = upload(client, headers, GREEN)["id"], upload(client, headers, GREEN)["id"]
+    for item, sub in ((glasses, "sunglasses"), (belt, "belt")):
+        r = client.patch(f"/items/{item}", json={"category": "accessory", "sub_category": sub}, headers=headers)
+        assert r.status_code == 200, r.text
+    r = try_on(client, headers, [glasses, shoes, top, belt, jeans])
+    assert r.status_code == 200, r.text
+    assert engine.calls == ["lower", "upper", "shoes", "glasses"]          # shoes over the hems
+    assert r.json()["applied"] == [jeans, top, shoes, glasses]
+    assert r.json()["skipped"] == [{"id": belt, "reason": "unsupported"}]  # belts: never
+
+
 def test_scanned_candidate_can_be_tried_on(make_client):
     engine = FakeTryOn()
     client = make_client(tryon=engine)
@@ -96,6 +113,22 @@ def test_switched_off(client):
     top = upload(client, headers, RED)["id"]
     client.app.state.tryon = None                                         # TRYON_ENGINE=off
     assert try_on(client, headers, [top]).status_code == 503
+
+
+def test_info_says_whether_the_photo_leaves_the_computer(make_client, settings):
+    from app.tryon import LocalTryOn
+    settings.tryon_local_extras = ""
+    engine = LocalTryOn(settings)
+    client = make_client(tryon=engine)
+    headers = sign_up(client)
+    info = client.get("/tryon/info", headers=headers).json()
+    assert info["enabled"] and info["private"]
+    assert info["seconds_per_garment"] == 5 * engine.steps + 10          # follows TRYON_LOCAL_STEPS
+    assert set(info["kinds"]) == {"upper", "lower", "overall"}           # shoes / glasses: off
+    settings.tryon_local_extras = "shoes, scarf, glasses"                # TRYON_LOCAL_EXTRAS
+    assert {"shoes", "scarf", "glasses"} <= LocalTryOn(settings).kinds
+    client.app.state.tryon = None                                         # TRYON_ENGINE=off
+    assert client.get("/tryon/info", headers=headers).json()["enabled"] is False
 
 
 def test_corrected_scan_is_dressed_as_corrected(make_client):
