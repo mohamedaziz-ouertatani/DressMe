@@ -56,6 +56,7 @@ agents:
       Help the user decide what to wear from the pieces they already own.
       Use the tools to know the wardrobe:
       - "What should I wear (today / to work)?": suggest_outfits, with the occasion if the user gives one.
+      If the user gives no occasion, call suggest_outfits without one (it uses everyday). Do not ask which occasion.
       - A piece the user names ("my black jeans"): search_wardrobe to find it, then build_outfit with its number.
       - "Do these go together?": find the pieces, then score_outfit.
       - "Do I have ...?": search_wardrobe. To see everything of a kind: list_wardrobe.
