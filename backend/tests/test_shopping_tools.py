@@ -38,6 +38,12 @@ def assert_no_contact(reads):
     assert FAKE_CONTACT not in text and "Sfax" not in text and "city" not in text and "contact" not in text
 
 
+def test_the_fake_listings_are_flagged_so_the_evaluation_can_delete_them(shop):
+    assert shop.db.listings.count_documents({"eval_fake": True}) == shop.db.listings.count_documents({}) == 5
+    shop.db.listings.delete_many({"eval_fake": True})
+    assert shop.db.listings.count_documents({}) == 0
+
+
 # ---------------------------------------------------------------- search_listings
 def test_search_listings_shows_numbers_and_nothing_about_the_seller(shop):
     _, reads = shop("shopping", ("search_listings", {}))

@@ -75,7 +75,7 @@ keep_alive 10m, timeout 90 s, think false). `OLLAMA_URL` defaults to `http://hos
 - After a change: YAML only -> `docker compose restart backend`; Python changed -> `docker compose up -d --build backend`; then wait
   for `healthy` (`docker inspect -f "{{.State.Health.Status}}" dressme-backend-1`).
 - Trap set (55 traps in `bench/assistant/traps.yaml`: 36 en, 12 fr, 5 ar, 2 arabizi; default `--lang en`; the eval user gets the
-  17-piece golden wardrobe, and 5 fixed fake listings only if `listings` is empty):
+  17-piece golden wardrobe; 5 fixed fake listings, marked `eval_fake: true`, are added at the start of a run only if `listings` is empty and deleted at the end):
   `docker exec dressme-backend-1 python -m app.eval_traps --repeat 10` (options `--only g01,e01`, `--agent stylist`, `--lang all`,
   `--rescore <file>.jsonl`). A run of 10+ minutes: `docker exec -d dressme-backend-1 sh -c "python -m app.eval_traps --repeat 10 > /app/bench/results/assistant/run-X.log 2>&1"`.
 - Router: `docker exec dressme-backend-1 python -m app.eval_router --repeat 5` (dev), `--split test --repeat 5` (once per decision).

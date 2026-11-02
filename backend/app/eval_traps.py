@@ -298,7 +298,8 @@ FAKE_LISTINGS = [
 
 def seed_listings(db):
     """Five fixed fake listings, ONLY when the listings collection is empty (the evaluation, never the app), so the
-    shopping traps have something to find. Fixed ids: the same listings every run. Returns how many were added."""
+    shopping traps have something to find. Each has `eval_fake: True`; `main` deletes them when the run ends.
+    Fixed ids: the same listings every run. Returns how many were added."""
     from datetime import datetime, timezone
     from bson import ObjectId
     from tests.test_golden import WARDROBE, stored
@@ -316,6 +317,7 @@ def seed_listings(db):
             "category": category, "sub_category": sub, "pattern": "solid", "colour": colour, "predicted": {},
             "corrected": [], "vector": golden[donor]["vector"], "status": "active", "review_note": "",
             "created_at": now, "seen_at": now, "checked_at": None, "snapshot": False,
+            "eval_fake": True,                                # real listings never have this field: it marks what to delete
             **({"seller_id": ObjectId("5f0c0300000000000000ffff"), "city": "Sfax", "contact": FAKE_CONTACT}
                if seller else {})})
     db.listings.insert_many(docs)
@@ -388,12 +390,20 @@ def main(argv=None):
     token = log_in(http, os.getenv("EVAL_PASSWORD", "trap-set-local-only-password"))
     http.headers["Authorization"] = f"Bearer {token}"
     user_id = db.users.find_one({"email": EVAL_EMAIL})["_id"]
-    if not args.no_seed:
-        print(f"wardrobe: {seed_golden(db, user_id)} golden pieces for {EVAL_EMAIL}")
-        added = seed_listings(db)                            # only if there are no listings at all
-        if added:
-            print(f"listings: {added} fake listings added (the collection was empty)")
+    fake_listings = not args.no_seed and db.listings.count_documents({}) == 0     # only if there are no listings at all
+    try:
+        if not args.no_seed:
+            print(f"wardrobe: {seed_golden(db, user_id)} golden pieces for {EVAL_EMAIL}")
+        if fake_listings:
+            print(f"listings: {seed_listings(db)} fake listings added for this run (the collection was empty)")
+        measure(args, traps, http, db, user_id)
+    finally:                                                 # the fake listings never stay in the database
+        if fake_listings:
+            print(f"listings: {db.listings.delete_many({'eval_fake': True}).deleted_count} fake listings deleted")
 
+
+def measure(args, traps, http, db, user_id):
+    """Ask every trap `--repeat` times and write the report."""
     status = http.get("/assistant/status").json()
     if not status.get("available"):
         sys.exit(f"The assistant is not available ({status}). Is Ollama running with the model?")
