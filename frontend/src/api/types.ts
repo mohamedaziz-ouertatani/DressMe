@@ -104,7 +104,18 @@ export interface ChatNoteLine {
   note: 'thinking_stripped'
 }
 
-export type ChatTraceLine = ChatToolLine | ChatNoteLine
+/** The first line of every turn (step 3e): which agent the router chose, and how. */
+export interface ChatRouterLine {
+  router: string
+  how: 'button' | 'model' | 'keywords' | 'default'
+}
+
+/** Step 3e.6: the first agent handed a part of the message to another one. */
+export interface ChatHandoffLine {
+  handoff: { from: string; to: string; note: string }
+}
+
+export type ChatTraceLine = ChatToolLine | ChatNoteLine | ChatRouterLine | ChatHandoffLine
 
 /** GET /assistant/status (step 3d): is the model there? */
 export interface AssistantStatus {
@@ -112,14 +123,14 @@ export interface AssistantStatus {
   model: string
 }
 
-/** POST /chat (step 3c; the screen comes in step 3f). The answer names pieces as {n}; `pieces` holds the user's items behind the numbers used. */
+/** POST /chat (step 3c; the screen is pages/AssistantPage.tsx). The answer names pieces as {n}; `pieces` holds the user's items behind the numbers used. */
 export interface ChatResponse {
   chat_id: string
   agent: string
   answer: string
   pieces: Record<string, Item>
   trace: ChatTraceLine[]
-  stop_reason: 'answered' | 'max_rounds' | 'repeat'
+  stop_reason: 'answered' | 'max_rounds' | 'repeat' | 'handoff'
   model: string
 }
 

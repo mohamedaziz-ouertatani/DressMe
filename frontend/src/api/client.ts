@@ -5,7 +5,7 @@ import type {
   Listing, ListingFilters, ListingPage, ListingPatch, ModelQuality, ReviewListing, SellForm, Occasion, Outfit, Season, Similar, Stats, User, Gender,
   TryOnResult, Weather, Explanation, GuessField, OutfitExplanation,
   Decision, DecisionAnswer, OutfitLabel, WearEntry, WearSummary, OccasionChip, TodayOutfits, BuildResult, SearchResponse,
-  PriceChannel, PriceCondition, PriceEstimate,
+  PriceChannel, PriceCondition, PriceEstimate, AssistantStatus, ChatResponse,
 } from './types'
 
 const BASE = '/api'
@@ -123,6 +123,13 @@ export const api = {
     if ('text' in input) form.append('text', input.text)
     return request<SearchResponse>('/search', { method: 'POST', body: form })
   },
+
+  /** Is the chat model there? (the server asks Ollama at most once a minute) */
+  assistantStatus: () => request<AssistantStatus>('/assistant/status'),
+  /** One turn with the assistant. Every turn stands alone: the server does not send earlier turns to the model;
+   *  chat_id only groups the saved turns. 503 = the model is off. */
+  chat: (message: string, chatId?: string) =>
+    request<ChatResponse>('/chat', json('POST', { message, chat_id: chatId })),
 
   analyze: (file: Blob) => request<Item>('/analyze', { method: 'POST', body: photoForm(file) }),
   /** priceTnd = the price on the tag, optional (left out when unknown, never 0). */
