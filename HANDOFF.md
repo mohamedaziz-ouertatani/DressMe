@@ -1,5 +1,7 @@
 # DressMe — Handoff (2026-10-03, updated 14:00 after the full app walkthrough)
 
+> **Step 3a (2026-10-25): the chat described below was removed.** The chat endpoints, the five agents, Gemini / Ollama and the `dressme-chat` models are gone; the old code is readable only through the git tag `pre-chat-removal`, and the Assistant is rebuilt from zero (see `CLAUDE.md`, Phase 4 item 5). `AGENTS.md` and `LLM.md` no longer exist. The text below is the record of 2026-10-03 to 2026-10-10 and is left as it was.
+
 > **Current state (2026-10-10).** This file is the record of 2026-10-03; the living docs are
 > [`CLAUDE.md`](CLAUDE.md) (everything, kept up to date), [`AGENTS.md`](AGENTS.md), [`LLM.md`](LLM.md),
 > [`LISTINGS.md`](LISTINGS.md) and [`DEMO.md`](DEMO.md). Since 2026-10-03 the app gained: **listings**

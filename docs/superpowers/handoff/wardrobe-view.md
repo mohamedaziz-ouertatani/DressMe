@@ -44,7 +44,7 @@ Returns the profile.
 **`DELETE /me`** `{"password": "..."}`: 403 for a wrong password, 403 for the demo account (its password is public),
 else 204 and the account is gone (the old token then answers 401). It calls `app/accounts.py` `delete_account`,
 the same function the admin route (`DELETE /admin/users/{id}`) calls now: every collection of `db.USER_COLLECTIONS`
-(items, candidates, chats, events, outfit_feedback, decisions, wear_log), the seller listings and their pictures,
+(items, candidates, events, outfit_feedback, decisions, wear_log), the seller listings and their pictures,
 the user document, the photo folder. **A new per-user collection goes in `USER_COLLECTIONS` and both deletions
 follow.** `test_deletion_complete.py` checks both ways (it scans every collection and the folders).
 **No last-admin guard** (academic scope): an admin can delete the only admin account here.

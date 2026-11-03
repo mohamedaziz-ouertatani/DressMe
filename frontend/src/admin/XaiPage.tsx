@@ -1,6 +1,6 @@
 // Admin > Explainability (team-only, English): the XAI evaluations' numbers, how the
-// "not sure" flag behaves on real uploads, what the chat agents' tool calls did, and
-// the team's XAI settings (mappings/xai_settings.csv), editable like the Formula page.
+// "not sure" flag behaves on real uploads, and the team's XAI settings
+// (mappings/xai_settings.csv), editable like the Formula page.
 import { useState } from 'react'
 import { api } from '../api/client'
 import type { AdminXai, XaiSetting } from '../api/types'
@@ -116,15 +116,7 @@ export function AdminXai() {
               rows={d.real_use.fields.map((f) => [f.field, f.items, f.unsure, pct(f.unsure_corrected_rate), pct(f.sure_corrected_rate)])} />
           </section>
 
-          <section className="ticket px-4 py-3">
-            <h2 className="text-[15px] font-semibold text-carbon">Chat: what the agents' tools did (last {d.traces.days} days)</h2>
-            <p className="text-[12px] text-carbon-soft">
-              {d.traces.answers} answers with a trace. The Explainer answered {d.traces.explainer_answers} times,
-              {' '}{d.traces.explainer_without_tools} of them without calling any tool (from memory: check those answers).
-            </p>
-            <Table caption="Tool calls" head={['Tool', 'Calls', 'Errors', 'Error rate', 'Agents']}
-              rows={d.traces.tools.map((t) => [t.tool, t.calls, t.errors, pct(t.calls ? t.errors / t.calls : null), t.agents.join(', ')])} />
-          </section>
+          {/* TODO(step 3g): the new chat's groundedness rate and real tool-call counts go here */}
 
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
             <section className="ticket px-4 py-3">

@@ -5,24 +5,22 @@ Follow the steps in order. Each step ends with a **Check** line: don't go on unt
 
 Time: about 1 hour the first time, most of it downloads. After that, starting the app takes one command.
 
-How it runs: **Docker** runs three containers (MongoDB, the backend API, the frontend). **Ollama** runs
-the chat model directly on your PC, outside Docker. Your code, `data/` and `models/` stay on your PC
-and are shared with the containers, so you edit files normally.
+How it runs: **Docker** runs three containers (MongoDB, the backend API, the frontend). Your code,
+`data/` and `models/` stay on your PC and are shared with the containers, so you edit files normally.
 
 ```
 your PC
-├── Docker Desktop
-│   ├── mongo     database               port 27017
-│   ├── backend   FastAPI + the models    http://localhost:8000/docs
-│   └── frontend  React app               http://localhost:5173   ← you open this
-└── Ollama        the chat model (dressme-chat-v4)
+└── Docker Desktop
+    ├── mongo     database               port 27017
+    ├── backend   FastAPI + the models    http://localhost:8000/docs
+    └── frontend  React app               http://localhost:5173   ← you open this
 ```
 
 ---
 
 ## 0. What you need
 
-- Windows 10 or 11, **16 GB of RAM** recommended (the models and the chat model together use a lot).
+- Windows 10 or 11, **16 GB of RAM** recommended (the photo models use a lot).
 - About **15 GB of free disk**: Docker images, the files from the team (~3.5 GB), the model downloads.
 - Access to the GitHub repository `mohamedaziz-ouertatani/DressMe` (ask the team if you can't open it).
 - A good internet connection for the first start.
@@ -33,13 +31,12 @@ You do **not** need Python, Node.js or MongoDB on your PC: they all live inside 
 
 ## 1. Install the tools
 
-Install these three, in any order, with the default options:
+Install these two, in any order, with the default options:
 
 | Tool | Download | Notes |
 |---|---|---|
 | Git | https://git-scm.com/download/win | Needed to clone the code. |
 | Docker Desktop | https://www.docker.com/products/docker-desktop/ | Keep **"Use WSL 2"** ticked. It may ask you to restart the PC. |
-| Ollama | https://ollama.com/download | Runs the chat model. It starts by itself and sits in the tray (bottom right). |
 
 Then **start Docker Desktop** from the Start menu and wait until it says "Engine running"
 (it does not always start by itself after a reboot).
@@ -50,10 +47,9 @@ Then **start Docker Desktop** from the Start menu and wait until it says "Engine
 git --version
 docker --version
 docker info
-ollama --version
 ```
 
-All four print a version or information, no error. If `docker info` fails with
+All three print a version or information, no error. If `docker info` fails with
 "cannot find the file specified", Docker Desktop is not running yet: start it and wait.
 
 ---
@@ -76,7 +72,7 @@ From now on, **every command runs in this `DressMe` folder**, in PowerShell.
 
 ## 3. Get the files that are not in git
 
-The trained models, the processed data and the chat model are too big for git, and the datasets
+The trained models and the processed data are too big for git, and the datasets
 must never be redistributed, so they come from a teammate.
 
 > **Where to get them:** _TODO: add the link to the team's shared folder here._
@@ -88,14 +84,13 @@ Put them in the cloned folder, **at exactly these paths**:
 |---|---|---|
 | `models\checkpoints\` (`classifier_best.pt`, `colour_model.joblib`, ...) | ~70 MB | **required**: photo analysis |
 | `data\processed\` (with `dressme.csv`, `hm.csv`, the `embeddings\` folder, ...) | ~0.8 GB | **required**: similarity, look-alikes |
-| `models\llm\dressme-chat-v4\` (`Modelfile` + `gguf\*.gguf`) | ~2.4 GB | the chat Assistant (see step 4 for other choices) |
 | `data\raw\MarylandPolyVore\Re-PolyVore\`, `data\raw\FashionProduct\images\` | large | optional: pictures of look-alikes and the demo wardrobe |
 
 **For the teammate who shares them:** from the `DressMe` folder of a PC where the app works, this
 packs everything required into one file (Windows has `tar` built in, and it has no 2 GB limit):
 
 ```powershell
-tar -cf dressme-files.tar models/checkpoints data/processed models/llm/dressme-chat-v4/Modelfile models/llm/dressme-chat-v4/gguf
+tar -cf dressme-files.tar models/checkpoints data/processed
 ```
 
 The receiver copies `dressme-files.tar` into their `DressMe` folder and unpacks it there:
@@ -116,22 +111,13 @@ Make sure Docker Desktop is running, then:
 powershell -ExecutionPolicy Bypass -File docker\setup.ps1
 ```
 
-It does three things, and running it again is safe:
+It does two things, and running it again is safe:
 
-1. creates `backend\.env` (your private settings, never committed) with a new secret key and the
-   chat set to the local model. If `backend\.env` already exists, it leaves it alone;
-2. registers the chat model `dressme-chat-v4` in Ollama;
-3. lists the files from step 3 as `ok` or `MISSING`.
+1. creates `backend\.env` (your private settings, never committed) with a new secret key.
+   If `backend\.env` already exists, it leaves it alone;
+2. lists the files from step 3 as `ok` or `MISSING`.
 
 **Check:** it ends with **"Ready. Next: ..."**. If it says a required file is missing, go back to step 3.
-
-**No chat model files?** The rest of the app works without them. For the chat you can either:
-
-- use the base model instead: `ollama pull qwen3:4b-instruct`, then in `backend\.env` set
-  `OLLAMA_MODEL=qwen3:4b-instruct`; or
-- use Gemini (cloud): get a key at https://aistudio.google.com/, then in `backend\.env` set
-  `CHAT_ENGINE=gemini` and `GEMINI_API_KEY=<your key>`. The free key allows only about 20 requests a
-  day, and one answer costs 2 to 7, so keep chat tests rare.
 
 ---
 
@@ -169,8 +155,8 @@ docker compose ps
    The account lives only in your local database.
 2. Add a few clothes from **Wardrobe** (photos of single pieces on a plain background work best).
    Each photo is cleaned and analysed in a few seconds.
-3. Try **Dress** (outfits for today), **Buy?** (should I buy this?) and the **Assistant** (chat).
-   The first chat answer loads the model (~30 s); the next ones take 10-20 s.
+3. Try **Dress** (outfits for today) and **Buy?** (should I buy this?). The **Assistant** is being
+   rebuilt: its page says so.
 
 Optional:
 
@@ -192,14 +178,14 @@ Optional:
 powershell -ExecutionPolicy Bypass -File scripts\check_demo.ps1
 ```
 
-Every line is `PASS` (Ollama can only be a `WARN`: the app works without it, the chat doesn't).
+Every line is `PASS`.
 
 ---
 
 ## 7. Every day
 
 ```powershell
-# 1. start Docker Desktop and Ollama (tray icon), then:
+# 1. start Docker Desktop, then:
 docker compose up
 # 2. open http://localhost:5173 (about 1 minute while the models load)
 # 3. Ctrl+C to stop
@@ -236,8 +222,6 @@ enough for the app.
 | `backend` stays "starting" for a long time | Normal the first time (it downloads ~0.9 GB). Watch `docker compose logs -f backend`. |
 | `backend` is "unhealthy" or restarts | Read `docker compose logs backend`. Usually a missing file from step 3 (re-run `docker\setup.ps1` to see which) or no `JWT_SECRET` in `backend\.env`. |
 | The page says it can't reach the server | The backend is down or still loading: wait, check `docker compose ps`, press Retry. |
-| Chat: "Ollama is not running" / the assistant is off | Start Ollama from the Start menu, check `ollama list` shows `dressme-chat-v4`, send again. |
-| Chat is very slow (> 1 min per answer) | Run `ollama ps`: if it says 100% CPU, quit Ollama from the tray and start it again (Ollama started while RAM was short misses the GPU). Close heavy programs. |
 | Build fails while downloading packages | Network hiccup: run `docker compose up --build` again (finished parts are kept). |
 | The disk is full | Docker Desktop > Troubleshoot > "Clean / Purge data" removes old images, or `docker system prune` (keeps volumes). |
 
@@ -249,4 +233,4 @@ Still stuck? Send the team the output of `docker compose ps` and `docker compose
 
 - `README.md`: what the project contains, the pipeline and the models.
 - `CLAUDE.md`: the detailed project notes (every feature, rule and file).
-- `LLM.md` (the chat model), `AGENTS.md` (the five chat agents), `LISTINGS.md` (shops and sellers), `DEMO.md` (the jury demo).
+- `LISTINGS.md` (shops and sellers), `DEMO.md` (the jury demo).

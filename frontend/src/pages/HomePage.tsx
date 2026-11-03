@@ -176,7 +176,7 @@ function Rows() {
   )
   return (
     <div className="-mt-4 flex flex-col gap-3">
-      {row('/chat', 'bg-tint-lilac', 'bg-surface', MessageCircle, t('homeStylistTitle'), t('homeStylistSub'))}
+      {row('/assistant', 'bg-tint-lilac', 'bg-surface', MessageCircle, t('homeStylistTitle'), t('homeStylistSub'))}
       {row('/shop', 'bg-surface', 'bg-sunken', ShoppingBag, t('navShop'), t('homeShopsSub'))}
     </div>
   )

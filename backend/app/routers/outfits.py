@@ -197,7 +197,7 @@ def buy_advice(body: BuyAdvice, request: Request, user=Depends(gendered_user)):
     if body.price_tnd is not None:
         changes["price_tnd"] = body.price_tnd      # the price on the tag; not given = unknown, kept as it was
     if changes:
-        # saved, so /tryon and the chat's last scan see the corrected item too
+        # saved, so /tryon and the next /buy-advice see the corrected item too
         request.app.state.db.candidates.update_one({"_id": cand["_id"]}, {"$set": changes})
         cand = {**cand, **changes}
     docs, by_id = wardrobe(request, user)

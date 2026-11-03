@@ -72,7 +72,69 @@ export interface Item {
   promoted_from?: { kind: string; id: string } | null
 }
 
-export type ItemPatch = Partial<Pick<Item, 'category' | 'sub_category' | 'pattern' | 'colour' | 'coverage' | 'season' | 'usage'>>
+/** One piece of a wardrobe search: how close it is, and whether it counts as a close match (the cut is the team's). */
+export interface SearchResult {
+  item: Item
+  similarity: number
+  close: boolean
+}
+
+/** POST /search. When nothing_close is true, results holds the nearest few anyway, none of them close. */
+export interface SearchResponse {
+  mode: 'text' | 'photo'
+  results: SearchResult[]
+  nothing_close: boolean
+  skipped_no_vector: number
+}
+
+/** One line of what the assistant did in a turn: a tool call... */
+export interface ChatToolLine {
+  round: number
+  tool: string
+  args: Record<string, unknown>
+  ok: boolean
+  error_code: string | null
+  n_pieces: number
+  ms: number
+}
+
+/** ...or a note (step 3d: the model wrote a <think> block, which was removed). */
+export interface ChatNoteLine {
+  round: number
+  note: 'thinking_stripped'
+}
+
+/** The first line of every turn (step 3e): which agent the router chose, and how. */
+export interface ChatRouterLine {
+  router: string
+  how: 'button' | 'model' | 'keywords' | 'default'
+}
+
+/** Step 3e.6: the first agent handed a part of the message to another one. */
+export interface ChatHandoffLine {
+  handoff: { from: string; to: string; note: string }
+}
+
+export type ChatTraceLine = ChatToolLine | ChatNoteLine | ChatRouterLine | ChatHandoffLine
+
+/** GET /assistant/status (step 3d): is the model there? */
+export interface AssistantStatus {
+  available: boolean
+  model: string
+}
+
+/** POST /chat (step 3c; the screen is pages/AssistantPage.tsx). The answer names pieces as {n}; `pieces` holds the user's items behind the numbers used. */
+export interface ChatResponse {
+  chat_id: string
+  agent: string
+  answer: string
+  pieces: Record<string, Item>
+  trace: ChatTraceLine[]
+  stop_reason: 'answered' | 'max_rounds' | 'repeat' | 'handoff'
+  model: string
+}
+
+export type ItemPatch =Partial<Pick<Item, 'category' | 'sub_category' | 'pattern' | 'colour' | 'coverage' | 'season' | 'usage'>>
 
 export interface OutfitItem {
   id: string
@@ -356,39 +418,6 @@ export interface Insights {
   twins: { items: [OutfitItem, OutfitItem]; similarity: number }[]
 }
 
-export interface ChatTurn {
-  role: 'user' | 'model'
-  text: string
-  tools_used: string[]
-  attachments?: ChatAttachment[]
-  agent?: string            // stylist, shopping, analyst, seller or explainer ('' for old messages)
-  actions?: ChatAction[]
-  routed_by?: '' | 'llm' | 'keywords'   // how the agent was chosen
-  trace?: TraceStep[]       // "How I answered": the tool calls behind the answer
-}
-
-export interface TraceStep {
-  tool: string
-  args: Record<string, unknown>   // shortened by the server
-  result: string                  // one line
-}
-
-/** Something the assistant prepared for the user to open (never done for them). */
-export interface ChatAction {
-  kind: 'sell' | 'explain'
-  url: string               // sell: /sell?item=...&price=... (the Sell form, already filled);
-                            // explain: /wardrobe/<id>?why=1 (the item's "Why these labels?" panel)
-}
-
-export interface ChatAttachment {
-  id: string
-  category: string
-  sub_category: string
-  colour: string
-  image_url: string
-  group?: string
-}
-
 // ---------------------------------------------------------------- admin
 export interface DayStats {
   day: string
@@ -396,7 +425,9 @@ export interface DayStats {
   scan: number
   verdict: number
   correction: number
-  chat: number
+  chat?: number                 // only on days with events logged by the old chat (removed in step 3a)
+  search?: number               // wardrobe searches (step 3b)
+  assistant?: number            // assistant turns (step 3c)
   tryon?: number
   decision?: number            // "bought it" / "left it" answers (step 1)
   wear?: number                // outfits marked as worn (step 2)
@@ -634,13 +665,6 @@ export interface AdminXai {
     before_xai: number
     fields: { field: string; items: number; unsure: number; unsure_corrected: number; sure_corrected: number
       unsure_corrected_rate: number | null; sure_corrected_rate: number | null }[]
-  }
-  traces: {
-    days: number
-    answers: number
-    tools: { tool: string; calls: number; errors: number; agents: string[] }[]
-    explainer_answers: number
-    explainer_without_tools: number
   }
   settings: XaiSetting[]
   concepts: { concept: string; prompt: string; group: string; check: string }[]

@@ -4,7 +4,7 @@ or src/phase4/ can import a module from any of them by its plain name
 
     src/common/   shared by both phases (chart style)
     src/phase3/   data collection, label mapping, EDA, merge + splits
-    src/phase4/   prototype: models, compatibility, chat, listings
+    src/phase4/   prototype: models, compatibility, listings
 
 Import it before the project modules: `import src_path  # noqa: F401`.
 The same file sits in src/phase3/ and src/phase4/ (Python only looks in the

@@ -1,6 +1,3 @@
-# Local chat model (LLM.md), on top of requirements-models.txt.
-# Training needs a CUDA GPU with ~8+ GB for the 4B model: we run it on Kaggle
-# (kaggle/chat_finetune/), which installs these itself. Locally, use Linux or WSL.
+# Fine-tuning a language model (planned for step 3h), on top of requirements-models.txt.
+# Training needs a CUDA GPU with ~8+ GB for a 4B model: use Kaggle, or Linux / WSL locally.
 unsloth            # QLoRA fine-tuning + GGUF export (pulls transformers, trl, peft, bitsandbytes, datasets)
-# Serving: install Ollama from https://ollama.com (not a pip package), then
-#   ollama pull qwen3:4b-instruct

@@ -14,7 +14,7 @@ ESPRIT · Advanced Data Science project · team of 6: Mohamed Khalil, Asma Driss
 **Planned stack:**
 - Frontend: React + TailwindCSS.
 - Backend and database: FastAPI and MongoDB.
-- Models: EfficientNet (classification), FashionCLIP (embeddings and similarity), Gemini API or a local Qwen3 model served by Ollama (chat assistant).
+- Models: EfficientNet (classification), FashionCLIP (embeddings and similarity), a Qwen3-4B language model for the Assistant (being rebuilt, step 3 of the upgrade).
 - Outfit compatibility: a custom weighted formula.
 
 ## What this repository contains (Phase 3)
@@ -29,13 +29,13 @@ A reproducible pipeline that turns three public fashion datasets into **one data
 src/
   common/     shared by both phases (chart style)
   phase3/     data collection + EDA: EDA, label mapping, colours, merge + splits, shop / H&M data, Phase 3 report
-  phase4/     prototype: embeddings, classifier, compatibility, chat model, listings collector, Phase 4 report
+  phase4/     prototype: embeddings, classifier, compatibility, listings collector, Phase 4 report
 backend/      FastAPI + MongoDB API (app/, tests/)
 frontend/     React + Vite + TypeScript app and admin dashboard
 mappings/     every label rule, as editable CSV files
 reports/
   phase3/     EDA + colour reports (markdown), figures/, Phase 3 PDF
-  phase4/     model / chat evaluations, figures/, Phase 4 PDF
+  phase4/     model evaluations, figures/, Phase 4 PDF
 notebooks/    exploration
 data/         datasets and outputs (NOT in git, see below)
 ```
@@ -212,10 +212,10 @@ FastAPI + MongoDB, in [`backend/`](backend/). It needs a running MongoDB (e.g. t
 
 ```bash
 pip install -r backend/requirements.txt
-cp backend/.env.example backend/.env      # then set JWT_SECRET; for the chat: CHAT_ENGINE=ollama + a local model (LLM.md), or GEMINI_API_KEY
+cp backend/.env.example backend/.env      # then set JWT_SECRET
 cd backend
 uvicorn app.main:create_app --factory --port 8000    # docs: http://localhost:8000/docs
-python -m pytest                                      # ~305 fast tests (fake models, dressme_test database)
+python -m pytest                                      # ~310 fast tests (fake models, dressme_test database)
 ```
 
 | endpoint | what it does |
@@ -226,7 +226,7 @@ python -m pytest                                      # ~305 fast tests (fake mo
 | `POST /outfits/score`, `GET /outfits/suggest`, `POST /outfits/complete` | outfits from your wardrobe |
 | `GET /insights` | wardrobe insights: good outfits, most versatile and unmatched pieces, what to add next, near twins, colour / category / pattern mix, fields left empty |
 | `GET /similar` | look-alikes in your wardrobe + dataset inspiration + H&M products to buy (`shop`) |
-| `POST /chat`, `GET/DELETE /chat/history` | five AI agents (Stylist, Shopping advisor, Wardrobe analyst, Seller assistant, Explainer) on your real wardrobe, each answer with "how I answered"; Gemini or our fine-tuned local model with Ollama ([`AGENTS.md`](AGENTS.md), [`LLM.md`](LLM.md)) |
+| `POST /search` | search your own pieces by words (English, French, Arabic) or by a photo, with FashionCLIP; a photo search saves nothing |
 | `GET /listings`, `POST /listings/sell`, `GET /listings/mine` | clothes for sale now: Tunisian shops and friperie sellers (approved by an admin); see [`LISTINGS.md`](LISTINGS.md) |
 | `GET /items/{id}/explain`, `POST /outfits/explain` | why a piece got its labels (heatmaps, confidence) and why an outfit got its score (points, weakest piece) |
 | `GET /weather` | today's weather and the season to dress for (Open-Meteo) |
@@ -250,7 +250,7 @@ python -m app.make_admin you@example.com # give an existing account the admin ro
 ```
 
 - **What's in it:**
-  - Today's outfit (for today's weather), Scan ("should I buy this?" with a stamped BUY / THINK / SKIP and "Why this verdict?"), Wardrobe (every predicted field correctable, "Why these labels?"), Insights (`/insights`, linked from Wardrobe), Build ("Why this score?"), Shops and Sell (listings), the Assistant chat (five agents), Similar pieces (with why they look alike), virtual try-on, and Profile (gender, modesty level, language);
+  - Today's outfit (for today's weather), Scan ("should I buy this?" with a stamped BUY / THINK / SKIP and "Why this verdict?"), Wardrobe (every predicted field correctable, "Why these labels?"), Insights (`/insights`, linked from Wardrobe), Build ("Why this score?"), Shops and Sell (listings), the Assistant (a placeholder while it is rebuilt), Similar pieces (with why they look alike), virtual try-on, and Profile (gender, modesty level, language);
   - English, French and Arabic (right-to-left).
   - Admins also get `/admin`: usage stats, model quality (how often users correct each prediction), user management, the formula editor, listing sources and moderation, collector runs, and Explainability.
 - **Design:** the visual system ("Ticket & Recharge-Card Stock") is documented in [`DESIGN.md`](DESIGN.md), and the product brief in [`PRODUCT.md`](PRODUCT.md).
@@ -258,17 +258,17 @@ python -m app.make_admin you@example.com # give an existing account the admin ro
 
 ## Phase 4: run the app with Docker
 
-The same environment on every PC: `docker compose up` starts MongoDB, the backend and the frontend, with exact versions of Python, PyTorch and every package. Nothing to install but Docker Desktop and Ollama. It is a **development** setup (live code, dev server), not a way to put the app on the internet. The setup above without Docker still works.
+The same environment on every PC: `docker compose up` starts MongoDB, the backend and the frontend, with exact versions of Python, PyTorch and every package. Nothing to install but Docker Desktop. It is a **development** setup (live code, dev server), not a way to put the app on the internet. The setup above without Docker still works.
 
-- **What runs:** `mongo` (MongoDB 7.0, data in the `mongo-data` volume), `backend` (Python 3.13 + PyTorch, on the CPU), `frontend` (Vite dev server). The images hold the environment only: this folder is mounted, so code edits, `data/`, `models/` and `backend/.env` come from your PC. Ollama runs on your PC, outside Docker; the backend reaches it at `host.docker.internal:11434`.
+- **What runs:** `mongo` (MongoDB 7.0, data in the `mongo-data` volume), `backend` (Python 3.13 + PyTorch, on the CPU), `frontend` (Vite dev server). The images hold the environment only: this folder is mounted, so code edits, `data/`, `models/` and `backend/.env` come from your PC.
 - **Why the CPU:** the app runs the trained models on one photo at a time, which the CPU does in about a second, and PyTorch's CPU build is ~0.2 GB instead of ~3-4 GB. Training still needs the GPU setup above.
 - **Versions:** `docker/backend.Dockerfile` (Python, PyTorch) and `docker/constraints.txt` (every other package; `scikit-learn==1.6.1` because the colour model was saved with it). To change a version, edit those files and rebuild.
 
 Once per PC:
 
-1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and [Ollama](https://ollama.com).
-2. Clone this repository and put the files from a teammate (never in git) in the same folders: `models/checkpoints/`, `data/processed/` (with `embeddings/`), `models/llm/dressme-chat-v4/` (the chat model) and, optionally, the pictures in `data/raw/`.
-3. Run the setup script: it creates `backend/.env` (with a new secret key) if it is missing, registers the chat model in Ollama, and lists the files still missing.
+1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+2. Clone this repository and put the files from a teammate (never in git) in the same folders: `models/checkpoints/`, `data/processed/` (with `embeddings/`) and, optionally, the pictures in `data/raw/`.
+3. Run the setup script: it creates `backend/.env` (with a new secret key) if it is missing and lists the files still missing.
    ```powershell
    powershell -ExecutionPolicy Bypass -File docker\setup.ps1
    ```
@@ -281,7 +281,7 @@ Once per PC:
    docker compose exec backend python -m app.seed_demo
    ```
 
-Every day: `docker compose up`, then open http://localhost:5173 (the page opens when the API has loaded its models, ~1 min). `Ctrl+C` stops it. Start Ollama first (tray icon), or the chat answers "Ollama is not running". The first start on a PC also downloads FashionCLIP and the background-removal models (~0.9 GB, kept in the `model-cache` volume).
+Every day: `docker compose up`, then open http://localhost:5173 (the page opens when the API has loaded its models, ~1 min). `Ctrl+C` stops it. The first start on a PC also downloads FashionCLIP and the background-removal models (~0.9 GB, kept in the `model-cache` volume).
 
 Editing code: frontend changes show up at once (the page reloads); after a backend change, run `docker compose restart backend`.
 
@@ -394,6 +394,6 @@ The datasets are used for non-commercial academic work only and are never redist
 
 - [`PRODUCT.md`](PRODUCT.md): users, purpose, constraints and principles of the app.
 - [`DESIGN.md`](DESIGN.md): the visual system (colours, type, components and their rules).
-- [`reports/`](reports/): every evaluation report (EDA, colours, embeddings, classifier, compatibility, explanations, chat models) and the Phase 4 and XAI PDF reports.
-- [`AGENTS.md`](AGENTS.md), [`LLM.md`](LLM.md), [`LISTINGS.md`](LISTINGS.md): the chat agents, the local chat model, the listings.
+- [`reports/`](reports/): every evaluation report (EDA, colours, embeddings, classifier, compatibility, explanations) and the Phase 4 and XAI PDF reports.
+- [`LISTINGS.md`](LISTINGS.md): the listings.
 - [`DEMO.md`](DEMO.md): the jury demo script.

@@ -1,8 +1,7 @@
 """Admin > Explainability (routers/admin_xai.py): evaluation numbers, the 'not sure'
-flag on real uploads, chat trace statistics, and editing mappings/xai_settings.csv."""
+flag on real uploads, and editing mappings/xai_settings.csv."""
 
 import csv
-from datetime import datetime, timezone
 
 from bson import ObjectId
 
@@ -40,26 +39,6 @@ def test_real_use_calibration(client, admin, temp_mappings):  # noqa: F811
                if r["field"] == "category")
     assert (cat["items"], cat["unsure"], cat["unsure_corrected"], cat["sure_corrected"]) == (2, 1, 1, 0)
     assert client.get("/admin/xai", headers=admin).json()["real_use"]["before_xai"] == 1
-
-
-def test_trace_stats(client, admin, temp_mappings):  # noqa: F811
-    user = sign_up(client, "amira@example.com", "Amira")
-    uid = client.app.state.db.users.find_one({"email": "amira@example.com"})["_id"]
-    now = datetime.now(timezone.utc)
-    client.app.state.db.chats.insert_many([
-        {"user_id": uid, "role": "model", "text": "a", "agent": "explainer", "created_at": now, "trace": [
-            {"tool": "explain_outfit", "args": {}, "result": "score 70.1"},
-            {"tool": "explain_similarity", "args": {}, "result": "error: unknown piece"}]},
-        {"user_id": uid, "role": "model", "text": "b", "agent": "explainer", "created_at": now, "trace": []},
-        {"user_id": uid, "role": "model", "text": "c", "agent": "stylist", "created_at": now, "trace": [
-            {"tool": "list_wardrobe", "args": {}, "result": "failed: ValueError"}]},
-    ])
-    t = client.get("/admin/xai", headers=admin).json()["traces"]
-    tools = {r["tool"]: r for r in t["tools"]}
-    assert tools["explain_similarity"]["errors"] == 1 and tools["explain_outfit"]["errors"] == 0
-    assert tools["list_wardrobe"]["errors"] == 1 and tools["list_wardrobe"]["agents"] == ["stylist"]
-    assert t["answers"] == 3 and t["explainer_answers"] == 2 and t["explainer_without_tools"] == 1
-    assert user
 
 
 def test_edit_settings(client, admin, temp_mappings):  # noqa: F811

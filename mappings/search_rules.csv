@@ -1,0 +1,8 @@
+name,value,note
+text_cut,0.292,"REVIEW: Encoder Validation Lab, Phase 6 (tuning rule commit 1fa3bca): words cut at precision 0.90 on validation (test 0.900, coverage 0.674). Words are compared with pictures, so the numbers are low. Do not overwrite from calibrate_search.py: it only writes with --write, and its random wardrobes are not the lab's exam."
+photo_cut,0.792,"REVIEW: Encoder Validation Lab, Phase 6 (tuning rule commit 1fa3bca): photo cut at precision target 0.75, the highest reachable (test 0.772, coverage 0.300). A picture is compared with pictures, so the numbers are high. The 0.90 target was not reachable for photos (labels such as blue / navy or flats / casual shoes look alike). Do not overwrite from calibrate_search.py: it only writes with --write, and its random wardrobes are not the lab's exam."
+target_precision,0.9,"REVIEW: precision the best result shown as close must reach for WORDS (the lab chose the words cut at 0.90 on validation). Photos have their own target, photo_target_precision."
+photo_target_precision,0.75,"REVIEW: Encoder Validation Lab, Phase 6 (tuning rule commit 1fa3bca): precision target for PHOTO searches, the highest of 0.90 / 0.85 / 0.80 / 0.75 that has a valid cut on validation. Words keep target_precision 0.90."
+wardrobe_size,30,REVIEW: pieces in each fake wardrobe of the calibration (a typical wardrobe in our survey is small; 30 is the start value).
+default_limit,8,REVIEW: results returned when the request gives no limit (the request may ask for 1 to 20).
+closest_anyway,3,"REVIEW: when nothing is close, how many of the nearest pieces the app still shows, muted, under 'Closest anyway'."

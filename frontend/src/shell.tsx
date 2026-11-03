@@ -20,9 +20,9 @@ const NAV: NavItem[] = [
   { to: '/wardrobe', key: 'navWardrobe', icon: LayoutGrid },
   { to: '/scan', key: 'navScan', short: 'navScanShort', icon: ScanLine },
   { to: '/shop', key: 'navShop', icon: ShoppingBag },
-  { to: '/chat', key: 'navChat', icon: MessageCircle },
+  { to: '/assistant', key: 'navAssistant', icon: MessageCircle },
 ]
-const PHONE_NAV = ['/', '/dress', '/scan', '/wardrobe', '/chat'].map((to) => NAV.find((n) => n.to === to)!)
+const PHONE_NAV = ['/', '/dress', '/scan', '/wardrobe', '/assistant'].map((to) => NAV.find((n) => n.to === to)!)
 
 /** The wordmark: a small perforated tag before the name. */
 export function Wordmark({ className = '' }: { className?: string }) {
