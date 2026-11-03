@@ -493,6 +493,7 @@ export interface TryOnInfo {
   seconds_per_garment: number  // drives the progress estimate
   max_garments: number
   kinds: string[]              // what it can put on: upper / lower / overall (+ shoes / glasses)
+  looks: boolean               // can put on a whole outfit from someone's photo ("Try this look")
 }
 
 /** GET /weather (backend/app/weather.py, Open-Meteo). */

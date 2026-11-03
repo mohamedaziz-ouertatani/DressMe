@@ -91,6 +91,7 @@ class LocalTryOn:
     tryon_local_timeout (seconds to wait for one garment, default 300), read with defaults.
     """
     private = True                         # the photo stays on this PC (GET /tryon/info)
+    can_copy_looks = True                  # "Try this look": a whole outfit from someone's photo
 
     def __init__(self, settings):
         self.settings = settings

@@ -186,7 +186,10 @@ export function ScanPage() {
             {busy === 'verdict' ? t('asking') : t('askVerdict')} <ArrowRight className="size-4 mirror-rtl" aria-hidden />
           </Button>
         ) : busy !== 'analyse' && (
-          <PhotoPicker onPick={analyse} />
+          <>
+            <PhotoPicker onPick={analyse} />
+            <p className="text-[12px] leading-snug text-carbon-soft">{t('shoesPhotoTip')}</p>
+          </>
         )}
 
         {!file && (

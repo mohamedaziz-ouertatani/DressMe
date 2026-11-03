@@ -26,7 +26,7 @@ export interface TryOnJob {
 
 interface StartArgs {
   backTo: string; person: File; pieces: ProgressPiece[]; secondsPer: number
-  itemIds: string[]; candidate?: string
+  itemIds: string[]; candidate?: string; look?: File
 }
 
 interface TryOnCtx {
@@ -53,7 +53,7 @@ export function TryOnProvider({ children }: { children: ReactNode }) {
   useEffect(() => () => { if (job) URL.revokeObjectURL(job.personUrl) }, [job?.personUrl])  // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => abort.current?.abort(), [])       // logging out stops waiting
 
-  const start = useCallback(({ backTo, person, pieces, secondsPer, itemIds, candidate }: StartArgs) => {
+  const start = useCallback(({ backTo, person, pieces, secondsPer, itemIds, candidate, look }: StartArgs) => {
     abort.current?.abort()
     const controller = new AbortController()
     abort.current = controller
@@ -71,7 +71,7 @@ export function TryOnProvider({ children }: { children: ReactNode }) {
         navigate(backTo)
       }
     }
-    api.tryOn(person, itemIds, candidate, controller.signal)
+    api.tryOn(person, itemIds, candidate, controller.signal, look)
       .then((result) => finish({ state: 'done', result, tookSeconds: (Date.now() - startedAt) / 1000 }))
       .catch((e) => {
         if (controller.signal.aborted) return

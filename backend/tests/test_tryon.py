@@ -262,3 +262,16 @@ def test_picture_from_every_answer_shape():
     assert picture_from([{"image": "/a.png", "caption": None}]) == "/a.png"
     assert picture_from((None, 42, "Too many users")) is None
     assert describe({"colour": "grey", "sub_category": "", "category": "top"}) == "grey top"
+
+
+
+def test_a_whole_look_from_a_photo(make_client):
+    engine = FakeTryOn()
+    client = make_client(tryon=engine)
+    headers = sign_up(client)
+    files = lambda: {"photo": photo(PERSON, size=(60, 100)), "look": photo(RED, size=(60, 100))}
+    assert client.post("/tryon", files=files(), headers=headers).status_code == 422   # engine can't
+    engine.can_copy_looks = True                                         # like the local service
+    r = client.post("/tryon", files=files(), headers=headers)
+    assert r.status_code == 200, r.text
+    assert engine.calls == ["full"] and r.json()["applied"] == ["look"]

@@ -53,13 +53,33 @@ def try_on_info(request: Request, user=Depends(gendered_user)):
             "private": bool(getattr(engine, "private", False)),
             "seconds_per_garment": getattr(engine, "seconds_per_garment", 60),
             "max_garments": request.app.state.settings.tryon_max_garments,
+            "looks": bool(getattr(engine, "can_copy_looks", False)),     # "Try this look"
             # what it can put on: upper / lower / overall, + shoes / glasses for the local engine
             "kinds": sorted(getattr(engine, "kinds", BASIC_KINDS)) if engine else []}
+
+
+async def try_on_look(request, engine, settings, user, photo, look):
+    """Dress the person in `photo` with the whole outfit someone wears in `look`, shoes
+    included (the service does the shoes, then the clothes). Only engines that can (the
+    local IDM-VTON service). Neither photo is kept."""
+    if not getattr(engine, "can_copy_looks", False):
+        raise HTTPException(422, "Trying on a look from a photo needs the local try-on engine")
+    person = await open_photo(photo, settings)
+    reference = await open_photo(look, settings)
+    try:
+        result = await run_in_threadpool(engine.dress, person, reference, "full", "full outfit")
+    except TryOnUnavailable as e:
+        raise HTTPException(503, str(e))
+    except TryOnBusy as e:
+        raise HTTPException(502, str(e))
+    log_event(request.app.state.db, "tryon", user["_id"], look=True)
+    return {"image": as_data_url(result), "applied": ["look"], "failed": [], "skipped": []}
 
 
 @router.post("/tryon")
 async def try_on(request: Request, photo: UploadFile = File(...),
                  item_ids: list[str] = Form(default=[]), candidate_id: str | None = Form(default=None),
+                 look: UploadFile | None = File(default=None),
                  user=Depends(gendered_user)):
     """Dress the person in `photo` with the given wardrobe items and/or scanned
     candidate. What the engine can't put on is skipped (bags, belts, jewellery always;
@@ -70,6 +90,8 @@ async def try_on(request: Request, photo: UploadFile = File(...),
     settings = request.app.state.settings
     if engine is None:
         raise HTTPException(503, "Virtual try-on is switched off (TRYON_ENGINE=off)")
+    if look is not None:                     # "Try this look": the whole outfit from a photo
+        return await try_on_look(request, engine, settings, user, photo, look)
     docs = [own_item(request, user, i) for i in dict.fromkeys(item_ids)]   # 404 if not theirs
     if candidate_id:
         docs.append(own_item(request, user, candidate_id, collection="candidates"))

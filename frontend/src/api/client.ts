@@ -231,10 +231,11 @@ export const api = {
   /** "Should I buy this?" on a listing: it becomes a candidate, then use buyAdvice. */
   listingCandidate: (id: string) => request<Item>(`/listings/${id}/candidate`, { method: 'POST' }),
   /** Can take minutes (about one per garment): the AI runs on a shared GPU. */
-  tryOn: (person: Blob, itemIds: string[], candidateId?: string, signal?: AbortSignal) => {
+  tryOn: (person: Blob, itemIds: string[], candidateId?: string, signal?: AbortSignal, look?: Blob) => {
     const form = photoForm(person)
     itemIds.forEach((id) => form.append('item_ids', id))
     if (candidateId) form.append('candidate_id', candidateId)
+    if (look) form.append('look', look, 'look.jpg')          // "Try this look": the whole outfit
     return request<TryOnResult>('/tryon', { method: 'POST', body: form, signal })
   },
   tryOnInfo: () => request<TryOnInfo>('/tryon/info'),

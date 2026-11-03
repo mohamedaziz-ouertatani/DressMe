@@ -43,6 +43,7 @@ export function TryOnPage() {
   const itemIds = (params.get('items') ?? '').split(',').filter(Boolean)
   const candidate = params.get('candidate')
   const candidateCat = params.get('ccat') as Category | null
+  const lookMode = params.get('look') === '1'          // /tryon?look=1: a whole outfit from a photo
   const items = useLoad(() => (itemIds.length ? api.items() : Promise.resolve([] as Item[])), [params.get('items')])
 
   const info = useLoad(() => api.tryOnInfo(), [])   // engine on? photo private? time per piece
@@ -57,6 +58,8 @@ export function TryOnPage() {
   const [offline2d, setOffline2d] = useState(false)   // the AI is switched off: 2D preview at once
 
   useEffect(() => () => { if (picked) URL.revokeObjectURL(picked.url) }, [picked])
+  const [look, setLook] = useState<{ file: File; url: string } | null>(null)
+  useEffect(() => () => { if (look) URL.revokeObjectURL(look.url) }, [look])
 
   const pieces: Piece[] = [
     ...(items.data ?? []).filter((it) => itemIds.includes(it.id))
@@ -75,7 +78,9 @@ export function TryOnPage() {
   const label = (p: Piece) => vocab(SUB_LABELS, p.sub_category, lang) || vocab(CATEGORY_LABELS, p.category, lang)
 
   const secondsPer = info.data?.seconds_per_garment ?? 60
-  const estimateMin = Math.max(1, Math.round((wearable.length * secondsPer) / 60))
+  const ready = lookMode ? !!look : wearable.length > 0           // something to put on
+  // a look is two passes in the service: its shoes, then its clothes
+  const estimateMin = Math.max(1, Math.round(((lookMode ? 2 : wearable.length) * secondsPer) / 60))
 
   // what is on screen: the try-on's own photo once started, else the photo just picked
   const personUrl = job?.personUrl ?? picked?.url
@@ -94,8 +99,11 @@ export function TryOnPage() {
     const person = job?.person ?? picked?.file
     if (!person) return
     tryon.start({
-      backTo: here, person, secondsPer, itemIds, candidate: candidate ?? undefined,
-      pieces: wearable.map((p) => ({ id: p.id, label: label(p), image_url: p.image_url })),
+      backTo: here, person, secondsPer, itemIds, candidate: candidate ?? undefined, look: look?.file,
+      pieces: lookMode
+        ? (look ? [{ id: 'look-shoes', label: t('tryOnTheLook'), image_url: look.url },
+                   { id: 'look', label: t('tryOnTheLook'), image_url: look.url }] : [])
+        : wearable.map((p) => ({ id: p.id, label: label(p), image_url: p.image_url })),
     })
   }
 
@@ -105,17 +113,36 @@ export function TryOnPage() {
     setOffline2d(false)
   }
 
-  if (!itemIds.length && !candidate) {
+  if (!itemIds.length && !candidate && !lookMode) {
     return (
       <Page title={t('tryOnTitle')}>
         <Empty title={t('tryOnNone')} body={t('tryOnNoneBody')}
-          action={<Link to="/dress/build" className="inline-flex min-h-11 items-center border-[1.5px] border-ink bg-paper px-4 text-[15px] font-medium text-ink">{t('navBuild')}</Link>} />
+          action={<div className="flex flex-wrap gap-3">
+            <Link to="/dress/build" className="inline-flex min-h-11 items-center border-[1.5px] border-ink bg-paper px-4 text-[15px] font-medium text-ink">{t('navBuild')}</Link>
+            {info.data?.looks && <Link to="/tryon?look=1" className="inline-flex min-h-11 items-center text-[15px] font-medium text-ink underline underline-offset-4">{t('tryOnLookLink')}</Link>}
+          </div>} />
       </Page>
     )
   }
 
   return (
     <Page title={t('tryOnTitle')}>
+      {lookMode ? (
+        <section aria-labelledby="tryon-look" className="mb-5 max-w-[440px]">
+          <h2 id="tryon-look" className="mb-2 text-[13px] font-medium uppercase tracking-[0.06em] text-carbon-soft">{t('tryOnTheLook')}</h2>
+          {look ? (
+            <div className="flex items-end gap-3">
+              <img src={look.url} alt={t('tryOnTheLook')} className="h-40 w-auto bg-white object-contain" />
+              <Button variant="quiet" disabled={running} onClick={() => setLook(null)}>{t('tryOnLookChange')}</Button>
+            </div>
+          ) : (
+            <>
+              <p className="mb-3 text-[14px] text-carbon-soft">{t('tryOnLookHint')}</p>
+              <PhotoPicker onPick={(file) => setLook({ file, url: URL.createObjectURL(file) })} />
+            </>
+          )}
+        </section>
+      ) : (
       <section aria-labelledby="tryon-pieces" className="mb-5">
         <h2 id="tryon-pieces" className="mb-2 text-[13px] font-medium uppercase tracking-[0.06em] text-carbon-soft">{t('tryOnPieces')}</h2>
         {items.error ? <ErrorNote error={items.error} onRetry={items.reload} /> : !items.data ? <Skeleton className="h-20" /> : (
@@ -128,7 +155,11 @@ export function TryOnPage() {
             ))}
           </ul>
         )}
+        {info.data?.looks && (
+          <Link to="/tryon?look=1" className="mt-3 inline-flex min-h-11 items-center text-[14px] text-ink underline underline-offset-4">{t('tryOnLookLink')}</Link>
+        )}
       </section>
+      )}
 
       {/* privacy: where the photo goes depends on the engine (local = never leaves this computer) */}
       <p className="mb-5 flex max-w-[60ch] items-start gap-2 text-[13px] text-carbon-soft">
@@ -149,7 +180,7 @@ export function TryOnPage() {
                 </li>
               ))}
             </ul>
-            {wearable.length > 0 && (
+            {ready && (
               <p className="perf-h mt-4 pt-3 font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-ink-soft">
                 {t('tryOnEstimate', { n: estimateMin })}
               </p>
@@ -184,7 +215,7 @@ export function TryOnPage() {
               </p>
             )}
             {job?.state === 'stopped' && <p className="max-w-[48ch] text-[14px] text-carbon-soft">{t('tryOnStopped')}</p>}
-            {!result && !fallback && wearable.length > 0 && (
+            {!result && !fallback && ready && (
               <p className="flex items-center gap-2 text-[14px] text-carbon-soft">
                 <Lightbulb className="size-4 text-ink" aria-hidden /> {t('tryOnEstimate', { n: estimateMin })}
               </p>
@@ -205,7 +236,7 @@ export function TryOnPage() {
             )}
             {job?.state === 'failed' ? <ErrorNote error={job.error} /> : null}
             {!result && info.data?.enabled !== false && (
-              <Button onClick={run} disabled={!wearable.length}>
+              <Button onClick={run} disabled={!ready}>
                 <Sparkles className="size-4" aria-hidden /> {fallback ? t('tryOnRetryAi') : t('tryOnBtn')}
               </Button>
             )}
