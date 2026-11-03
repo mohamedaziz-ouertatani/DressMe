@@ -117,12 +117,17 @@ Trap set, English, base model. "Every run" = traps passing in all runs. Router =
 | Traps and wording (`9b93614`) | u01 x10, g01 x10 | 10/10, 10/10 | 1/1, 1/1 | 0 | u01 10/10 stylist | `T232139`, `T232158` |
 | 3e.5 shopping (`c5743e4`) | sh01-sh03 x5 | 15/15 (first run 11/15: two of my own checks were wrong) | 3/3 | 0 | 15/15 | `T233037` (first `T232906`); router dev 160/160 `T232903`, test 95/95 `T233501` |
 | 3e.6 handoff (`4d61dc6`) | h01, h02 x10 | 0/20 (both traps 0/10 twice; after the one allowed tune of the explainer's and shopping's line: still 0/20, no `handoff` call at all) | 0/2 | 0 | routed explainer 10/10, shopping 10/10 | `T234640`, after the tune `T234959` |
-| Step 4 retry (this commit) | no model run (code only; tests with the httpx mock transport) | n/a | n/a | n/a | n/a | full suite 458 passed, 3 skipped; the 3-repeat trap and router runs after 3e.6 are still to do on the PC |
+| Step 4 retry (`b743f6c`) | no model run (code only; tests with the httpx mock transport) | n/a | n/a | n/a | n/a | full suite 458 passed, 3 skipped; the 3-repeat trap and router runs after 3e.6 are still to do on the PC |
+| **Final: fresh questions** (never tuned on, `main` `ae194d0`) | 36 x5, all languages | 156/180 (87%): en 96/100 (96%), fr 32/40 (80%), ar 22/25 (88%), arabizi 6/15 (40%) | 24/36 | 15 (3 repaired) | n/a | `T005036` (`final/fresh.log`); 4 answers used handoff; stop reasons answered 176, repeat 3, max_rounds 1; median 2.5 s, max 9.8 s; grounded 103/125 (82%) |
+| **Final: full trap set, English** | 38 x10 | 345/380 (91%) | 28/38 | 6 (6 repaired) | n/a | `T010327` (`final/traps-en.log`); 0 handoffs; answered 352, repeat 25, max_rounds 3; median 2.2 s; weakest: other_agent 145/170 (85%), not_owned 33/40 (82%) |
+| **Final: trap set, fr + ar + arabizi** | 19 x3 | 46/57 (81%): fr 33/36 (92%), ar 10/15 (67%), arabizi 3/6 (50%) | 13/19 | 1 | n/a | `T012053` (`final/traps-fr-ar.log`); grounded 11/18 (61%) |
+| **Final: router test split** | 19 x5 | n/a | n/a | n/a | 95/95 (100%), all chosen by the model, no fallback; median 0.19 s | `router-dressme-base-20261103T012618` |
 
 The g01 test of "the Stylist got worse?" (stylist forced, 30 runs): at `540ebaa` 23/30 (`T224311`), A2 code 27/30 (`T224531`), with the
 "If the user gives no occasion, call suggest_outfits without one" line 28/30 (`T224839`, line kept).
-Not measured since 3e.2: the full 10-run trap set with the explainer, seller and shopping traps; French and Arabic (only `en` was ever run);
-the human review column of the reports is empty (tone and truth are not judged yet).
+The final measurement (2026-11-03, rows **Final** above) is the first 10-run trap set with all six agents and the first French and Arabic run. The
+264/270 of 3e.2 had 27 traps of three agents; the 38-trap set is harder, so 345/380 is not a drop to compare against it.
+The human review column of the reports is still empty (tone and truth are not judged yet).
 
 What we learned:
 - **Luck threshold:** a difference under about 4 of 10 runs, or 7 of 30, is noise. g01 got 23/30 and 27/30 on two codes that should behave the same.
@@ -140,10 +145,10 @@ Chat assistant only, next step first. Tick when done.
 - [x] Router + general, wardrobe_analyst, explainer, seller, shopping (3e.1 to 3e.5)
 - [~] **Handoff:** built and tested (tool, loop stop, second run with the same ledgers, trace line, both agents saved), but the model never calls it (h01/h02 0/20 after one tune). Decide: trigger it in code (e.g. a second question to the router), or accept and drop
 - [~] **Fallback:** retry done (step 4: connection error / 5xx twice, 1 s then 2 s; not timeouts). Still to do: a message with shortcut buttons instead of the bare 503, and a second provider (`TODO(step 3e)` in `assistant/ollama.py`)
-- [ ] **Measure after 3e.6 + step 4** (needs Ollama on the PC): `eval_traps --repeat 3` (all English traps) and `eval_router --repeat 3`; compare Totals with 3e.2, handoff count per trap, any trap down more than 2 of 3
+- [x] **Measure after 3e.6 + step 4** (done by the final measurement) (needs Ollama on the PC): `eval_traps --repeat 3` (all English traps) and `eval_router --repeat 3`; compare Totals with 3e.2, handoff count per trap, any trap down more than 2 of 3
 - [x] **Chat screen** (`frontend/src/pages/AssistantPage.tsx`, step 3f): turns kept in the page only (the page says every question stands alone), 4 suggestion chips, each `{n}` a link to the piece + the pieces as cards, "How I answered" (router agent, handoff, tools called; a refused call struck through), a short note for `max_rounds` / `repeat`, model off (status false or a 503) = a card with shortcuts (Dress, Buy?, Wardrobe, Shops) and Check again, the wardrobe search folded under it. Listings stay in words (not in `pieces`). Checked in a browser with a scripted fake model (en, phone and desktop); not yet with the real model
-- [~] **Final measurement:** prepared, not run (needs Ollama on the PC). Run sheet `bench/assistant/FINAL_MEASUREMENT.md`: 36 fresh questions never tuned on (`bench/assistant/final_questions.yaml`, 6 per agent area; en 20, fr 8, ar 5, arabizi 3) x5, the full English trap set x10, fr + ar + arabizi traps x3, the router test split x5, full suite once; reports in `bench/results/final/`. The file was dry-run through `eval_traps` with a scripted fake model (all 36 ran; the fails were the fake's)
-- [~] **Arabic and French** measured once: part of the final measurement run sheet (step 3 there); then the Darija review (`bench/assistant/darija_review.md`)
+- [x] **Final measurement:** run 2026-11-03 on the PC (results table, rows **Final**). Run sheet `bench/assistant/FINAL_MEASUREMENT.md`: 36 fresh questions never tuned on (`bench/assistant/final_questions.yaml`, 6 per agent area; en 20, fr 8, ar 5, arabizi 3) x5, the full English trap set x10, fr + ar + arabizi traps x3, the router test split x5, full suite once; reports in `bench/results/final/`. The file was dry-run through `eval_traps` with a scripted fake model (all 36 ran; the fails were the fake's)
+- [~] **Arabic and French** measured once (final measurement: fr 92% / 80%, ar 67% / 88%, arabizi 50% / 40% on traps / fresh questions); still to do: the Darija review (`bench/assistant/darija_review.md`)
 - [ ] **Price model:** `models/checkpoints/price_model.joblib` is missing on this PC, so the seller says it cannot estimate a price; it needs the teammate's two CSVs and `train_price.py` (see `README.md`)
 - [ ] Presentation and demo script
 - [ ] **Pull request to main.** `merge/virtual-tryon-into-3e` holds Asma's try-on commit `70aa9b0` and merge `3655c17`, which this branch does not have
