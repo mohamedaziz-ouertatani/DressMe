@@ -101,3 +101,64 @@ def test_status_and_chat_when_ollama_cannot_be_reached(make_client):
     chat = client.post("/chat", json={"message": "What should I wear today?"}, headers=headers)
     assert chat.status_code == 503 and chat.json()["detail"] == "assistant_unavailable"
     assert client.get("/health").status_code == 200                          # the app keeps running
+
+
+# ---------------------------------------------------------------- retries (step 4)
+ASK = [{"role": "user", "content": "Hi"}]
+
+
+def scripted(steps):
+    """A client whose /api/chat calls follow `steps` in order: an exception to raise, or (HTTP status, body).
+    Returns (client, the paths it called, the seconds it would have slept)."""
+    made, waits, steps = [], [], list(steps)
+
+    def handle(request):
+        made.append(request.url.path)
+        step = steps.pop(0)
+        if isinstance(step, Exception):
+            raise step
+        return httpx.Response(step[0], json=step[1])
+    client = OllamaClient("http://ollama.test", "qwen3.5:4b", SETTINGS, transport=httpx.MockTransport(handle),
+                          sleep=waits.append)
+    return client, made, waits
+
+
+def test_a_server_error_is_tried_again_after_one_then_two_seconds():
+    client, made, waits = scripted([(503, {"error": "loading"}), (500, {"error": "boom"}), (200, reply("Hello"))])
+    assert client.chat(ASK, [], 50).text == "Hello"
+    assert len(made) == 3 and waits == [1, 2]
+
+
+def test_a_dropped_connection_is_tried_again():
+    client, made, waits = scripted([httpx.ConnectError("refused"), (200, reply("Hello"))])
+    assert client.chat(ASK, [], 50).text == "Hello"
+    assert len(made) == 2 and waits == [1]
+
+
+def test_it_gives_up_after_three_tries():
+    client, made, waits = scripted([(500, {"error": "x"})] * 3)
+    with pytest.raises(ModelUnavailable):
+        client.chat(ASK, [], 50)
+    assert len(made) == 3 and waits == [1, 2]
+
+
+@pytest.mark.parametrize("step", [httpx.ReadTimeout("too slow"), (404, {"error": "model not found"}),
+                                  (200, {"no": "message"})], ids=["timeout", "not-found", "broken-answer"])
+def test_a_timeout_a_4xx_and_a_broken_answer_are_not_retried(step):
+    client, made, waits = scripted([step])
+    with pytest.raises(ModelUnavailable):
+        client.chat(ASK, [], 50)
+    assert len(made) == 1 and waits == []
+
+
+def test_the_status_check_is_not_retried():
+    client, made, waits = scripted([httpx.ConnectError("refused")])
+    assert client.available() is False and len(made) == 1 and waits == []
+
+
+def test_the_chat_route_still_answers_503_assistant_unavailable_after_the_retries(make_client):
+    model, made, waits = scripted([(500, {"error": "x"})] * 3)
+    client = make_client(chat_model=model)
+    r = client.post("/chat", json={"message": "What should I wear today?", "agent": "stylist"}, headers=sign_up(client))
+    assert r.status_code == 503 and r.json()["detail"] == "assistant_unavailable"
+    assert len(made) == 3 and waits == [1, 2]
