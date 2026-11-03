@@ -69,7 +69,10 @@ export function WardrobePage() {
             </Link>
           )}
         </div>
-        <div className="sm:w-[420px]"><PhotoPicker onPick={add} busy={uploading} /></div>
+        <div className="sm:w-[420px]">
+          <PhotoPicker onPick={add} busy={uploading} />
+          <p className="mt-2 text-[12px] leading-snug text-carbon-soft">{t('shoesPhotoTip')}</p>
+        </div>
       </section>
       {uploadError ? <div className="mb-4"><ErrorNote error={uploadError} /></div> : null}
       {user?.demo && <p className="-mt-3 mb-5 text-[12px] leading-snug text-carbon-soft">{t('demoNotice')}</p>}

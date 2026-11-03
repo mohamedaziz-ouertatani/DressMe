@@ -1,25 +1,38 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
-import { Download, ShieldAlert, Sparkles } from 'lucide-react'
-import { api, ApiError, loadImage } from '../api/client'
-import type { Category, Item, TryOnResult } from '../api/types'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
+import { Camera, Download, Lightbulb, ShieldAlert, ShieldCheck, Sparkles, Sun, User } from 'lucide-react'
+import { api, loadImage } from '../api/client'
+import type { Category, Item } from '../api/types'
 import { useI18n } from '../i18n'
 import { CATEGORY_LABELS, SUB_LABELS, vocab } from '../i18n/vocab'
 import { Page } from '../shell'
+import { CompareSlider } from '../ui/CompareSlider'
 import { Button } from '../ui/controls'
 import { ItemPhoto } from '../ui/ItemPhoto'
 import { PhotoPicker } from '../ui/PhotoPicker'
 import { Empty, ErrorNote, Skeleton } from '../ui/states'
+import { clock } from '../ui/TryOnProgress'
+import { useTryOn } from '../tryon'
 import { useLoad } from '../useLoad'
 
-// Same as the backend (app/tryon.py): which body part a category dresses, and
-// the dressing order (a jacket goes on last, over the top). Other categories
-// (shoes, bags, accessories) can't be tried on.
-type Kind = 'upper' | 'lower' | 'overall'
+// Same as the backend (app/tryon.py): which body part a piece dresses, and the
+// dressing order (a jacket over the top, shoes over the hems, glasses last). Shoes and
+// glasses only when the engine can (GET /tryon/info `kinds`); bags, belts, jewellery never.
+type Kind = 'upper' | 'lower' | 'overall' | 'shoes' | 'glasses' | 'scarf'
 const KIND: Partial<Record<Category, Kind>> = {
   top: 'upper', outerwear: 'upper', bottom: 'lower', dress: 'overall', traditional: 'overall', swimwear: 'overall',
+  shoes: 'shoes',
 }
-const ORDER: Category[] = ['dress', 'traditional', 'swimwear', 'bottom', 'top', 'outerwear']
+const ORDER: Category[] = ['dress', 'traditional', 'swimwear', 'bottom', 'top', 'outerwear', 'shoes', 'accessory']
+const BASIC_KINDS: Kind[] = ['upper', 'lower', 'overall']
+
+function kindOf(p: { category: Category; sub_category: string }): Kind | undefined {
+  if (p.category === 'accessory') {
+    if (['glasses', 'sunglasses'].includes(p.sub_category)) return 'glasses'
+    return p.sub_category === 'scarf' ? 'scarf' : undefined
+  }
+  return KIND[p.category]
+}
 
 interface Piece { id: string; category: Category; sub_category: string; image_url: string }
 
@@ -30,16 +43,23 @@ export function TryOnPage() {
   const itemIds = (params.get('items') ?? '').split(',').filter(Boolean)
   const candidate = params.get('candidate')
   const candidateCat = params.get('ccat') as Category | null
+  const lookMode = params.get('look') === '1'          // /tryon?look=1: a whole outfit from a photo
   const items = useLoad(() => (itemIds.length ? api.items() : Promise.resolve([] as Item[])), [params.get('items')])
 
-  const [person, setPerson] = useState<{ file: File; url: string } | null>(null)
-  const [busy, setBusy] = useState(false)
-  const [result, setResult] = useState<TryOnResult | null>(null)
-  const [fallback, setFallback] = useState(false)
-  const [why, setWhy] = useState('')            // the backend's reason, shown under the preview note
-  const [error, setError] = useState<unknown>(null)
+  const info = useLoad(() => api.tryOnInfo(), [])   // engine on? photo private? time per piece
 
-  useEffect(() => () => { if (person) URL.revokeObjectURL(person.url) }, [person])
+  // the try-on itself lives above the pages (tryon.tsx), so it keeps running while the
+  // user browses; this page shows it when it was started from here (same ?items=)
+  const location = useLocation()
+  const here = location.pathname + location.search
+  const tryon = useTryOn()
+  const job = tryon.job?.backTo === here ? tryon.job : null
+  const [picked, setPicked] = useState<{ file: File; url: string } | null>(null)
+  const [offline2d, setOffline2d] = useState(false)   // the AI is switched off: 2D preview at once
+
+  useEffect(() => () => { if (picked) URL.revokeObjectURL(picked.url) }, [picked])
+  const [look, setLook] = useState<{ file: File; url: string } | null>(null)
+  useEffect(() => () => { if (look) URL.revokeObjectURL(look.url) }, [look])
 
   const pieces: Piece[] = [
     ...(items.data ?? []).filter((it) => itemIds.includes(it.id))
@@ -48,87 +68,163 @@ export function TryOnPage() {
       ? [{ id: candidate, category: candidateCat, sub_category: '', image_url: `/candidates/${candidate}/image` }]
       : []),
   ]
-  const wearable = pieces.filter((p) => KIND[p.category]).sort((a, b) => ORDER.indexOf(a.category) - ORDER.indexOf(b.category))
+  // what the AI can put on (shoes / glasses only with the local engine); the 2D preview
+  // can lay out anything that has a body part
+  const kinds: string[] = info.data?.kinds?.length ? info.data.kinds : BASIC_KINDS
+  const canWear = (p: Piece) => { const k = kindOf(p); return !!k && kinds.includes(k) }
+  const byOrder = (a: Piece, b: Piece) => ORDER.indexOf(a.category) - ORDER.indexOf(b.category)
+  const wearable = pieces.filter(canWear).sort(byOrder)
+  const previewable = pieces.filter((p) => kindOf(p)).sort(byOrder)
   const label = (p: Piece) => vocab(SUB_LABELS, p.sub_category, lang) || vocab(CATEGORY_LABELS, p.category, lang)
 
+  const secondsPer = info.data?.seconds_per_garment ?? 60
+  const ready = lookMode ? !!look : wearable.length > 0           // something to put on
+  // a look is two passes in the service: its shoes, then its clothes
+  const estimateMin = Math.max(1, Math.round(((lookMode ? 2 : wearable.length) * secondsPer) / 60))
+
+  // what is on screen: the try-on's own photo once started, else the photo just picked
+  const personUrl = job?.personUrl ?? picked?.url
+  const running = job?.state === 'running'
+  const result = job?.state === 'done' ? job.result : undefined
+  const fallback = job?.state === 'fallback' || offline2d
+
   const pick = (file: File) => {
-    setPerson({ file, url: URL.createObjectURL(file) })
-    setResult(null)
-    setFallback(false)
-    setError(null)
+    if (job) tryon.dismiss()
+    setPicked({ file, url: URL.createObjectURL(file) })
+    // the AI is switched off: no point waiting, go straight to the 2D preview
+    setOffline2d(Boolean(info.data && !info.data.enabled))
   }
 
-  const run = async () => {
+  const run = () => {
+    const person = job?.person ?? picked?.file
     if (!person) return
-    setBusy(true)
-    setError(null)
-    try {
-      setResult(await api.tryOn(person.file, itemIds, candidate ?? undefined))
-      setFallback(false)
-    } catch (e) {
-      // the AI is off (503), failed or over quota (502), or we're offline: show the 2D preview
-      if (e instanceof ApiError && [0, 502, 503].includes(e.status)) {
-        setFallback(true)
-        setWhy(e.status === 0 ? '' : e.message)
-      }
-      else setError(e)
-    } finally {
-      setBusy(false)
-    }
+    tryon.start({
+      backTo: here, person, secondsPer, itemIds, candidate: candidate ?? undefined, look: look?.file,
+      pieces: lookMode
+        ? (look ? [{ id: 'look-shoes', label: t('tryOnTheLook'), image_url: look.url },
+                   { id: 'look', label: t('tryOnTheLook'), image_url: look.url }] : [])
+        : wearable.map((p) => ({ id: p.id, label: label(p), image_url: p.image_url })),
+    })
   }
 
-  if (!itemIds.length && !candidate) {
+  const reset = () => {
+    if (job) tryon.dismiss()
+    setPicked(null)
+    setOffline2d(false)
+  }
+
+  if (!itemIds.length && !candidate && !lookMode) {
     return (
       <Page title={t('tryOnTitle')}>
         <Empty title={t('tryOnNone')} body={t('tryOnNoneBody')}
-          action={<Link to="/dress/build" className="inline-flex min-h-11 items-center border-[1.5px] border-ink bg-paper px-4 text-[15px] font-medium text-ink">{t('navBuild')}</Link>} />
+          action={<div className="flex flex-wrap gap-3">
+            <Link to="/dress/build" className="inline-flex min-h-11 items-center border-[1.5px] border-ink bg-paper px-4 text-[15px] font-medium text-ink">{t('navBuild')}</Link>
+            {info.data?.looks && <Link to="/tryon?look=1" className="inline-flex min-h-11 items-center text-[15px] font-medium text-ink underline underline-offset-4">{t('tryOnLookLink')}</Link>}
+          </div>} />
       </Page>
     )
   }
 
   return (
     <Page title={t('tryOnTitle')}>
+      {lookMode ? (
+        <section aria-labelledby="tryon-look" className="mb-5 max-w-[440px]">
+          <h2 id="tryon-look" className="mb-2 text-[13px] font-medium uppercase tracking-[0.06em] text-carbon-soft">{t('tryOnTheLook')}</h2>
+          {look ? (
+            <div className="flex items-end gap-3">
+              <img src={look.url} alt={t('tryOnTheLook')} className="h-40 w-auto bg-white object-contain" />
+              <Button variant="quiet" disabled={running} onClick={() => setLook(null)}>{t('tryOnLookChange')}</Button>
+            </div>
+          ) : (
+            <>
+              <p className="mb-3 text-[14px] text-carbon-soft">{t('tryOnLookHint')}</p>
+              <PhotoPicker onPick={(file) => setLook({ file, url: URL.createObjectURL(file) })} />
+            </>
+          )}
+        </section>
+      ) : (
       <section aria-labelledby="tryon-pieces" className="mb-5">
         <h2 id="tryon-pieces" className="mb-2 text-[13px] font-medium uppercase tracking-[0.06em] text-carbon-soft">{t('tryOnPieces')}</h2>
         {items.error ? <ErrorNote error={items.error} onRetry={items.reload} /> : !items.data ? <Skeleton className="h-20" /> : (
           <ul className="flex flex-wrap gap-2">
             {pieces.map((p) => (
-              <li key={p.id} className={`ticket p-1.5 ${KIND[p.category] ? '' : 'opacity-50'}`}>
+              <li key={p.id} className={`ticket p-1.5 ${canWear(p) ? '' : 'opacity-50'}`}>
                 <ItemPhoto src={p.image_url} alt={label(p)} size={64} />
                 <span className="mt-1 block max-w-16 truncate text-[12px] text-carbon">{label(p)}</span>
               </li>
             ))}
           </ul>
         )}
+        {info.data?.looks && (
+          <Link to="/tryon?look=1" className="mt-3 inline-flex min-h-11 items-center text-[14px] text-ink underline underline-offset-4">{t('tryOnLookLink')}</Link>
+        )}
       </section>
+      )}
 
+      {/* privacy: where the photo goes depends on the engine (local = never leaves this computer) */}
       <p className="mb-5 flex max-w-[60ch] items-start gap-2 text-[13px] text-carbon-soft">
-        <ShieldAlert className="mt-0.5 size-4 shrink-0" aria-hidden /> {t('tryOnPrivacy')}
+        {info.data?.private
+          ? <><ShieldCheck className="mt-0.5 size-4 shrink-0 text-ink" aria-hidden /> {t('tryOnPrivacyLocal')}</>
+          : <><ShieldAlert className="mt-0.5 size-4 shrink-0" aria-hidden /> {t('tryOnPrivacy')}</>}
       </p>
 
-      {!person ? (
-        <div className="max-w-[440px]">
-          <p className="mb-4 text-[15px] text-carbon-soft">{t('tryOnHint')}</p>
+      {!personUrl ? (
+        <div className="grid max-w-[880px] gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,300px)]">
           <PhotoPicker onPick={pick} />
+          <aside className="ticket self-start p-4">
+            <h2 className="mb-3 text-[16px] font-semibold text-carbon">{t('tryOnTipsTitle')}</h2>
+            <ul className="flex flex-col gap-3 text-[14px] text-carbon">
+              {([[User, 'tryOnTip1'], [Camera, 'tryOnTip2'], [Sun, 'tryOnTip3']] as const).map(([Icon, key]) => (
+                <li key={key} className="flex items-start gap-3">
+                  <Icon className="mt-0.5 size-4 shrink-0 text-ink" aria-hidden /> {t(key)}
+                </li>
+              ))}
+            </ul>
+            {ready && (
+              <p className="perf-h mt-4 pt-3 font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-ink-soft">
+                {t('tryOnEstimate', { n: estimateMin })}
+              </p>
+            )}
+          </aside>
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
           <div>
             {result ? (
-              <img src={result.image} alt={t('tryOnResultAlt')} className="w-full bg-white" />
+              <CompareSlider before={personUrl} after={result.image} afterAlt={t('tryOnResultAlt')} />
             ) : fallback ? (
-              <Overlay personUrl={person.url} pieces={wearable} />
+              <Overlay personUrl={personUrl} pieces={previewable} />
             ) : (
-              <img src={person.url} alt={t('tryOnYourPhoto')} className={`w-full bg-white ${busy ? 'animate-pulse' : ''}`} />
+              <img src={personUrl} alt={t('tryOnYourPhoto')}
+                className={`w-full bg-white transition-[opacity,filter] ${running ? 'opacity-60 saturate-50' : ''}`} />
             )}
           </div>
+          {running ? (
+            <div className="flex flex-col items-start gap-3">
+              <p className="text-[15px] text-carbon">{t('tryOnInProgress')}</p>
+              <Button onClick={tryon.openPanel}>
+                <Sparkles className="size-4" aria-hidden /> {t('tryOnShowProgress')}
+              </Button>
+              <Button variant="quiet" onClick={tryon.cancel}>{t('tryOnCancel')}</Button>
+            </div>
+          ) : (
           <div className="flex flex-col items-start gap-3" aria-live="polite">
-            {busy && <p className="text-[15px] text-carbon">{t('tryOnWorking')}</p>}
-            {fallback && !busy && <p className="max-w-[48ch] text-[15px] text-carbon">{t('tryOnFallback')}</p>}
-            {fallback && !busy && why && (
+            {result && job?.tookSeconds !== undefined && (
+              <p className="font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-ink-soft">
+                {t('tryOnMadeIn', { time: clock(job.tookSeconds) })}
+              </p>
+            )}
+            {job?.state === 'stopped' && <p className="max-w-[48ch] text-[14px] text-carbon-soft">{t('tryOnStopped')}</p>}
+            {!result && !fallback && ready && (
+              <p className="flex items-center gap-2 text-[14px] text-carbon-soft">
+                <Lightbulb className="size-4 text-ink" aria-hidden /> {t('tryOnEstimate', { n: estimateMin })}
+              </p>
+            )}
+            {fallback && <p className="max-w-[48ch] text-[15px] text-carbon">{t('tryOnFallback')}</p>}
+            {fallback && job?.why && (
               <details className="max-w-[48ch] text-[12px] text-carbon-soft">
                 <summary className="cursor-pointer">{t('tryOnWhy')}</summary>
-                <p className="mt-1 break-words font-mono" dir="ltr">{why}</p>
+                <p className="mt-1 break-words font-mono" dir="ltr">{job.why}</p>
               </details>
             )}
             {result && (
@@ -138,9 +234,9 @@ export function TryOnPage() {
                 {result.failed.length > 0 && <p className="text-[14px] text-carbon">{t('tryOnFailed', { n: result.failed.length })}</p>}
               </>
             )}
-            {error ? <ErrorNote error={error} /> : null}
-            {!result && (
-              <Button busy={busy} onClick={run} disabled={!wearable.length}>
+            {job?.state === 'failed' ? <ErrorNote error={job.error} /> : null}
+            {!result && info.data?.enabled !== false && (
+              <Button onClick={run} disabled={!ready}>
                 <Sparkles className="size-4" aria-hidden /> {fallback ? t('tryOnRetryAi') : t('tryOnBtn')}
               </Button>
             )}
@@ -149,10 +245,11 @@ export function TryOnPage() {
                 <Download className="size-4" aria-hidden /> {t('tryOnSave')}
               </a>
             )}
-            <Button variant="quiet" disabled={busy} onClick={() => { setPerson(null); setResult(null); setFallback(false) }}>
+            <Button variant="quiet" onClick={reset}>
               {t('tryOnChange')}
             </Button>
           </div>
+          )}
         </div>
       )}
     </Page>
@@ -167,6 +264,7 @@ export function TryOnPage() {
 interface Placed { id: string; url: string; x: number; y: number; w: number }
 const START: Record<Kind, { x: number; y: number; w: number }> = {
   upper: { x: 50, y: 36, w: 52 }, lower: { x: 50, y: 68, w: 42 }, overall: { x: 50, y: 52, w: 56 },
+  shoes: { x: 50, y: 93, w: 30 }, glasses: { x: 50, y: 11, w: 16 }, scarf: { x: 50, y: 24, w: 30 },
 }
 
 function Overlay({ personUrl, pieces }: { personUrl: string; pieces: Piece[] }) {
@@ -179,7 +277,7 @@ function Overlay({ personUrl, pieces }: { personUrl: string; pieces: Piece[] }) 
 
   useEffect(() => {
     let alive = true
-    Promise.all(pieces.map(async (p) => ({ id: p.id, url: await loadImage(p.image_url), ...START[KIND[p.category]!] })))
+    Promise.all(pieces.map(async (p) => ({ id: p.id, url: await loadImage(p.image_url), ...START[kindOf(p)!] })))
       .then((list) => {
         if (!alive) return
         setPlaced(list)

@@ -14,6 +14,9 @@ TRYON_ENGINE in backend/.env:
            keep several. Each Space has its own inputs, so each needs an
            "adapter" below (ADAPTERS); a copy of a Space under another name
            uses its original's adapter: "someone/My-CatVTON=catvton".
+    local  our own IDM-VTON service (the idm_service FastAPI app on this PC), at
+           TRYON_SERVICE_URL (default http://localhost:8001). The photo never leaves the
+           machine and there is no Space quota; about a minute per garment on the GPU.
     off    no try-on: /tryon answers 503 and the app shows its 2D overlay.
 
 Garments are dressed one at a time: "upper" (top, jacket), "lower" (trousers,
@@ -42,17 +45,32 @@ Tests use a fake engine with the same method. From your machine (backend/):
     python -m app.tryon person.jpg garment.jpg upper     a real try-on -> tryon_result.jpg
 """
 
+import io
 import tempfile
 from pathlib import Path
 
 from PIL import Image
 
-# which part of the body each category dresses; shoes, bags and accessories
-# are not supported by the try-on models
+# which part of the body each category dresses. Shoes and glasses only with an engine that
+# can do them (its `kinds`: the local IDM-VTON service, experimental); bags, belts, hats and
+# jewellery never.
 KIND = {"top": "upper", "outerwear": "upper", "bottom": "lower",
-        "dress": "overall", "traditional": "overall", "swimwear": "overall"}
-# chaining order: a dress first, then trousers, then the top, the jacket last (on top)
-ORDER = ["dress", "traditional", "swimwear", "bottom", "top", "outerwear"]
+        "dress": "overall", "traditional": "overall", "swimwear": "overall", "shoes": "shoes"}
+GLASSES = {"glasses", "sunglasses"}         # accessory sub_categories dressed as "glasses"
+EXTRAS = {"shoes", "glasses", "scarf"}       # the local service's experimental kinds
+BASIC_KINDS = {"upper", "lower", "overall"}  # what every engine can dress
+# chaining order: a dress first, then trousers, then the top, the jacket on top of it,
+# then shoes (over the trouser hems), glasses last
+ORDER = ["dress", "traditional", "swimwear", "bottom", "top", "outerwear", "shoes", "accessory"]
+
+
+def kind_of(doc):
+    """The body part a wardrobe item dresses (upper / lower / overall / shoes / glasses /
+    scarf), or None."""
+    if doc.get("category") == "accessory":
+        sub = doc.get("sub_category")
+        return "glasses" if sub in GLASSES else "scarf" if sub == "scarf" else None
+    return KIND.get(doc.get("category"))
 
 
 class TryOnUnavailable(Exception):
@@ -62,20 +80,101 @@ class TryOnUnavailable(Exception):
 class TryOnBusy(Exception):
     """The Space failed, is asleep, over quota or too slow (HTTP 502)."""
 
+class LocalTryOn:
+    """Try-on made by OUR OWN IDM-VTON service (idm_service, a FastAPI app running on the
+    lab PC's GPU). Same contract as SpaceTryOn: dress(person, garment, kind, description).
+    `kind` (upper / lower / overall) is sent as the service's `category`; the service
+    builds the mask from it, so nothing is guessed from the description.
+
+    Settings: tryon_service_url (TRYON_SERVICE_URL, already in config.py), and optionally
+    tryon_local_steps (denoising steps, default 10: about 1 minute per garment) and
+    tryon_local_timeout (seconds to wait for one garment, default 300), read with defaults.
+    """
+    private = True                         # the photo stays on this PC (GET /tryon/info)
+    can_copy_looks = True                  # "Try this look": a whole outfit from someone's photo
+
+    def __init__(self, settings):
+        self.settings = settings
+        self.url = (getattr(settings, "tryon_service_url", None) or "http://127.0.0.1:8001").rstrip("/")
+        self.steps = getattr(settings, "tryon_local_steps", None) or 10
+        self.timeout = getattr(settings, "tryon_local_timeout", None) or 300
+        # shoes / glasses: the service's experimental masks, OFF unless listed in
+        # TRYON_LOCAL_EXTRAS. First real test (2026-11-02): black running shoes came out as
+        # beige slip-ons (IDM-VTON has no shoe training; a pair seen at an angle can't be
+        # mapped onto two feet seen from the front)
+        extras = getattr(settings, "tryon_local_extras", "") or ""
+        self.kinds = BASIC_KINDS | ({k.strip() for k in extras.split(",")} & EXTRAS)
+        # for the progress bar: measured on the RTX 2050, ~5 s a step + ~10 s of pose /
+        # parsing / DensePose (10 steps: 48-68 s)
+        self.seconds_per_garment = 5 * self.steps + 10
+        self.last_space = None             # same attributes as SpaceTryOn (the CLI prints them)
+        self.last_skipped = []
+
+    @staticmethod
+    def _png(img):
+        buf = io.BytesIO()
+        img.convert("RGB").save(buf, format="PNG")
+        return buf.getvalue()
+
+    def health(self):
+        """The service's /health answer ({"loaded": true} once the models are in memory)."""
+        import httpx                        # imported here: only needed when used
+        try:
+            r = httpx.get(f"{self.url}/health", timeout=10)
+            r.raise_for_status()
+            return r.json()
+        except httpx.HTTPError as e:
+            raise TryOnBusy(f"local try-on service not reachable at {self.url}: {e}") from e
+
+    def dress(self, person, garment, kind, description=""):
+        import httpx
+        try:
+            r = httpx.post(
+                f"{self.url}/generate",
+                files={"person_image": ("person.png", self._png(person), "image/png"),
+                       "garment_image": ("garment.png", self._png(garment), "image/png")},
+                data={"description": description or "a garment", "category": kind,
+                      "steps": self.steps},
+                timeout=self.timeout)
+        except httpx.HTTPError as e:        # service not running, PC asleep, too slow
+            raise TryOnBusy(f"local try-on service at {self.url}: {type(e).__name__} {e}") from e
+        if r.status_code != 200:
+            try:
+                detail = r.json().get("detail", r.text)
+            except ValueError:
+                detail = r.text
+            raise TryOnBusy(f"local try-on service answered {r.status_code}: {str(detail)[:300]}")
+        try:
+            img = Image.open(io.BytesIO(r.content))
+            img.load()
+        except Exception as e:
+            raise TryOnBusy("local try-on service did not return a picture") from e
+        self.last_space, self.last_skipped = "local", []
+        return img.convert("RGB")
+
 
 def make_tryon(settings):
-    """The engine named by TRYON_ENGINE, or None when it is off."""
+
     if settings.tryon_engine == "off":
         return None
-    return SpaceTryOn(settings)
+
+    if settings.tryon_engine == "space":
+        return SpaceTryOn(settings)
+
+    if settings.tryon_engine == "local":
+        return LocalTryOn(settings)
+
+    raise ValueError(
+        f"Unknown TRYON_ENGINE='{settings.tryon_engine}'"
+    )
 
 
-def plan(docs):
+def plan(docs, kinds=BASIC_KINDS):
     """Split wardrobe documents into (garments in dressing order, skipped ones).
-    Skipped = [{"id", "reason"}]: a category the model can't put on."""
-    garments = [d for d in docs if d["category"] in KIND]
+    Skipped = [{"id", "reason"}]: something the engine can't put on (`kinds`: what it can)."""
+    garments = [d for d in docs if kind_of(d) in kinds]
     garments.sort(key=lambda d: ORDER.index(d["category"]))
-    skipped = [{"id": str(d["_id"]), "reason": "unsupported"} for d in docs if d["category"] not in KIND]
+    skipped = [{"id": str(d["_id"]), "reason": "unsupported"} for d in docs if kind_of(d) not in kinds]
     return garments, skipped
 
 
@@ -148,9 +247,12 @@ ADAPTERS = {
 
 
 def describe(doc):
-    """A few words about a wardrobe item for the Spaces that read text, e.g.
-    "grey hoodie" (colour + sub_category, or the category when it is unknown)."""
-    words = [doc.get("colour", ""), doc.get("sub_category") or doc.get("category", "")]
+    """A few words about a wardrobe item for the models that read text, e.g. "grey hoodie"
+    or "red checked scarf" (colour + pattern unless solid + sub_category, or the category
+    when it is unknown). The pattern helps: "red plaid scarf" kept the plaid (2026-11-02)."""
+    pattern = doc.get("pattern") or ""
+    words = [doc.get("colour", ""), "" if pattern == "solid" else pattern,
+             doc.get("sub_category") or doc.get("category", "")]
     return " ".join(w for w in words if w)
 
 
@@ -182,6 +284,10 @@ def picture_from(out):
 
 
 class SpaceTryOn:
+    private = False                        # the photo is sent to a Hugging Face Space
+    kinds = BASIC_KINDS
+    seconds_per_garment = 45               # ~20-60 s on a free shared GPU
+
     def __init__(self, settings, make_client=None):
         self.settings = settings
         self.spaces = parse_spaces(settings.tryon_spaces)
@@ -226,7 +332,12 @@ class SpaceTryOn:
 
 
 def check(settings):
-    """Print the state of every Space in TRYON_SPACES (RUNNING, SLEEPING, RUNTIME_ERROR...)."""
+    """Print the state of every Space in TRYON_SPACES (RUNNING, SLEEPING, RUNTIME_ERROR...),
+    or, with TRYON_ENGINE=local, of the local service."""
+    if settings.tryon_engine == "local":
+        engine = LocalTryOn(settings)
+        print(f"{engine.url}  ->  {engine.health()}")
+        return
     from huggingface_hub import HfApi
     api = HfApi(token=settings.hf_token or None)
     for space, adapter in parse_spaces(settings.tryon_spaces):
@@ -248,7 +359,9 @@ if __name__ == "__main__":      # see the module docstring
         check(settings)
         sys.exit()
     person_path, garment_path, kind = sys.argv[1:4]
-    engine = SpaceTryOn(settings)
+    engine = make_tryon(settings)
+    if engine is None:
+        sys.exit("TRYON_ENGINE=off: nothing to run")
     result = engine.dress(Image.open(person_path).convert("RGB"),
                           Image.open(garment_path).convert("RGB"), kind)
     result.save("tryon_result.jpg")

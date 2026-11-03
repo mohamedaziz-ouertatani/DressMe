@@ -5,6 +5,8 @@ import { House, LayoutGrid, LogOut, MessageCircle, ScanLine, Shirt, ShieldCheck,
 import { useAuth } from './auth'
 import { useI18n } from './i18n'
 import type { StringKey } from './i18n/strings'
+import { TryOnProvider } from './tryon'
+import { TryOnPanel, TryOnPill } from './ui/TryOnPanel'
 import { LookContext } from './ui/look'
 import { TabBarContext } from './ui/tabBar'
 
@@ -130,6 +132,14 @@ function useTabBarHeight() {
 }
 
 export function AppShell() {
+  return (
+    <TryOnProvider>
+      <Shell />
+    </TryOnProvider>
+  )
+}
+
+function Shell() {
   const { t } = useI18n()
   const { user, logout } = useAuth()
   const { root, bar } = useTabBarHeight()
@@ -211,6 +221,10 @@ export function AppShell() {
           </TabBarContext.Provider>
         </main>
       </div>
+
+      {/* a try-on keeps running between pages: its panel in front, or its pill in the corner */}
+      <TryOnPanel />
+      <TryOnPill />
 
       {/* phone tab bar: the prototype's floating pill. The current tab is a near-black pill with its icon and label;
           the others show the icon only (their name is the aria-label). */}
