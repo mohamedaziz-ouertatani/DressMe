@@ -2,14 +2,11 @@
 Admin > Explainability (XAI sub-project 4; admins only, like the rest of /admin).
 
     GET /admin/xai            the XAI evaluations' numbers (src/phase4/xai_results.py), the
-                              "not sure" flag on real uploads, chat trace statistics, the team's
-                              XAI settings and concept list
+                              "not sure" flag on real uploads, the team's XAI settings and concept list
     PUT /admin/xai/settings   edit mappings/xai_settings.csv (notes and order kept)
 """
 
 import csv
-from collections import defaultdict
-from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
@@ -60,34 +57,11 @@ def real_use(request):
     return {"items": len(items), "before_xai": before, "fields": fields}
 
 
-def trace_stats(request, days):
-    """Chat answers of the last `days` days: per tool, calls / errors / agents
-    ("How I answered" traces), and Explainer answers that called no tool."""
-    since = datetime.now(timezone.utc) - timedelta(days=days)
-    docs = list(request.app.state.db.chats.find(
-        {"role": "model", "created_at": {"$gte": since}, "trace": {"$exists": True}},
-        {"agent": 1, "trace": 1}))
-    tools = defaultdict(lambda: {"calls": 0, "errors": 0, "agents": set()})
-    for d in docs:
-        for step in d.get("trace", []):
-            t = tools[step["tool"]]
-            t["calls"] += 1
-            t["errors"] += str(step.get("result", "")).startswith(("error:", "failed:"))
-            t["agents"].add(d.get("agent", ""))
-    explainer = [d for d in docs if d.get("agent") == "explainer"]
-    return {"days": days, "answers": len(docs),
-            "tools": sorted(({"tool": name, "calls": t["calls"], "errors": t["errors"],
-                              "agents": sorted(t["agents"])} for name, t in tools.items()),
-                            key=lambda r: -r["calls"]),
-            "explainer_answers": len(explainer),
-            "explainer_without_tools": sum(1 for d in explainer if not d.get("trace"))}
-
-
 @router.get("/xai")
 def xai_overview(request: Request, days: int = Query(30, ge=1, le=365)):
+    # TODO(step 3g): `days` is not used until the new chat's groundedness rate and tool-call counts come back here
     return {"evaluations": xai_results.results(ROOT),
             "real_use": real_use(request),
-            "traces": trace_stats(request, days),
             "settings": [{"name": r["setting"], "value": float(r["value"]), "note": r["note"]}
                          for r in settings_rows(request)],
             "concepts": explain_similarity.load_concepts(request.app.state.settings.mappings_dir

@@ -66,9 +66,19 @@ class Analyzer:
         settings = explain.load_settings()
         for f, guess in out.items():
             guess["unsure"] = explain.is_unsure(f, guess["alternatives"], settings)
-        fashionclip = self._modules[1]
-        out["vector"] = fashionclip.embed_images([img], self._clip, self._processor, self.device)[0]
+        out["vector"] = self.embed_image(img)
         return out
+
+    def embed_image(self, img):
+        """The unit FashionCLIP vector (512 numbers) of a picture: what is stored with every piece."""
+        fashionclip = self._modules[1]
+        return fashionclip.embed_images([img], self._clip, self._processor, self.device)[0]
+
+    def embed_text(self, text):
+        """The unit FashionCLIP vector of a short text, from the text side of the same model, so it can be
+        compared with a picture vector (the search box). About 10 ms on the CPU."""
+        fashionclip = self._modules[1]
+        return fashionclip.embed_texts([text], self._clip, self._processor, self.device)[0]
 
     def colour_alternatives(self, img, category):
         """Top 3 colours: same features and metal rule as the dataset estimates."""

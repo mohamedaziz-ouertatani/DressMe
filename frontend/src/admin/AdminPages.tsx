@@ -13,7 +13,9 @@ import { ErrorNote, Skeleton } from '../ui/states'
 import { useLoad } from '../useLoad'
 import { DayBars, RowBars, TableView } from './charts'
 
-const TYPES = [['scan', 'scans'], ['verdict', 'verdicts'], ['upload', 'uploads'], ['correction', 'corrections'], ['chat', 'chat messages']] as const
+const TYPES = [['scan', 'scans'], ['verdict', 'verdicts'], ['upload', 'uploads'], ['correction', 'corrections']] as const
+// The old chat was removed in step 3a, but its events stay in the log: a day that still holds some shows them.
+const OLD_CHAT = ['chat', 'old chat messages'] as const
 
 const pct = (v: number | null) => (v === null ? '-' : `${(v * 100).toFixed(1)}%`)
 
@@ -83,6 +85,8 @@ export function AdminOverview() {
   })
   const series = (type: 'upload' | 'scan' | 'verdict' | 'correction' | 'chat') =>
     dayList.map((d) => s?.per_day.find((r) => r.day === d)?.[type] ?? 0)
+  const oldChat = s?.per_day.some((r) => r.chat) ?? false      // only while old chat events are in the window
+  const types = oldChat ? [...TYPES, OLD_CHAT] : TYPES
   const verdictTotal = s ? s.verdicts.buy + s.verdicts.think + s.verdicts.skip : 0
 
   return (
@@ -104,7 +108,6 @@ export function AdminOverview() {
               ['Scans', s.totals.scan],
               ['Verdicts', s.totals.verdict],
               ['Corrections', s.totals.correction],
-              ['Chat messages', s.totals.chat],
               ['Try-ons', s.totals.tryon ?? 0],
             ]} />
             <section>
@@ -123,13 +126,13 @@ export function AdminOverview() {
             <DayBars
               title="Activity per day"
               days={dayList}
-              values={dayList.map((_, i) => TYPES.reduce((a, [type]) => a + series(type)[i], 0))}
-              details={dayList.map((_, i) => TYPES.filter(([type]) => series(type)[i] > 0)
+              values={dayList.map((_, i) => types.reduce((a, [type]) => a + series(type)[i], 0))}
+              details={dayList.map((_, i) => types.filter(([type]) => series(type)[i] > 0)
                 .map(([type, label]) => `${label} ${series(type)[i]}`).join(' · '))}
               empty={`No activity in the last ${days} days.`}
             />
-            <TableView caption="Events per day" head={['Day', 'Uploads', 'Scans', 'Verdicts', 'Corrections', 'Chat']}
-              rows={s.per_day.map((r) => [r.day, r.upload, r.scan, r.verdict, r.correction, r.chat])} />
+            <TableView caption="Events per day" head={['Day', 'Uploads', 'Scans', 'Verdicts', 'Corrections', ...(oldChat ? ['Old chat'] : [])]}
+              rows={s.per_day.map((r) => [r.day, r.upload, r.scan, r.verdict, r.correction, ...(oldChat ? [r.chat ?? 0] : [])])} />
           </section>
         </div>
       )}
@@ -217,7 +220,7 @@ export function AdminUsers() {
 
   return (
     <>
-      <Title note="Disable an account to block its log-in at once; deleting removes the account with its wardrobe, photos, scans and chats.">Users</Title>
+      <Title note="Disable an account to block its log-in at once; deleting removes the account with its wardrobe, photos and scans.">Users</Title>
       <form className="mb-4 flex max-w-md gap-2" onSubmit={(e: FormEvent) => { e.preventDefault(); setPage(1); setSearch(query.trim()) }}>
         <label className="sr-only" htmlFor="user-search">Search by email</label>
         <input id="user-search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by email"

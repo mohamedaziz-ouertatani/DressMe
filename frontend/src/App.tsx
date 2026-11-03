@@ -9,7 +9,7 @@ import { AuthPage } from './pages/AuthPage'
 import { LandingPage } from './pages/LandingPage'
 import { DressPage } from './pages/DressPage'
 import { HomePage } from './pages/HomePage'
-import { ChatPage } from './pages/ChatPage'
+import { AssistantPage } from './pages/AssistantPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { ScanPage } from './pages/ScanPage'
 import { ListingPage, ShopPage } from './pages/ShopPage'
@@ -79,7 +79,8 @@ export default function App() {
               <Route path="wardrobe/:id" element={<ItemPage />} />
               <Route path="insights" element={<WardrobeViewPage />} />      {/* was the Insights page */}
               <Route path="tryon" element={<TryOnPage />} />
-              <Route path="chat" element={<ChatPage />} />
+              <Route path="assistant" element={<AssistantPage />} />
+              <Route path="chat" element={<Navigate to="/assistant" replace />} />      {/* the old chat address */}
               <Route path="similar" element={<SimilarPage />} />
               <Route path="shop" element={<ShopPage />} />
               <Route path="shop/:id" element={<ListingPage />} />

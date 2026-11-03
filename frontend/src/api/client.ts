@@ -1,11 +1,11 @@
 // One small fetch wrapper for every API call. The log-in token lives in
 // localStorage; a 401 anywhere logs the user out (see AuthProvider).
 import type {
-  AdminXai, SourceCheck, AdminSource, Job, JobStart, ListingsOverview, AdminUser, BuyAdvice, Category, ChatTurn, Completion, Formula, Insights, Item, ItemPatch,
+  AdminXai, SourceCheck, AdminSource, Job, JobStart, ListingsOverview, AdminUser, BuyAdvice, Category, Completion, Formula, Insights, Item, ItemPatch,
   Listing, ListingFilters, ListingPage, ListingPatch, ModelQuality, ReviewListing, SellForm, Occasion, Outfit, Season, Similar, Stats, User, Gender,
-  ChatAttachment, ChatAction, TryOnResult, Weather, Explanation, GuessField, OutfitExplanation,
-  Decision, DecisionAnswer, OutfitLabel, WearEntry, WearSummary, OccasionChip, TodayOutfits, BuildResult,
-  PriceChannel, PriceCondition, PriceEstimate,
+  TryOnResult, Weather, Explanation, GuessField, OutfitExplanation,
+  Decision, DecisionAnswer, OutfitLabel, WearEntry, WearSummary, OccasionChip, TodayOutfits, BuildResult, SearchResponse,
+  PriceChannel, PriceCondition, PriceEstimate, AssistantStatus, ChatResponse,
 } from './types'
 
 const BASE = '/api'
@@ -117,6 +117,20 @@ export const api = {
 
   insights: () => request<Insights>('/insights'),
 
+  /** Search the user's own pieces by words or by a photo. A photo search saves nothing. */
+  search: (input: { text: string } | { photo: Blob }) => {
+    const form = 'photo' in input ? photoForm(input.photo) : new FormData()
+    if ('text' in input) form.append('text', input.text)
+    return request<SearchResponse>('/search', { method: 'POST', body: form })
+  },
+
+  /** Is the chat model there? (the server asks Ollama at most once a minute) */
+  assistantStatus: () => request<AssistantStatus>('/assistant/status'),
+  /** One turn with the assistant. Every turn stands alone: the server does not send earlier turns to the model;
+   *  chat_id only groups the saved turns. 503 = the model is off. */
+  chat: (message: string, chatId?: string) =>
+    request<ChatResponse>('/chat', json('POST', { message, chat_id: chatId })),
+
   analyze: (file: Blob) => request<Item>('/analyze', { method: 'POST', body: photoForm(file) }),
   /** priceTnd = the price on the tag, optional (left out when unknown, never 0). */
   buyAdvice: (candidateId: string, corrections?: ItemPatch, priceTnd?: number) =>
@@ -223,13 +237,6 @@ export const api = {
     if (candidateId) form.append('candidate_id', candidateId)
     return request<TryOnResult>('/tryon', { method: 'POST', body: form })
   },
-
-  chat: (message: string) =>
-    request<{ reply: string; tools_used: string[]; agent: string; agent_title: string;
-              attachments: ChatAttachment[]; actions?: ChatAction[];
-              routed_by: ChatTurn['routed_by']; trace: ChatTurn['trace'] }>('/chat', json('POST', { message })),
-  chatHistory: () => request<ChatTurn[]>('/chat/history'),
-  clearChat: () => request<void>('/chat/history', { method: 'DELETE' }),
 
   admin: {
     stats: (days = 30) => request<Stats>(`/admin/stats?days=${days}`),

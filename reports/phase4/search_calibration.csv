@@ -1,0 +1,5 @@
+split,mode,cut,n_queries,precision,top5_hit_rate,honest_nothing_rate
+validation,text,0.297,300,0.901,0.991,0.955
+test,text,0.297,300,0.872,0.995,0.91
+validation,photo,0.823,300,0.907,0.973,0.988
+test,photo,0.823,300,0.8,0.969,0.953

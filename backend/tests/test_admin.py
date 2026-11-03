@@ -34,10 +34,9 @@ def test_stats_count_what_users_do(client, admin):
     upload(client, user, BLUE)
     cand = client.post("/analyze", files={"photo": photo(BLACK)}, headers=user).json()
     client.post("/buy-advice", json={"candidate_id": cand["id"]}, headers=user)
-    client.post("/chat", json={"message": "hello"}, headers=user)
     s = client.get("/admin/stats?days=7", headers=admin).json()
     t = s["totals"]
-    assert (t["users"], t["items"], t["upload"], t["scan"], t["verdict"], t["chat"]) == (2, 2, 2, 1, 1, 1)
+    assert (t["users"], t["items"], t["upload"], t["scan"], t["verdict"]) == (2, 2, 2, 1, 1)
     assert t["active_users"] == 1 and sum(s["verdicts"].values()) == 1
     assert len(s["per_day"]) == 1 and s["per_day"][0]["upload"] == 2
 

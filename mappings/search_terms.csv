@@ -1,0 +1,243 @@
+term,lang,en,note
+إكسسوار,ar,accessory,from the app's own labels (frontend/src/i18n/vocab.ts)
+حقيبة ظهر,ar,backpack,from the app's own labels (frontend/src/i18n/vocab.ts)
+حقائب,ar,bag,REVIEW: common word added by hand
+حقيبة,ar,bag,from the app's own labels (frontend/src/i18n/vocab.ts)
+بيج,ar,beige,from the app's own labels (frontend/src/i18n/vocab.ts)
+حزام,ar,belt,from the app's own labels (frontend/src/i18n/vocab.ts)
+أسود,ar,black,from the app's own labels (frontend/src/i18n/vocab.ts)
+سوداء,ar,black,REVIEW: common word added by hand
+بليزر,ar,blazer,from the app's own labels (frontend/src/i18n/vocab.ts)
+بلوزة,ar,blouse,REVIEW: common word added by hand
+أزرق,ar,blue,from the app's own labels (frontend/src/i18n/vocab.ts)
+زرقاء,ar,blue,REVIEW: common word added by hand
+سوار,ar,bracelet,from the app's own labels (frontend/src/i18n/vocab.ts)
+بروش,ar,brooch,from the app's own labels (frontend/src/i18n/vocab.ts)
+بني,ar,brown,from the app's own labels (frontend/src/i18n/vocab.ts)
+بنية,ar,brown,REVIEW: common word added by hand
+عنابي,ar,burgundy,from the app's own labels (frontend/src/i18n/vocab.ts)
+كاسكيت,ar,cap,from the app's own labels (frontend/src/i18n/vocab.ts)
+كاب,ar,cape,from the app's own labels (frontend/src/i18n/vocab.ts)
+سروال قصير,ar,capris,from the app's own labels (frontend/src/i18n/vocab.ts)
+كارديغان,ar,cardigan,from the app's own labels (frontend/src/i18n/vocab.ts)
+حذاء يومي,ar,casual shoes,from the app's own labels (frontend/src/i18n/vocab.ts)
+مربعات,ar,checked,from the app's own labels (frontend/src/i18n/vocab.ts)
+كلاتش,ar,clutch,from the app's own labels (frontend/src/i18n/vocab.ts)
+معاطف,ar,coat,REVIEW: common word added by hand
+معطف,ar,coat,from the app's own labels (frontend/src/i18n/vocab.ts)
+كريمي,ar,cream,from the app's own labels (frontend/src/i18n/vocab.ts)
+أزرار أكمام,ar,cufflinks,from the app's own labels (frontend/src/i18n/vocab.ts)
+فساتين,ar,dress,REVIEW: common word added by hand
+فستان,ar,dress,from the app's own labels (frontend/src/i18n/vocab.ts)
+حقيبة سفر,ar,duffel bag,from the app's own labels (frontend/src/i18n/vocab.ts)
+أقراط,ar,earrings,from the app's own labels (frontend/src/i18n/vocab.ts)
+حذاء مسطح,ar,flats,from the app's own labels (frontend/src/i18n/vocab.ts)
+شلاكة,ar,flip-flops,from the app's own labels (frontend/src/i18n/vocab.ts)
+مورد,ar,floral,from the app's own labels (frontend/src/i18n/vocab.ts)
+حذاء رسمي,ar,formal shoes,from the app's own labels (frontend/src/i18n/vocab.ts)
+نظارات,ar,glasses,from the app's own labels (frontend/src/i18n/vocab.ts)
+نظارة,ar,glasses,REVIEW: common word added by hand
+قفازات,ar,gloves,from the app's own labels (frontend/src/i18n/vocab.ts)
+ذهبي,ar,gold,from the app's own labels (frontend/src/i18n/vocab.ts)
+أخضر,ar,green,from the app's own labels (frontend/src/i18n/vocab.ts)
+خضراء,ar,green,REVIEW: common word added by hand
+رمادي,ar,grey,from the app's own labels (frontend/src/i18n/vocab.ts)
+رمادية,ar,grey,REVIEW: common word added by hand
+إكسسوار شعر,ar,hair accessory,from the app's own labels (frontend/src/i18n/vocab.ts)
+حقيبة يد,ar,handbag,from the app's own labels (frontend/src/i18n/vocab.ts)
+قبعات,ar,hat,REVIEW: common word added by hand
+قبعة,ar,hat,from the app's own labels (frontend/src/i18n/vocab.ts)
+كعب عالي,ar,heels,from the app's own labels (frontend/src/i18n/vocab.ts)
+جاكيت,ar,jacket,from the app's own labels (frontend/src/i18n/vocab.ts)
+سترات,ar,jacket,REVIEW: common word added by hand
+سترة,ar,jacket,REVIEW: common word added by hand
+جينز,ar,jeans,from the app's own labels (frontend/src/i18n/vocab.ts)
+جبة,ar,jebba,from the app's own labels (frontend/src/i18n/vocab.ts)
+طقم مجوهرات,ar,jewellery set,from the app's own labels (frontend/src/i18n/vocab.ts)
+جمبسوت,ar,jumpsuit,from the app's own labels (frontend/src/i18n/vocab.ts)
+قفطان,ar,kaftan,from the app's own labels (frontend/src/i18n/vocab.ts)
+كاكي,ar,khaki,from the app's own labels (frontend/src/i18n/vocab.ts)
+حقيبة حاسوب,ar,laptop bag,from the app's own labels (frontend/src/i18n/vocab.ts)
+ليقنز,ar,leggings,from the app's own labels (frontend/src/i18n/vocab.ts)
+حقيبة كتف,ar,messenger bag,from the app's own labels (frontend/src/i18n/vocab.ts)
+متعدد الألوان,ar,multicolour,from the app's own labels (frontend/src/i18n/vocab.ts)
+ازرق غامق,ar,navy,REVIEW: common word added by hand
+كحلي,ar,navy,from the app's own labels (frontend/src/i18n/vocab.ts)
+قلادة,ar,necklace,from the app's own labels (frontend/src/i18n/vocab.ts)
+زيتي,ar,olive,from the app's own labels (frontend/src/i18n/vocab.ts)
+برتقالي,ar,orange,from the app's own labels (frontend/src/i18n/vocab.ts)
+برتقالية,ar,orange,REVIEW: common word added by hand
+وردي,ar,pink,from the app's own labels (frontend/src/i18n/vocab.ts)
+وردية,ar,pink,REVIEW: common word added by hand
+مطبوع,ar,printed,from the app's own labels (frontend/src/i18n/vocab.ts)
+بنفسجي,ar,purple,from the app's own labels (frontend/src/i18n/vocab.ts)
+بنفسجية,ar,purple,REVIEW: common word added by hand
+أحمر,ar,red,from the app's own labels (frontend/src/i18n/vocab.ts)
+حمراء,ar,red,REVIEW: common word added by hand
+خاتم,ar,ring,from the app's own labels (frontend/src/i18n/vocab.ts)
+صندل,ar,sandals,from the app's own labels (frontend/src/i18n/vocab.ts)
+وشاح,ar,scarf,from the app's own labels (frontend/src/i18n/vocab.ts)
+قمصان,ar,shirt,REVIEW: common word added by hand
+قميص,ar,shirt,from the app's own labels (frontend/src/i18n/vocab.ts)
+حذاء,ar,shoe,REVIEW: common word added by hand
+أحذية,ar,shoes,from the app's own labels (frontend/src/i18n/vocab.ts)
+شورت,ar,shorts,from the app's own labels (frontend/src/i18n/vocab.ts)
+فضي,ar,silver,from the app's own labels (frontend/src/i18n/vocab.ts)
+تنانير,ar,skirt,REVIEW: common word added by hand
+تنورة,ar,skirt,from the app's own labels (frontend/src/i18n/vocab.ts)
+احذية رياضية,ar,sneakers,REVIEW: common word added by hand
+حذاء رياضي,ar,sneakers,REVIEW: common word added by hand
+سبادري,ar,sneakers,from the app's own labels (frontend/src/i18n/vocab.ts)
+سادة,ar,solid,from the app's own labels (frontend/src/i18n/vocab.ts)
+مخطط,ar,striped,from the app's own labels (frontend/src/i18n/vocab.ts)
+نظارات شمسية,ar,sunglasses,from the app's own labels (frontend/src/i18n/vocab.ts)
+حمالات,ar,suspenders,from the app's own labels (frontend/src/i18n/vocab.ts)
+كنزة,ar,sweater,REVIEW: common word added by hand
+كنزة صوف,ar,sweater,from the app's own labels (frontend/src/i18n/vocab.ts)
+سويت شيرت,ar,sweatshirt,from the app's own labels (frontend/src/i18n/vocab.ts)
+شورت سباحة,ar,swim shorts,from the app's own labels (frontend/src/i18n/vocab.ts)
+مايوه,ar,swimsuit,from the app's own labels (frontend/src/i18n/vocab.ts)
+لباس سباحة,ar,swimwear,from the app's own labels (frontend/src/i18n/vocab.ts)
+تي شيرت,ar,t-shirt,REVIEW: common word added by hand
+تيشيرت,ar,t-shirt,from the app's own labels (frontend/src/i18n/vocab.ts)
+أزرق مخضر,ar,teal,from the app's own labels (frontend/src/i18n/vocab.ts)
+ربطة عنق,ar,tie,from the app's own labels (frontend/src/i18n/vocab.ts)
+توب,ar,top,from the app's own labels (frontend/src/i18n/vocab.ts)
+قطعة علوية,ar,top,from the app's own labels (frontend/src/i18n/vocab.ts)
+سروال رياضي,ar,track pants,from the app's own labels (frontend/src/i18n/vocab.ts)
+لباس تقليدي,ar,traditional,from the app's own labels (frontend/src/i18n/vocab.ts)
+بنطال,ar,trousers,REVIEW: common word added by hand
+بنطلون,ar,trousers,REVIEW: common word added by hand
+بنطلونات,ar,trousers,REVIEW: common word added by hand
+سروال,ar,trousers,from the app's own labels (frontend/src/i18n/vocab.ts)
+تونيك,ar,tunic,from the app's own labels (frontend/src/i18n/vocab.ts)
+حقيبة خصر,ar,waist bag,from the app's own labels (frontend/src/i18n/vocab.ts)
+صدرية,ar,waistcoat,from the app's own labels (frontend/src/i18n/vocab.ts)
+محفظة,ar,wallet,from the app's own labels (frontend/src/i18n/vocab.ts)
+ساعات,ar,watch,REVIEW: common word added by hand
+ساعة,ar,watch,from the app's own labels (frontend/src/i18n/vocab.ts)
+أبيض,ar,white,from the app's own labels (frontend/src/i18n/vocab.ts)
+بيضاء,ar,white,REVIEW: common word added by hand
+أصفر,ar,yellow,from the app's own labels (frontend/src/i18n/vocab.ts)
+صفراء,ar,yellow,REVIEW: common word added by hand
+Accessoire,fr,accessory,from the app's own labels (frontend/src/i18n/vocab.ts)
+bottines,fr,ankle boots,REVIEW: common word added by hand
+Sac à dos,fr,backpack,from the app's own labels (frontend/src/i18n/vocab.ts)
+Sac,fr,bag,from the app's own labels (frontend/src/i18n/vocab.ts)
+sacs,fr,bag,REVIEW: common word added by hand
+bonnet,fr,beanie,REVIEW: common word added by hand
+Ceinture,fr,belt,from the app's own labels (frontend/src/i18n/vocab.ts)
+Noir,fr,black,from the app's own labels (frontend/src/i18n/vocab.ts)
+noire,fr,black,REVIEW: common word added by hand
+noires,fr,black,REVIEW: common word added by hand
+noirs,fr,black,REVIEW: common word added by hand
+chaussures noires,fr,black shoes,REVIEW: common word added by hand
+Bleu,fr,blue,from the app's own labels (frontend/src/i18n/vocab.ts)
+bleue,fr,blue,REVIEW: common word added by hand
+bleues,fr,blue,REVIEW: common word added by hand
+bleus,fr,blue,REVIEW: common word added by hand
+botte,fr,boots,REVIEW: common word added by hand
+bottes,fr,boots,REVIEW: common word added by hand
+Broche,fr,brooch,from the app's own labels (frontend/src/i18n/vocab.ts)
+Marron,fr,brown,from the app's own labels (frontend/src/i18n/vocab.ts)
+Bordeaux,fr,burgundy,from the app's own labels (frontend/src/i18n/vocab.ts)
+Casquette,fr,cap,from the app's own labels (frontend/src/i18n/vocab.ts)
+Corsaire,fr,capris,from the app's own labels (frontend/src/i18n/vocab.ts)
+Gilet,fr,cardigan,from the app's own labels (frontend/src/i18n/vocab.ts)
+Chaussures décontractées,fr,casual shoes,from the app's own labels (frontend/src/i18n/vocab.ts)
+À carreaux,fr,checked,from the app's own labels (frontend/src/i18n/vocab.ts)
+Pochette,fr,clutch,from the app's own labels (frontend/src/i18n/vocab.ts)
+Manteau,fr,coat,from the app's own labels (frontend/src/i18n/vocab.ts)
+manteaux,fr,coat,REVIEW: common word added by hand
+Crème,fr,cream,from the app's own labels (frontend/src/i18n/vocab.ts)
+Boutons de manchette,fr,cufflinks,from the app's own labels (frontend/src/i18n/vocab.ts)
+Robe,fr,dress,from the app's own labels (frontend/src/i18n/vocab.ts)
+robes,fr,dress,REVIEW: common word added by hand
+Sac de voyage,fr,duffel bag,from the app's own labels (frontend/src/i18n/vocab.ts)
+Boucles d'oreilles,fr,earrings,from the app's own labels (frontend/src/i18n/vocab.ts)
+Ballerines,fr,flats,from the app's own labels (frontend/src/i18n/vocab.ts)
+Tongs,fr,flip-flops,from the app's own labels (frontend/src/i18n/vocab.ts)
+Fleuri,fr,floral,from the app's own labels (frontend/src/i18n/vocab.ts)
+Chaussures habillées,fr,formal shoes,from the app's own labels (frontend/src/i18n/vocab.ts)
+Lunettes,fr,glasses,from the app's own labels (frontend/src/i18n/vocab.ts)
+Gants,fr,gloves,from the app's own labels (frontend/src/i18n/vocab.ts)
+Doré,fr,gold,from the app's own labels (frontend/src/i18n/vocab.ts)
+Vert,fr,green,from the app's own labels (frontend/src/i18n/vocab.ts)
+verte,fr,green,REVIEW: common word added by hand
+vertes,fr,green,REVIEW: common word added by hand
+verts,fr,green,REVIEW: common word added by hand
+Gris,fr,grey,from the app's own labels (frontend/src/i18n/vocab.ts)
+grise,fr,grey,REVIEW: common word added by hand
+grises,fr,grey,REVIEW: common word added by hand
+Accessoire cheveux,fr,hair accessory,from the app's own labels (frontend/src/i18n/vocab.ts)
+Sac à main,fr,handbag,from the app's own labels (frontend/src/i18n/vocab.ts)
+Chapeau,fr,hat,from the app's own labels (frontend/src/i18n/vocab.ts)
+Talons,fr,heels,from the app's own labels (frontend/src/i18n/vocab.ts)
+Veste,fr,jacket,from the app's own labels (frontend/src/i18n/vocab.ts)
+vestes,fr,jacket,REVIEW: common word added by hand
+Jean,fr,jeans,from the app's own labels (frontend/src/i18n/vocab.ts)
+Parure,fr,jewellery set,from the app's own labels (frontend/src/i18n/vocab.ts)
+Combinaison,fr,jumpsuit,from the app's own labels (frontend/src/i18n/vocab.ts)
+Caftan,fr,kaftan,from the app's own labels (frontend/src/i18n/vocab.ts)
+Kaki,fr,khaki,from the app's own labels (frontend/src/i18n/vocab.ts)
+Sac ordinateur,fr,laptop bag,from the app's own labels (frontend/src/i18n/vocab.ts)
+Legging,fr,leggings,from the app's own labels (frontend/src/i18n/vocab.ts)
+Besace,fr,messenger bag,from the app's own labels (frontend/src/i18n/vocab.ts)
+Multicolore,fr,multicolour,from the app's own labels (frontend/src/i18n/vocab.ts)
+Bleu marine,fr,navy,from the app's own labels (frontend/src/i18n/vocab.ts)
+bleu fonce,fr,navy,REVIEW: common word added by hand
+Collier,fr,necklace,from the app's own labels (frontend/src/i18n/vocab.ts)
+Rose,fr,pink,from the app's own labels (frontend/src/i18n/vocab.ts)
+roses,fr,pink,REVIEW: common word added by hand
+Imprimé,fr,printed,from the app's own labels (frontend/src/i18n/vocab.ts)
+Violet,fr,purple,from the app's own labels (frontend/src/i18n/vocab.ts)
+Rouge,fr,red,from the app's own labels (frontend/src/i18n/vocab.ts)
+rouges,fr,red,REVIEW: common word added by hand
+Bague,fr,ring,from the app's own labels (frontend/src/i18n/vocab.ts)
+Sandales,fr,sandals,from the app's own labels (frontend/src/i18n/vocab.ts)
+Foulard,fr,scarf,from the app's own labels (frontend/src/i18n/vocab.ts)
+echarpe,fr,scarf,REVIEW: common word added by hand
+Chemise,fr,shirt,from the app's own labels (frontend/src/i18n/vocab.ts)
+chemises,fr,shirt,REVIEW: common word added by hand
+chaussure,fr,shoe,REVIEW: common word added by hand
+Chaussures,fr,shoes,from the app's own labels (frontend/src/i18n/vocab.ts)
+Short,fr,shorts,from the app's own labels (frontend/src/i18n/vocab.ts)
+Argenté,fr,silver,from the app's own labels (frontend/src/i18n/vocab.ts)
+Jupe,fr,skirt,from the app's own labels (frontend/src/i18n/vocab.ts)
+jupes,fr,skirt,REVIEW: common word added by hand
+Baskets,fr,sneakers,from the app's own labels (frontend/src/i18n/vocab.ts)
+tennis,fr,sneakers,REVIEW: common word added by hand
+Uni,fr,solid,from the app's own labels (frontend/src/i18n/vocab.ts)
+Rayé,fr,striped,from the app's own labels (frontend/src/i18n/vocab.ts)
+costume,fr,suit,REVIEW: common word added by hand
+Lunettes de soleil,fr,sunglasses,from the app's own labels (frontend/src/i18n/vocab.ts)
+Bretelles,fr,suspenders,from the app's own labels (frontend/src/i18n/vocab.ts)
+Pull,fr,sweater,from the app's own labels (frontend/src/i18n/vocab.ts)
+pull-over,fr,sweater,REVIEW: common word added by hand
+Sweat,fr,sweatshirt,from the app's own labels (frontend/src/i18n/vocab.ts)
+Short de bain,fr,swim shorts,from the app's own labels (frontend/src/i18n/vocab.ts)
+Maillot de bain,fr,swimsuit,from the app's own labels (frontend/src/i18n/vocab.ts)
+Maillot,fr,swimwear,from the app's own labels (frontend/src/i18n/vocab.ts)
+tee-shirt,fr,t-shirt,REVIEW: common word added by hand
+tshirt,fr,t-shirt,REVIEW: common word added by hand
+debardeur,fr,tank top,REVIEW: common word added by hand
+Bleu canard,fr,teal,from the app's own labels (frontend/src/i18n/vocab.ts)
+Cravate,fr,tie,from the app's own labels (frontend/src/i18n/vocab.ts)
+Haut,fr,top,from the app's own labels (frontend/src/i18n/vocab.ts)
+Jogging,fr,track pants,from the app's own labels (frontend/src/i18n/vocab.ts)
+survetement,fr,tracksuit,REVIEW: common word added by hand
+Traditionnel,fr,traditional,from the app's own labels (frontend/src/i18n/vocab.ts)
+Pantalon,fr,trousers,from the app's own labels (frontend/src/i18n/vocab.ts)
+pantalons,fr,trousers,REVIEW: common word added by hand
+Tunique,fr,tunic,from the app's own labels (frontend/src/i18n/vocab.ts)
+Banane,fr,waist bag,from the app's own labels (frontend/src/i18n/vocab.ts)
+Gilet sans manches,fr,waistcoat,from the app's own labels (frontend/src/i18n/vocab.ts)
+Portefeuille,fr,wallet,from the app's own labels (frontend/src/i18n/vocab.ts)
+Montre,fr,watch,from the app's own labels (frontend/src/i18n/vocab.ts)
+montres,fr,watch,REVIEW: common word added by hand
+Blanc,fr,white,from the app's own labels (frontend/src/i18n/vocab.ts)
+blanche,fr,white,REVIEW: common word added by hand
+blanches,fr,white,REVIEW: common word added by hand
+blancs,fr,white,REVIEW: common word added by hand
+Jaune,fr,yellow,from the app's own labels (frontend/src/i18n/vocab.ts)
+jaunes,fr,yellow,REVIEW: common word added by hand

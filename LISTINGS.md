@@ -56,7 +56,7 @@ Status (2026-10-04, after the first real run):
 
 Show items that people can actually buy today in the app: friperie pieces and products from online shops. Our models label each item, so it can be filtered, compared with the user's wardrobe ("Should I buy this?") and shown in Similar pieces.
 
-A scheduled job (the "collector") refreshes the shop listings every night. It is a plain script, not an LLM agent: it is predictable, costs no Gemini quota and is easy to test.
+A scheduled job (the "collector") refreshes the shop listings every night. It is a plain script: it is predictable and easy to test.
 
 **Not goals:**
 - Getting around bot protection (stealth plugins, rotating proxies, captcha solvers). When a site blocks us, we stop.
@@ -190,9 +190,6 @@ The thumbnail (≤ 320 px) is stored under `STORAGE_DIR/listings/`. The full pic
 5. How long a `gone` listing is kept before it is deleted.
 6. Whether a seller's listing should always take the seller's gender (current rule) or the piece's own (from the team table).
 
-## Seller assistant
+## Selling help
 
-In the chat, the Seller assistant (AGENTS.md) helps friperie sellers: which pieces to sell, a price
-range from look-alike listings (friperie prices as they are, shop prices × the team's second-hand
-factor in `mappings/resale_pricing.csv`, REVIEW), and a link that opens the Sell page already filled.
-It never posts: the seller sends the form, and the listing waits for an admin as usual.
+The old chat's Seller assistant was removed in step 3a. A price estimate for a piece and a Sell form that is already filled come back in step 3e. The Sell page still reads `?item=`, `?candidate=`, `?price=`, `?title=` and `?size=` from its address.

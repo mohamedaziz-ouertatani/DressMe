@@ -1,0 +1,85 @@
+# Labelled messages for the router's own test (backend/app/eval_router.py).
+#
+# One case = one message and the agent that SHOULD answer it. The router is one short model call, so these run in
+# seconds, which makes the agents' descriptions and examples quick to tune.
+#
+#   id                 unique
+#   split              dev   = used while tuning descriptions and examples
+#                      test  = held back: run it once per decision and never tune on it, so its number stays honest
+#   expected           the agent that should answer
+#   acceptable_agents  (optional) other agents that do no harm for an overlapping question
+#                      (the stylist and the wardrobe analyst can both search the wardrobe)
+#   message            what the user sends
+#
+# A case counts only when its expected agent exists in mappings/agents.yaml. The others are listed, not scored; they
+# start counting the day that agent is built.
+#
+# Not here on purpose: the trap set's messages (bench/assistant/traps.yaml), and the examples that are written into
+# the router prompt (see the design file, "Router examples"). A case that is also a prompt example tests nothing.
+
+cases:
+
+# ---------------------------------------------------------------- stylist: what to wear, combine, find, weather
+- {id: sty01, split: dev,  expected: stylist, message: "What should I wear to my cousin's graduation party?"}
+- {id: sty02, split: dev,  expected: stylist, message: "Which shoes go with my grey dress?"}
+- {id: sty03, split: dev,  expected: stylist, message: "Can I wear shorts today or is it too cold?"}
+- {id: sty04, split: dev,  expected: stylist, message: "Put together an outfit around my pink jacket."}
+- {id: sty05, split: dev,  expected: stylist, message: "I have a job interview on Monday, what do I put on?"}
+- {id: sty06, split: test, expected: stylist, message: "Would my burgundy scarf work with the black skirt?"}
+- {id: sty07, split: test, expected: stylist, message: "Give me something casual for the weekend."}
+- {id: sty08, split: test, expected: stylist, message: "Do I need a jacket this evening?"}
+
+# ---------------------------------------------------------------- wardrobe analyst: the wardrobe as a whole
+- {id: wa01, split: dev,  expected: wardrobe_analyst, message: "Which kinds of clothes am I short of?"}
+- {id: wa02, split: dev,  expected: wardrobe_analyst, message: "Do I own too many tops compared to bottoms?"}
+- {id: wa03, split: dev,  expected: wardrobe_analyst, message: "What are the main colours in my closet?"}
+- {id: wa04, split: dev,  expected: wardrobe_analyst, message: "Are there pieces in my wardrobe that are almost identical?"}
+- {id: wa05, split: dev,  expected: wardrobe_analyst, message: "Give me a quick summary of what I own."}
+- {id: wa06, split: test, expected: wardrobe_analyst, message: "How many pieces do I have in each category?"}
+- {id: wa07, split: test, expected: wardrobe_analyst, message: "Is my wardrobe missing anything basic?"}
+- {id: wa08, split: test, expected: wardrobe_analyst, message: "Do I have duplicates?"}
+
+# ---------------------------------------------------------------- explainer: why a score, how scoring works
+- {id: ex01, split: dev,  expected: explainer, message: "Why did my pink jacket and black skirt outfit get such a low score?"}
+- {id: ex02, split: dev,  expected: explainer, message: "What is the weakest piece in this outfit?"}
+- {id: ex03, split: dev,  expected: explainer, message: "How does the app work out an outfit's score?"}
+- {id: ex04, split: dev,  expected: explainer, message: "Why does the app say these two pieces look alike?"}
+- {id: ex05, split: dev,  expected: explainer, message: "What would improve the score of my grey dress outfit?"}
+- {id: ex06, split: test, expected: explainer, message: "Explain the points my outfit got."}
+- {id: ex07, split: test, expected: explainer, message: "Why was this outfit rated 65 out of 100?"}
+- {id: ex08, split: test, expected: explainer, message: "What does the app look at when it scores colours?"}
+
+# ---------------------------------------------------------------- seller: what to sell, at what price
+- {id: sel01, split: dev,  expected: seller, message: "I'd like to sell some clothes, which ones should go?"}
+- {id: sel02, split: dev,  expected: seller, message: "How much could I get for my old pink jacket?"}
+- {id: sel03, split: dev,  expected: seller, message: "What's a fair price for my brown shoes second-hand?"}
+- {id: sel04, split: dev,  expected: seller, message: "Help me decide what to put up for sale from my unused clothes."}
+- {id: sel05, split: dev,  expected: seller, message: "Which of my pieces would sell for the most?"}
+- {id: sel06, split: test, expected: seller, message: "What price should I ask for my black skirt on Instagram?"}
+- {id: sel07, split: test, expected: seller, message: "Can I sell my leggings, and for how much?"}
+- {id: sel08, split: test, expected: seller, message: "Which of my duplicate pieces should I sell?", acceptable_agents: [wardrobe_analyst]}
+
+# ---------------------------------------------------------------- shopping: should I buy, where to find
+- {id: shp01, split: dev,  expected: shopping, message: "I saw a denim jacket in a shop for 60 dinars, should I buy it?"}
+- {id: shp02, split: dev,  expected: shopping, message: "Find me a black bag under 50 dinars."}
+- {id: shp03, split: dev,  expected: shopping, message: "Is this shirt at the friperie worth it for me?"}
+- {id: shp04, split: dev,  expected: shopping, message: "Where can I find shoes like my brown ones?"}
+- {id: shp05, split: dev,  expected: shopping, message: "Would a new white shirt add anything to my wardrobe?"}
+- {id: shp06, split: test, expected: shopping, message: "Show me jackets from the shops that cost less than 80 dinars."}
+- {id: shp07, split: test, expected: shopping, message: "Should I buy these sneakers?"}
+- {id: shp08, split: test, expected: shopping, message: "Look for something similar to my pink handbag in the shops."}
+
+# ---------------------------------------------------------------- general: greetings, thanks, not about clothes
+- {id: gen01, split: dev,  expected: general, message: "Hello there!"}
+- {id: gen02, split: dev,  expected: general, message: "Thanks, that was helpful."}
+- {id: gen03, split: dev,  expected: general, message: "What can you do?"}
+- {id: gen04, split: dev,  expected: general, message: "What's the weather like on Mars?"}
+- {id: gen05, split: dev,  expected: general, message: "Tell me a joke."}
+- {id: gen06, split: test, expected: general, message: "Good evening!"}
+- {id: gen07, split: test, expected: general, message: "Can you help me with my maths homework?"}
+- {id: gen08, split: test, expected: general, message: "Thank you so much, bye!"}
+
+# ---------------------------------------------------------------- overlaps: both answers are fine
+- {id: amb01, split: dev,  expected: stylist, acceptable_agents: [wardrobe_analyst], message: "Do I have a blue shirt?"}
+- {id: amb02, split: dev,  expected: stylist, acceptable_agents: [wardrobe_analyst], message: "List my bags."}
+- {id: amb03, split: test, expected: wardrobe_analyst, acceptable_agents: [seller], message: "Which of my pieces never get worn?"}

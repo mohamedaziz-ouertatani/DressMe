@@ -1,5 +1,5 @@
 """
-Test setup: the real FastAPI app with small FAKE models and a fake Gemini, on a
+Test setup: the real FastAPI app with small FAKE models, try-on and weather, on a
 separate MongoDB database (dressme_test, emptied before and after each test).
 
 The fake analyzer reads the photo's colour, so a test chooses what is
@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 from PIL import Image
 from pymongo import MongoClient
 
+from app.assistant.model import NoModel
 from app.config import Settings
 from app.main import create_app
 from app.weather import OpenMeteo
@@ -43,6 +44,14 @@ class FakeAnalyzer:
                 "pattern": {"value": "solid", "conf": 0.8},
                 "colour": {"value": colour, "conf": 0.9},
                 "vector": fake_vector(sum(rgb))}
+
+    def embed_image(self, img):
+        """The vector analyze() gives the same picture, so a photo search finds the piece of the same colour."""
+        return fake_vector(sum(int(c) for c in np.asarray(img).reshape(-1, 3).mean(0).round()))
+
+    def embed_text(self, text):
+        """A fixed fake vector per text."""
+        return fake_vector(sum(map(ord, text)))
 
     def concept_vectors(self, gender=None):
         """{concept: vector} for the team's concepts (fixed fakes, like the real text vectors)."""
@@ -98,51 +107,6 @@ class FakeCatalog:
     def mean_vector(self):
         """The "average picture" for the concept baseline (a fixed fake)."""
         return fake_vector(7)
-
-
-class FakeChatEngine:
-    """Calls a tool when asked about the wardrobe or outfits, like Gemini would.
-    classify(): answers `label`, or acts like a model without a key (label=None),
-    so the router falls back to the keyword table."""
-
-    def __init__(self, label=None):
-        self.label = label
-        self.classify_calls = 0
-        self.systems, self.tool_names = [], []      # what each reply() received
-
-    def classify(self, system, message):
-        from app.chat_engine import ChatUnavailable
-        self.classify_calls += 1
-        if self.label is None:
-            raise ChatUnavailable("fake engine: no router model")
-        return self.label
-
-    def reply(self, system, history, message, tools):
-        self.systems.append(system)
-        self.tool_names.append(sorted(tools))
-        if "sell" in message and "prepare_sell" in tools:
-            items = tools["list_wardrobe"]()
-            if not items:
-                return "Nothing to sell yet.", ["list_wardrobe"]
-            tools["prepare_sell"](price_tnd=12, item_id=items[0]["id"], title="Red T-shirt")
-            return "Here is your Sell form.", ["list_wardrobe", "prepare_sell"]
-        if "missing" in message and "wardrobe_insights" in tools:
-            facts = tools["wardrobe_insights"]()
-            return f"Missing: {', '.join(facts['missing']) or 'nothing'}.", ["wardrobe_insights"]
-        if "shop" in message and "search_listings" in tools:
-            found = tools["search_listings"]()
-            return f"{found['total']} listings.", ["search_listings"]
-        if "wardrobe" in message:
-            items = tools["list_wardrobe"]()
-            return f"You have {len(items)} items.", ["list_wardrobe"]
-        if "outfit" in message:
-            outfits = tools["suggest_outfits"]()
-            noun = "outfit" if len(outfits) == 1 else "outfits"
-            return f"I found {len(outfits)} {noun}.", ["suggest_outfits"]
-        if "buy" in message:
-            advice = tools["buy_advice_last_scan"]()
-            return f"Verdict: {advice.get('verdict', advice.get('error'))}", ["buy_advice_last_scan"]
-        return f"(history {len(history)}) Hello!", []
 
 
 class FakeTryOn:
@@ -216,7 +180,7 @@ RED, BLUE, BLACK, GREEN, WHITE = FAKE
 def settings(tmp_path):
     # remove_background=False: no rembg in the tests unless a fake remover is passed
     return Settings(mongo_db=TEST_DB, jwt_secret="test-secret-" + "x" * 40,
-                    gemini_api_key="", storage_dir=tmp_path / "storage", remove_background=False)
+                    storage_dir=tmp_path / "storage", remove_background=False)
 
 
 @pytest.fixture
@@ -224,10 +188,10 @@ def make_client(settings):
     MongoClient(settings.mongo_url).drop_database(TEST_DB)
     clients = []
 
-    def make(chat_engine=None, remover=None, tryon=None, weather=None, price=None):
+    def make(remover=None, tryon=None, weather=None, chat_model=None, price=None):
         app = create_app(settings, analyzer=FakeAnalyzer(), catalog=FakeCatalog(),
-                         chat_engine=chat_engine or FakeChatEngine(), remover=remover,
-                         tryon_engine=tryon or FakeTryOn(), weather_engine=weather or FakeWeather(),
+                         remover=remover, tryon_engine=tryon or FakeTryOn(), weather_engine=weather or FakeWeather(),
+                         chat_model=chat_model or NoModel(),      # never the real Ollama: the assistant answers 503
                          price=price or FakePriceModel())
         c = TestClient(app)
         c.__enter__()            # runs the start-up (database connection)

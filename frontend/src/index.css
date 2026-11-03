@@ -193,8 +193,8 @@
 
   /* ---- Step H: the soft look. `Page look="soft"` (and Home, the sign-in pages, the tab bar) put the page in a
      .look-soft scope: the ticket cards become flat surface cards with the prototype radius, the perforations become
-     hairlines, and the text uses Figtree with Bricolage Grotesque headlines. Admin and the Assistant never opt in,
-     so they keep the ticket look. Utilities still win over these rules (same layer, written later). */
+     hairlines, and the text uses Figtree with Bricolage Grotesque headlines. Admin never opts in, so it keeps
+     the ticket look. Utilities still win over these rules (same layer, written later). */
   .look-soft {
     font-family: var(--font-text);
   }

@@ -243,7 +243,7 @@ def test_buy_advice_explains_the_verdict(client):
     assert all("contributions" in o for o in advice["best"])
 
 
-def test_chat_tools_keep_the_short_outfit_form():
+def test_outfit_out_adds_the_points_only_when_asked():
     from app.wardrobe import outfit_out
     result = {"score": 50.0, "parts": {"style": 0.5, "colour": None, "pattern": None, "structure": 0.5},
               "reasons": [], "problems": [], "items": []}
