@@ -64,8 +64,10 @@ class BackgroundRemover:
         else:
             return Image.fromarray(main)
 
-        mask = np.where(classes == garment_class, 255, 0).astype(np.uint8)
-        return Image.fromarray(mask)
+        # Gentle cut: keep_garment only trims a PERSON around the garment and
+        # keeps U2-Net's full item everywhere inside it (a raw cloth-seg mask
+        # cut holes and edges out of the clothes themselves).
+        return Image.fromarray(keep_garment(main, classes, garment_class))
 
     def _classification(self, img):
         if self._classifier is None:
@@ -83,12 +85,14 @@ class BackgroundRemover:
         return np.asarray(Image.fromarray(classes).resize(img.size, Image.NEAREST))
 
 
-def keep_garment(main, classes):
-    """The U2-Net mask `main` (0-255) cut down to the biggest worn garment, when
-    the photo shows a person; otherwise `main` unchanged."""
+def keep_garment(main, classes, garment_class=None):
+    """The U2-Net mask `main` (0-255) cut down to the worn garment (the given
+    class, or the biggest one), when the photo shows a person; otherwise
+    `main` unchanged."""
     obj = main > KEEP_ALPHA
-    counts = [np.count_nonzero(obj & (classes == c)) for c in (1, 2, 3)]
-    garment_class = 1 + int(np.argmax(counts))
+    if garment_class is None:
+        counts = [np.count_nonzero(obj & (classes == c)) for c in (1, 2, 3)]
+        garment_class = 1 + int(np.argmax(counts))
     garment = classes == garment_class
     n = np.count_nonzero(obj & garment)
     if n < MIN_ITEM_SHARE * main.size or n > PART_OF_OBJECT * np.count_nonzero(obj):

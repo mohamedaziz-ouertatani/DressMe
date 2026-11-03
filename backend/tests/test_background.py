@@ -103,3 +103,17 @@ def test_efficientnet_guidance_requires_a_confident_garment_category():
     assert use_cloth_mask("top", 0.80)
     assert not use_cloth_mask("top", 0.54)
     assert not use_cloth_mask("shoes", 0.95)
+
+
+def test_chosen_garment_class_keeps_the_whole_item_not_a_holey_cloth_mask():
+    """The classifier picks the class; holes in cloth-seg inside the garment
+    must not be cut out of the item."""
+    main = np.zeros((100, 100), np.uint8)
+    main[10:90, 20:80] = 255                    # a person
+    classes = np.zeros((100, 100), np.uint8)
+    classes[20:50, 20:80] = 1                   # the top
+    classes[30:40, 40:60] = 0                   # cloth-seg missed a patch of it
+    classes[50:90, 20:80] = 2                   # trousers (bigger)
+    kept = keep_garment(main, classes, garment_class=1) > 128
+    assert kept[35, 50]                         # the missed patch is kept
+    assert not kept[70, 50]                     # the trousers are removed
