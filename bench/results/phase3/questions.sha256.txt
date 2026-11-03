@@ -1,3 +1,0 @@
-7a60b0e65ab605eff4f74d3c950769cbe0cee5017828170c0beb5d6f3f7e8a20  questions.json
-# questions-only fingerprint (identical on every rerun): 08e61000fd67fbcecb6b2548122633b16eb99391ab444e95fdf1df18e7377867
-# created 2026-11-01T19:05:42+00:00

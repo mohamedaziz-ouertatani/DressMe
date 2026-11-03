@@ -40,3 +40,9 @@ backups/
 
 # Encoder Validation Lab exports (data derived from the datasets)
 bench/exports/
+
+# local evaluation reports and personal notes (kept on the PC, see docs/superpowers/handoff/chat-assistant-state.md)
+bench/results/
+bench/phase3_questions.ipynb
+PRESENTATION_FACTS.md
+claude-handoff.md
