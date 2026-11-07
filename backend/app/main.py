@@ -6,7 +6,8 @@ Run from the backend/ folder (models load in ~1 min, then the API is ready):
 Interactive documentation: http://localhost:8000/docs
 
 `create_app` takes optional replacements for the models, the background remover,
-the try-on engine, the weather, the chat model and the price model, so the tests run in seconds with small fakes (see tests/conftest.py).
+the try-on engine, the weather, the chat model, the price model and the seller's label check /
+condition hint, so the tests run in seconds with small fakes (see tests/conftest.py).
 """
 
 from contextlib import asynccontextmanager
@@ -30,7 +31,8 @@ from .weather import make_weather
 
 
 def create_app(settings=None, analyzer=None, catalog=None, remover=None,
-               tryon_engine=None, weather_engine=None, chat_model=None, price=None):
+               tryon_engine=None, weather_engine=None, chat_model=None, price=None,
+               label_check=None, condition_hint=None):
     settings = settings or Settings()
     settings.check()
     # the assistant: its tools and agents are checked NOW, so a broken mappings/agents.yaml stops the start-up
@@ -55,6 +57,14 @@ def create_app(settings=None, analyzer=None, catalog=None, remover=None,
         if price is None:
             from price import make_price_model      # src/phase4/price.py (on the path through ml)
         app.state.price = price or make_price_model(settings)   # None = no model file yet
+        # the seller's "show the label" prompt and condition hint (POST /listings/sell/check):
+        # src/phase4/label_check.py + condition_hint.py, None when their .joblib file is missing
+        if label_check is None:
+            from label_check import make_label_check
+        if condition_hint is None:
+            from condition_hint import make_condition_hint
+        app.state.label_check = label_check or make_label_check(settings)
+        app.state.condition_hint = condition_hint or make_condition_hint(settings)
         app.state.listing_index = ListingIndex()
         backfill_gender(app.state.db)      # older listings get men / women / unisex
         app.state.jobs = JobRunner(app.state.db, settings.storage_dir)   # collector runs (admin)

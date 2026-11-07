@@ -1,8 +1,8 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowRight, Check, Tag, Trash2 } from 'lucide-react'
+import { ArrowRight, Check, Images, Info, Tag, Trash2 } from 'lucide-react'
 import { api, loadImage } from '../api/client'
-import type { Item, Listing, ListingPatch, SellForm } from '../api/types'
+import type { Item, Listing, ListingPatch, SellCheck, SellForm } from '../api/types'
 import { useI18n } from '../i18n'
 import { Page } from '../shell'
 import { Button, TextField } from '../ui/controls'
@@ -72,6 +72,25 @@ export function SellPage() {
   const price = Number(priceText.replace(',', '.'))
   const ready = file && price > 0 && form.city.trim() && form.contact.trim()
 
+  // before Send: once there is a photo, a title and a price, ask the server whether the photo and
+  // the price support the brand the title names. Never blocks sending; a failed check shows nothing.
+  // the answer remembers what it was asked for, so a new photo, title or price hides it at once
+  const [checked, setChecked] = useState<{ file: File; title: string; price: number; r: SellCheck } | null>(null)
+  const title = form.title.trim()
+  useEffect(() => {
+    if (!file || !title || !(price > 0)) return
+    let cancelled = false
+    const timer = window.setTimeout(() => {
+      api.sellCheck(file, title, price)
+        .then((r) => { if (!cancelled) setChecked({ file, title, price, r }) })
+        .catch((err) => console.error('sell check failed', err))
+    }, 800)                                   // wait until the seller stops typing
+    return () => { cancelled = true; window.clearTimeout(timer) }
+  }, [file, title, price])
+  const check = checked && checked.file === file && checked.title === title && checked.price === price
+    ? checked.r.label_check : null
+  const askLabel = check?.action === 'ask_label_photo' && check.claimed_brand ? brandName(check.claimed_brand) : ''
+
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     if (!file || !ready) return
@@ -118,6 +137,7 @@ export function SellPage() {
             </div>
             <TextField label={t('sellContact')} hint={t('sellContactHint')} maxLength={60} required dir="auto"
               value={form.contact} onChange={(e) => setForm({ ...form, contact: e.target.value })} />
+            {askLabel ? <LabelNotice brand={askLabel} onPick={pick} busy={busy} ready={!!ready} /> : null}
             {error ? <ErrorNote error={error} /> : null}
             <Button type="submit" busy={busy} disabled={!ready}>
               {t('sellSend')} <ArrowRight className="size-4 mirror-rtl" aria-hidden />
@@ -151,6 +171,39 @@ export function SellPage() {
         </section>
       </div>
     </Page>
+  )
+}
+
+/** "nike" -> "Nike", "new balance" -> "New Balance" (as the server writes it in its message). */
+const brandName = (b: string) => b.replace(/(^|\s)\S/g, (c) => c.toUpperCase())
+
+/** A soft notice, not an error: the title names a brand the photo and the price do not support.
+ *  The seller can pick another photo or send as it is. */
+function LabelNotice({ brand, onPick, busy, ready }: {
+  brand: string; onPick: (f: File) => void; busy: boolean; ready: boolean
+}) {
+  const { t } = useI18n()
+  const input = useRef<HTMLInputElement>(null)
+  const take = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]
+    e.target.value = ''
+    if (f) onPick(f)
+  }
+  return (
+    <div role="status" className="flex flex-col gap-3 rounded-card bg-surface p-card">
+      <p className="flex items-start gap-2 text-[14px] leading-relaxed text-carbon">
+        <Info className="mt-0.5 size-4 shrink-0 text-ink" aria-hidden /> {t('sellLabelNotice', { brand })}
+      </p>
+      <input ref={input} type="file" accept="image/*" hidden onChange={take} />
+      <div className="flex flex-col gap-2 min-[430px]:flex-row">
+        <Button variant="secondary" className="flex-1" disabled={busy} onClick={() => input.current?.click()}>
+          <Images className="size-4" aria-hidden /> {t('sellOtherPhoto')}
+        </Button>
+        <Button type="submit" variant="quiet" className="flex-1" busy={busy} disabled={!ready}>
+          {t('sellAnyway')}
+        </Button>
+      </div>
+    </div>
   )
 }
 

@@ -1,0 +1,6 @@
+setting,value,why
+min_brand_ads,8,a brand needs at least this many training ads to be learned rather than memorised
+photo_top_k,3,the claimed brand counts as 'seen in the photo' if it is in the photo's top-k brands
+price_ratio_low,0.5,asking price below this share of the price estimate counts as unusually cheap
+require_both,1,1 = ask for a label photo only when the photo AND the price disagree with the claim (1.2% of branded ads); 0 = either signal (20%)
+worn_hint_pct,0.10,condition hint fires for photos in the lowest 10% of 'looks new' scores (33% of those ads are worn vs 15% overall)

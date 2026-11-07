@@ -2,7 +2,7 @@
 // localStorage; a 401 anywhere logs the user out (see AuthProvider).
 import type {
   AdminXai, SourceCheck, AdminSource, Job, JobStart, ListingsOverview, AdminUser, BuyAdvice, Category, Completion, Formula, Insights, Item, ItemPatch,
-  Listing, ListingFilters, ListingPage, ListingPatch, ModelQuality, ReviewListing, SellForm, Occasion, Outfit, Season, Similar, Stats, User, Gender,
+  Listing, ListingFilters, ListingPage, ListingPatch, ModelQuality, ReviewListing, SellCheck, SellForm, Occasion, Outfit, Season, Similar, Stats, User, Gender,
   TryOnResult, TryOnInfo, Weather, Explanation, GuessField, OutfitExplanation,
   Decision, DecisionAnswer, OutfitLabel, WearEntry, WearSummary, OccasionChip, TodayOutfits, BuildResult, SearchResponse,
   PriceChannel, PriceCondition, PriceEstimate, AssistantStatus, ChatResponse,
@@ -224,6 +224,13 @@ export const api = {
     const form = photoForm(file)
     for (const [k, v] of Object.entries(f)) form.append(k, String(v))
     return request<Listing>('/listings/sell', { method: 'POST', body: form })
+  },
+  /** Before Send: does the photo and the price support the brand the title names? Saves nothing. */
+  sellCheck: (file: Blob, title: string, price_tnd: number) => {
+    const form = photoForm(file)
+    form.append('title', title)
+    form.append('price_tnd', String(price_tnd))
+    return request<SellCheck>('/listings/sell/check', { method: 'POST', body: form })
   },
   updateListing: (id: string, patch: ListingPatch) => request<Listing>(`/listings/${id}`, json('PATCH', patch)),
   deleteListing: (id: string) => request<void>(`/listings/${id}`, { method: 'DELETE' }),
