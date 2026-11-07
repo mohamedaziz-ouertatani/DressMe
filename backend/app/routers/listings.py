@@ -6,6 +6,7 @@ Listings: things people can buy now (see LISTINGS.md).
     GET    /listings                 browse active listings, with filters (in stock only by default)
     GET    /listings/sources         the sources that have listings (for the filter)
     GET    /listings/mine            the seller's own listings, every status
+    POST   /listings/sell/check      before Send: label check + condition hint, saves nothing
     POST   /listings/sell            a seller posts an item (photo + price + size + city + contact)
     GET    /listings/{id}            one listing
     GET    /listings/{id}/image      its picture
@@ -38,7 +39,8 @@ from ..listings import SELLERS, listing_out, listing_query, shop_name, thumbnail
 from ..schemas import ItemUpdate
 from ..security import current_user, gendered_user, user_gender
 from ..wardrobe import item_out
-from .items import analyse, apply_update, read_photo
+from ..sell_check import check as sell_check_answer, cleaned_and_analysed
+from .items import apply_update
 
 router = APIRouter(tags=["listings"])
 NO_VECTOR = {"vector": 0}      # 1 KB per listing the app never needs
@@ -127,6 +129,18 @@ def text(value, name, longest, required=True):
     return value
 
 
+@router.post("/listings/sell/check")
+async def sell_check(request: Request, photo: UploadFile = File(...), title: str = Form(""),
+                     price_tnd: float | None = Form(None, gt=0, le=100000),
+                     user=Depends(gendered_user)):
+    """Before Send: the label check and the condition hint for this photo, title and
+    price (see app/sell_check.py). The photo is cleaned and analysed like /listings/sell,
+    and NOTHING is saved. The app never blocks sending on the answer."""
+    title = text(title, "title", 80, required=False)
+    _, analysed = await cleaned_and_analysed(photo, user, request)
+    return sell_check_answer(request, analysed, title, price_tnd)
+
+
 @router.post("/listings/sell", status_code=201)
 async def sell(request: Request, photo: UploadFile = File(...),
                price_tnd: float = Form(..., gt=0, le=100000), size: str = Form(""),
@@ -140,8 +154,8 @@ async def sell(request: Request, photo: UploadFile = File(...),
         raise HTTPException(429, f"You already have {MAX_PENDING} listings waiting for review")
     fields = {"size": text(size, "size", 20, required=False), "city": text(city, "city", 40),
               "contact": text(contact, "contact", 60), "title": text(title, "title", 80, required=False)}
-    img = await read_photo(photo, request)
-    analysed = analyse(img, user, request)        # the same fields as an upload
+    # the same fields as an upload; reused when /listings/sell/check just analysed this file
+    img, analysed = await cleaned_and_analysed(photo, user, request)
     now = datetime.now(timezone.utc)
     lid = ObjectId()
     doc = {

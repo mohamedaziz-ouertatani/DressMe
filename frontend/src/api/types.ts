@@ -349,6 +349,17 @@ export interface SellForm {
   title: string
 }
 
+/** POST /listings/sell/check: asked before Send, nothing is saved. null = that engine is not loaded.
+ *  condition_hint is in the answer but never shown (sellers have no condition selector). */
+export interface SellCheck {
+  label_check: {
+    claimed_brand: string | null
+    action: 'ask_label_photo' | null
+    message: string | null
+  } | null
+  condition_hint: { action: 'confirm_condition' | null; message: string | null } | null
+}
+
 /** GET /admin/listings: the review queue. */
 export interface ReviewListing extends Listing {
   seller_email: string

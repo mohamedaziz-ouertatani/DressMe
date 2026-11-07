@@ -160,6 +160,25 @@ class FakePriceModel:
                 "note": "Estimated against friperie and Instagram resale prices."}
 
 
+FAKE_BRANDS = ["nike", "zara", "mango", "adidas"]      # the photo always ranks them in this order
+
+
+def fake_label_check():
+    """The real src/phase4 LabelCheck with fixed weights instead of brand_probe.joblib:
+    the vector is ignored, so nike / zara / mango are 'seen in the photo' (top 3) and
+    adidas never is."""
+    from label_check import LabelCheck
+    return LabelCheck(np.zeros((4, 512), np.float32), [3.0, 2.0, 1.0, 0.0], FAKE_BRANDS)
+
+
+def fake_condition_hint(intercept=0.0):
+    """The real ConditionHint with fixed weights instead of condition_hint.joblib: every
+    photo scores sigmoid(intercept). 0 -> 0.5, percentile 0.2, no hint; -5 -> the lowest
+    scores, so it asks the seller to check the condition."""
+    from condition_hint import ConditionHint
+    return ConditionHint(np.zeros(512, np.float32), intercept, np.linspace(0.4, 0.9, 100))
+
+
 def open_meteo_answer(feels=(20, 28), rain=10, code=2, now=26):
     return {"current": {"temperature_2m": now, "apparent_temperature": now + 0.4, "weather_code": code},
             "daily": {"temperature_2m_min": [feels[0] - 1], "temperature_2m_max": [feels[1] - 1],
@@ -188,11 +207,15 @@ def make_client(settings):
     MongoClient(settings.mongo_url).drop_database(TEST_DB)
     clients = []
 
-    def make(remover=None, tryon=None, weather=None, chat_model=None, price=None):
+    def make(remover=None, tryon=None, weather=None, chat_model=None, price=None,
+             label_check=None, condition_hint=None):
         app = create_app(settings, analyzer=FakeAnalyzer(), catalog=FakeCatalog(),
                          remover=remover, tryon_engine=tryon or FakeTryOn(), weather_engine=weather or FakeWeather(),
                          chat_model=chat_model or NoModel(),      # never the real Ollama: the assistant answers 503
-                         price=price or FakePriceModel())
+                         price=price or FakePriceModel(),
+                         # never the git-ignored .joblib files: small engines with fixed weights
+                         label_check=label_check or fake_label_check(),
+                         condition_hint=condition_hint or fake_condition_hint())
         c = TestClient(app)
         c.__enter__()            # runs the start-up (database connection)
         clients.append(c)
