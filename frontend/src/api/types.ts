@@ -542,6 +542,10 @@ export interface PriceEstimate {
   // item / scan only: the condition the user picked (default good) and its factor, already applied to the band
   condition?: PriceCondition
   condition_factor?: number
+  // only for a low-confidence group (mappings/price_low_confidence.csv, e.g. friperie shoes): false + an English note;
+  // left out for every other piece. Such a listing also gets no tag.
+  reliable?: false
+  reliability_note?: string
 }
 export type PriceTag = 'good_deal' | 'priced_high'
 /** The garment's condition, which the model cannot see (mappings/price_model.csv condition_*). */

@@ -135,6 +135,17 @@ def test_a_friperie_listing_gets_a_band_and_a_shop_listing_does_not(shop):
     assert_no_contact(reads)
 
 
+def test_friperie_shoes_listing_has_no_tag_and_is_rough(shop):
+    """mappings/price_low_confidence.csv: friperie shoes. The seller's jacket is relabelled shoes, priced cheap."""
+    seller_jacket = ObjectId("5f0c02" + f"{4:018x}")                 # eval_traps.FAKE_LISTINGS no. 4
+    shop.db.listings.update_one({"_id": seller_jacket}, {"$set": {"category": "shoes", "price_tnd": 5}})
+    _, reads = shop("shopping", ("search_listings", {}),
+                    lambda p: ("price_estimate_listing", {"listing": number_of(shop, "black jacket")}))
+    seen = reads[2]
+    assert seen["tag"] is None and seen["reliable"] is False and seen["reliability_note"]
+    assert (seen["low"], seen["median"], seen["high"]) == (20, 25, 32)
+
+
 def test_without_a_price_model_the_listing_tool_says_so(shop):
     shop.client.app.state.price = None
     _, reads = shop("shopping", ("search_listings", {}),

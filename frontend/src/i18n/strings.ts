@@ -141,6 +141,7 @@ const en = {
   priceNoteFriperie: 'Estimated against friperie and Instagram resale prices.',
   priceNoteClassified: 'Estimated against classified-ad prices.',
   priceNoteFallback: 'Too few pieces of this kind, so all kinds were used.',
+  priceNoteRough: 'Few pieces like this in our data: treat this range as rough.',
   // the garment's condition on the price card (GET /price-estimate?condition=, mappings/price_model.csv)
   priceCondition: 'Condition',
   priceCondNewTags: 'New with tags',
@@ -674,6 +675,7 @@ const fr: Record<StringKey, string> = {
   priceNoteFriperie: 'Estimé à partir des prix de friperie et de revente sur Instagram.',
   priceNoteClassified: 'Estimé à partir des prix de petites annonces.',
   priceNoteFallback: 'Trop peu de pièces de ce type, donc tous les types ont été utilisés.',
+  priceNoteRough: 'Peu de pièces comme celle-ci dans nos données : prenez cette fourchette comme approximative.',
   priceCondition: 'État',
   priceCondNewTags: 'Neuf avec étiquette',
   priceCondLikeNew: 'Comme neuf',
@@ -1196,6 +1198,7 @@ const ar: Record<StringKey, string> = {
   priceNoteFriperie: 'تقدير مبني على أسعار الفريب وإعادة البيع على إنستغرام.',
   priceNoteClassified: 'تقدير مبني على أسعار الإعلانات المبوبة.',
   priceNoteFallback: 'القطع من هذا النوع قليلة جدا، لذلك استُعملت كل الأنواع.',
+  priceNoteRough: 'القطع المشابهة قليلة في بياناتنا: اعتبر هذا النطاق تقريبيا.',
   priceCondition: 'الحالة',
   priceCondNewTags: 'جديدة بالبطاقة',
   priceCondLikeNew: 'شبه جديدة',

@@ -24,6 +24,7 @@ import time
 
 from . import ml  # noqa: F401  (puts src/ on the import path)
 import price as price_model
+import price_confidence
 
 from .db import vector_from_bson
 from .routers.items import analyse, read_photo
@@ -79,9 +80,13 @@ async def cleaned_and_analysed(photo, user, request):
 
 def friperie_median(request, vector, category):
     """The median of the friperie band, as GET /price-estimate gives it for a seller's
-    listing; None when there is no price model or it cannot price this piece."""
+    listing; None when there is no price model or it cannot price this piece, and None
+    for a low-confidence group (mappings/price_low_confidence.csv, e.g. friperie shoes):
+    a ranking we do not trust must not ask a seller for a label photo."""
     model = request.app.state.price
     if model is None or vector is None:
+        return None
+    if ("friperie", category) in price_confidence.load_low_confidence():
         return None
     band = model.estimate(vector, category=category, channel="friperie", rules=price_model.load_rules())
     return band.get("median") if band else None
