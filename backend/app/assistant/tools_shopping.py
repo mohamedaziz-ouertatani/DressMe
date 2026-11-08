@@ -102,8 +102,10 @@ def price_estimate_listing(ctx, args):
             raise ToolError("no_price_model", "There is no price model on this server, so no price can be given.") \
                 from error
         raise ToolError("refused", str(error.detail)) from error
+    # a low-confidence group (e.g. friperie shoes): the route already gave no tag; the model also reads why
+    rough = {k: answer[k] for k in ("reliable", "reliability_note") if k in answer}
     return {"listing": ctx.listings.add(args.listing), "low": answer["low"], "median": answer["median"],
-            "high": answer["high"], "tag": answer.get("tag"), "note": answer["note"]}
+            "high": answer["high"], "tag": answer.get("tag"), "note": answer["note"], **rough}
 
 
 SEARCH_LISTINGS = Tool("search_listings", (
@@ -127,5 +129,6 @@ PRICE_ESTIMATE_LISTING = Tool("price_estimate_listing", (
     "Is a friperie seller's listing priced well: a price band (low, median, high, TND) and a tag (good_deal / "
     "priced_high). Shop listings (new clothes) have no band: the values are null. Example: "
     "price_estimate_listing(listing=2). Null values mean no estimate: never invent a price. "
+    "reliable false means the range is rough (few pieces like it in our data): say so, and give no deal opinion. "
     "Do not use it for the user's own pieces."),
     ListingArgs, price_estimate_listing, listing_args=("listing",))

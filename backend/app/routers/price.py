@@ -22,6 +22,11 @@ listing_id: only an ACTIVE friperie seller's listing gets a band, always against
 friperie prices, plus a `tag` for its asked price (price.price_tag: "good_deal",
 "priced_high" or null). Shop listings are new clothes, 3-4x friperie prices, so
 they would all look "high": they get nulls and a null tag, never a band.
+
+Low-confidence groups (mappings/price_low_confidence.csv, read by
+price_confidence.py; today only friperie shoes): the band is still returned,
+plus `reliable: false` and a `reliability_note`, and a listing gets no tag.
+Every other answer is unchanged: the two fields are left out, not set to true.
 """
 
 from typing import Literal
@@ -30,6 +35,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from .. import ml  # noqa: F401  (puts src/ on the import path)
 import price as price_model
+import price_confidence
 
 from ..db import vector_from_bson
 from ..listings import SELLERS
@@ -68,7 +74,8 @@ def price_estimate(request: Request, item_id: str | None = None, candidate_id: s
                 "note": "No price estimate for this channel.", **said}
     # the model does not see damage: the band is scaled by the condition the user picked
     band = price_model.with_condition(band, condition, rules)
-    return {**{k: band.get(k) for k in BAND}, "channel": band["channel"], "note": band["note"], **said}
+    return {**{k: band.get(k) for k in BAND}, "channel": band["channel"], "note": band["note"], **said,
+            **low_confidence(band["channel"], doc.get("category"))}
 
 
 def listing_estimate(request, model, listing_id, channel, user):
@@ -87,5 +94,16 @@ def listing_estimate(request, model, listing_id, channel, user):
         if vector is not None else None
     if band is None:
         return nothing
+    rough = low_confidence(band["channel"], doc.get("category"))
+    # a ranking we do not trust cannot say "Good price" / "Above usual price"
+    tag = None if rough else price_model.price_tag(doc.get("price_tnd"), band, rules)
     return {**{k: band.get(k) for k in BAND}, "channel": band["channel"], "note": band["note"],
-            "tag": price_model.price_tag(doc.get("price_tnd"), band, rules)}
+            "tag": tag, **rough}
+
+
+def low_confidence(channel, category):
+    """{} for a reliable group (the answer stays exactly as before), else
+    reliable false + the note, from the team's mappings/price_low_confidence.csv."""
+    if (channel, category) not in price_confidence.load_low_confidence():
+        return {}
+    return {"reliable": False, "reliability_note": price_confidence.rough_note(channel, category)}

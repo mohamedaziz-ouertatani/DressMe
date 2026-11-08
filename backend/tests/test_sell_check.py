@@ -66,6 +66,19 @@ def test_no_price_band_means_no_price_signal(client):
     assert lc["price_ratio"] is None and lc["action"] is None
 
 
+def test_low_confidence_group_gives_no_price_signal(client, monkeypatch, tmp_path):
+    """A group in mappings/price_low_confidence.csv (friperie shoes for the team; the fake analyser's
+    'top' here) passes estimate_median=None, so the cheap Adidas of the first test does not ask."""
+    import price_confidence
+    rough = tmp_path / "price_low_confidence.csv"
+    rough.write_text("channel,category,reason\nfriperie,top,test\n", encoding="utf-8")
+    monkeypatch.setattr(price_confidence, "LOW_CONFIDENCE_CSV", rough)
+    headers = sign_up(client)
+    lc = check(client, headers, title="Basket Adidas original", price_tnd="10").json()["label_check"]
+    assert lc["photo_supports_claim"] is False                    # the photo signal alone is still there
+    assert lc["price_ratio"] is None and lc["action"] is None
+
+
 def test_condition_hint_low_score_asks_to_check(make_client):
     client = make_client(condition_hint=fake_condition_hint(intercept=-5.0))
     headers = sign_up(client)

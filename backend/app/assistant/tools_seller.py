@@ -36,9 +36,11 @@ def price_estimate(ctx, args):
             raise ToolError("no_price_model", "There is no price model on this server, so no price can be given.") \
                 from error
         raise ToolError("refused", str(error.detail)) from error
+    # a low-confidence group (e.g. friperie shoes): the model reads that the range is rough
+    rough = {k: answer[k] for k in ("reliable", "reliability_note") if k in answer}
     return {"piece": ctx.ledger.add(args.piece), "channel": answer["channel"], "condition": answer["condition"],
             "low": answer["low"], "median": answer["median"], "high": answer["high"],
-            "typical_error_factor": answer["typical_error_factor"], "note": answer["note"]}
+            "typical_error_factor": answer["typical_error_factor"], "note": answer["note"], **rough}
 
 
 PRICE_ESTIMATE = Tool("price_estimate", (
@@ -46,5 +48,6 @@ PRICE_ESTIMATE = Tool("price_estimate", (
     "turn. channel: friperie (default) or classified (online resale). condition: new_tags, like_new, good (default), "
     "stained or torn. Example: price_estimate(piece=2) for 'how much could I ask for my jacket?'. "
     "The band is a rough guide (typical error about x1.5): say it as a range. Null values mean no estimate: never "
-    "invent a price. Do not use it for shop items."),
+    "invent a price. reliable false means few pieces like it in our data: tell the user the range is rough. "
+    "Do not use it for shop items."),
     PriceArgs, price_estimate, piece_args=("piece",))

@@ -85,6 +85,10 @@ export function PriceBandView({ band, condition, onCondition }: {
             <p className="text-[22px] font-semibold leading-tight text-carbon tabular">
               {plural('priceRange', band.high!, lang, { low: number.format(band.low!) })}
             </p>
+            {/* a group the model ranks badly (e.g. friperie shoes): the range is rough */}
+            {band.reliable === false && (
+              <p className="text-[13px] text-carbon-soft">{t('priceNoteRough')}</p>
+            )}
             {band.median !== null && (
               <p className="text-[14px] text-carbon-soft tabular">{plural('priceAbout', band.median, lang)}</p>
             )}

@@ -343,3 +343,79 @@ def test_a_listing_is_only_priced_against_friperie(client):
     r = client.get("/price-estimate", params={"listing_id": listed(client, 10), "channel": "classified"},
                    headers=buyer)
     assert r.status_code == 422
+
+
+# ------------------------------------------------- low-confidence groups (mappings/price_low_confidence.csv)
+import price_confidence  # noqa: E402
+
+ROUGH = {"reliable", "reliability_note"}
+
+
+def set_category(client, collection, oid, category):
+    from bson import ObjectId
+    getattr(client.app.state.db, collection).update_one({"_id": ObjectId(oid)}, {"$set": {"category": category}})
+
+
+def test_team_low_confidence_file():
+    assert price_confidence.load_low_confidence() == \
+        {("friperie", "shoes"): "ranking not reliable yet: Spearman -0.22 on 16 pieces"}
+
+
+def test_low_confidence_file_missing_means_nothing(tmp_path):
+    assert price_confidence.load_low_confidence(tmp_path / "absent.csv") == {}
+
+
+def test_low_confidence_file_with_a_typo_stops(tmp_path):
+    import pytest
+    bad = tmp_path / "bad.csv"
+    bad.write_text("channel,category,reason\nfripperie,shoes,x\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="line 2"):
+        price_confidence.load_low_confidence(bad)
+
+
+def test_friperie_shoes_scan_is_rough(client):
+    headers = sign_up(client)
+    cand = scan(client, headers)
+    set_category(client, "candidates", cand, "shoes")
+    body = client.get("/price-estimate", params={"candidate_id": cand}, headers=headers).json()
+    assert set(body) == ITEM_FIELDS | ROUGH
+    assert body["reliable"] is False and "friperie shoes" in body["reliability_note"]
+    assert (body["low"], body["median"], body["high"]) == (20, 25, 32)    # the band is still given
+
+
+def test_friperie_shoes_listing_is_rough_and_has_no_tag(client):
+    buyer = sign_up(client)
+    lid = listed(client, 10)                                   # 10 < 25 / 2: a top here would be a good deal
+    set_category(client, "listings", lid, "shoes")
+    body = tag_of(client, buyer, lid)
+    assert body["tag"] is None and body["reliable"] is False and body["reliability_note"]
+    assert set(body) == FIELDS | {"tag"} | ROUGH and body["median"] == 25
+
+
+def test_other_groups_are_unchanged(client):
+    """Friperie tops and bags, classified shoes: the same answer as before, no new field."""
+    headers = sign_up(client)
+    cand = scan(client, headers)                               # a top
+    top = client.get("/price-estimate", params={"candidate_id": cand}, headers=headers).json()
+    assert set(top) == ITEM_FIELDS
+    set_category(client, "candidates", cand, "bag")
+    assert set(client.get("/price-estimate", params={"candidate_id": cand}, headers=headers).json()) == ITEM_FIELDS
+    set_category(client, "candidates", cand, "shoes")
+    classified = client.get("/price-estimate", params={"candidate_id": cand, "channel": "classified"},
+                            headers=headers).json()
+    assert set(classified) == ITEM_FIELDS and classified["channel"] == "classified"
+    lid = listed(client, 10)                                   # a friperie top listing keeps its tag
+    body = tag_of(client, headers, lid)
+    assert body["tag"] == "good_deal" and set(body) == FIELDS | {"tag"}
+
+
+def test_without_the_file_friperie_shoes_behave_as_before(client, monkeypatch, tmp_path):
+    monkeypatch.setattr(price_confidence, "LOW_CONFIDENCE_CSV", tmp_path / "absent.csv")
+    headers = sign_up(client)
+    cand = scan(client, headers)
+    set_category(client, "candidates", cand, "shoes")
+    assert set(client.get("/price-estimate", params={"candidate_id": cand}, headers=headers).json()) == ITEM_FIELDS
+    lid = listed(client, 10)
+    set_category(client, "listings", lid, "shoes")
+    body = tag_of(client, headers, lid)
+    assert body["tag"] == "good_deal" and set(body) == FIELDS | {"tag"}

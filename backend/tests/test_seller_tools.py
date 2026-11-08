@@ -39,6 +39,18 @@ def test_the_condition_and_the_channel_are_passed_on(golden_chat):
     assert seen["median"] < 25                                      # a stained piece is worth less than a good one
 
 
+def test_friperie_shoes_are_rough_for_the_seller_too(golden_chat):
+    """mappings/price_low_confidence.csv: friperie shoes. The jacket is relabelled shoes; the type stays jacket."""
+    golden_chat.db.items.update_many({"sub_category": "jacket"},
+                                     {"$set": {"category": "shoes"}})
+    _, reads = golden_chat("seller", lambda p: ("price_estimate", {"piece": jacket(p)}))
+    seen = reads[1]
+    assert seen["reliable"] is False and "rough" in seen["reliability_note"]
+    assert (seen["low"], seen["median"], seen["high"]) == (20, 25, 32)        # the band is still given
+    _, reads = golden_chat("seller", lambda p: ("price_estimate", {"piece": jacket(p), "channel": "classified"}))
+    assert "reliable" not in reads[1]                                          # classified shoes are fine
+
+
 def test_without_a_price_model_the_tool_says_so_and_gives_no_price(golden_chat):
     golden_chat.client.app.state.price = None
     _, reads = golden_chat("seller", lambda p: ("price_estimate", {"piece": jacket(p)}))
