@@ -80,7 +80,9 @@ FRIPERIE_TO_APP = {
     "hoodie": "top", "sweater": "top", "cardigan": "top",
     "jeans": "bottom", "trousers": "bottom", "shorts": "bottom", "skirt": "bottom",
     "dress": "dress", "jacket": "outerwear", "vest": "outerwear",
-    "shoes": "shoes", "bag": "bag", "accessory": "accessory", "watch": "accessory"}
+    "shoes": "shoes", "bag": "bag", "accessory": "accessory", "watch": "accessory",
+    # the extra Instagram file's category_model is already in the app's names
+    "bottom": "bottom", "outerwear": "outerwear"}
 # tayara only separates clothing / shoes / bags+accessories, so every
 # garment category in the classified channel shares the clothing curve.
 # That is coarser, and it is said so rather than invented.
@@ -112,6 +114,22 @@ def load(path: Path, channel: str, cat_col: str):
                         "category": df[cat_col].astype(str).to_numpy(),
                         "channel": channel})
     return out, X
+
+
+def load_friperie(path: Path, extra: Path | None):
+    """The hand-checked friperie file, plus the extra Instagram file when it
+    exists (its category column is category_model, already the app's names).
+    A missing extra file gives exactly the main file's rows, as before."""
+    fr, Xf = load(path, "friperie", "category")
+    print(f"friperie rows from {path}: {len(fr)}")
+    if extra is None or not extra.exists():
+        print(f"friperie extra file {extra}: not found, not used")
+        return fr, Xf
+    fr2, Xf2 = load(extra, "friperie", "category_model")
+    print(f"friperie rows from {extra}: {len(fr2)}")
+    if Xf2.shape[1] != Xf.shape[1]:
+        sys.exit(f"dimension mismatch: {Xf.shape[1]} vs {Xf2.shape[1]} in {extra}")
+    return pd.concat([fr, fr2], ignore_index=True), np.vstack([Xf, Xf2])
 
 
 def groups_of(X):
@@ -165,6 +183,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--tayara", type=Path, default=Path("data/processed/tayara_fashionclip.csv"))
     ap.add_argument("--friperie", type=Path, default=Path("data/processed/friperie_fashionclip.csv"))
+    ap.add_argument("--friperie-extra", type=Path,
+                    default=Path("data/processed/friperie_instagram_2026-11.csv"),
+                    help="more friperie pieces (category_model column); skipped when the file is missing")
     ap.add_argument("--tayara-only", action="store_true",
                     help="fit on classified ads alone")
     ap.add_argument("--model", choices=("svr", "ridge"), default="svr",
@@ -185,7 +206,7 @@ def main():
             sys.exit(f"Not found: {p}")
 
     ta, Xt = load(args.tayara, "classified", "subcat_label")
-    fr, Xf = load(args.friperie, "friperie", "category")
+    fr, Xf = load_friperie(args.friperie, args.friperie_extra)
     if Xt.shape[1] != Xf.shape[1]:
         sys.exit(f"dimension mismatch: {Xt.shape[1]} vs {Xf.shape[1]}")
 

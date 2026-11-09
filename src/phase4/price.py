@@ -4,13 +4,14 @@ A price for a second-hand garment, from its FashionCLIP vector.
 `resale.py` prices a garment from look-alike LISTINGS: the 25th-75th percentile
 of what similar things are currently advertised at. That needs no training and
 was the right call when there was no priced data. There is now: 1,523 everyday
-tayara classified ads and 183 friperie garments, collected and hand-checked.
+tayara classified ads and 687 friperie pieces (183 hand-checked + 504 from
+public Instagram posts of 27 shops, Nov 2026).
 
 On the same embeddings and the same folds, a trained model ranks better than
 the percentile rule (0.585 against 0.507 on tayara; the error reduction has a
-confidence interval clear of zero). On the 183-item friperie set the gap is
-large but the interval straddles zero, so there it is recorded as underpowered
-rather than as a win.
+confidence interval clear of zero). On the 183 hand-checked friperie pieces
+(before the 504 Instagram pieces were added) the gap was large but the interval
+straddled zero, so there it was recorded as underpowered rather than as a win.
 
 WHAT THE MODEL DOES, AND WHAT IT DOES NOT
 -----------------------------------------
@@ -25,7 +26,7 @@ same market:
 
 So the estimate is produced in two steps: the model gives a RANK, and that rank
 is mapped onto the price distribution of the channel being priced for. That
-mapping is what brings typical error down to x1.42 on friperie (x1.90 on
+mapping is what brings typical error down to x1.41 on friperie (x1.90 on
 classified ads). It also means the model cannot price for a channel it has no
 reference distribution for, and `estimate()` says so rather than guessing.
 
@@ -39,7 +40,7 @@ from the kernel, not from the SVR's robust loss: a kernel ridge gains as much,
 and a linear SVR does not. The ridge is still supported: an artifact
 without a "kind" (written before the SVR) loads as kind "linear".
 
-Typical error is still **x1.42** on friperie (the error of what estimate()
+Typical error is still **x1.41** on friperie (the error of what estimate()
 serves, see train_price.py). This is a hint worth a look, not a valuation.
 `estimate()` always returns a band, never a bare number, for that reason.
 
@@ -296,9 +297,10 @@ def price_tag(price_tnd, band, rules) -> str | None:
     Measured from the band's MEDIAN by tag_factor, not from the band's edges:
     the edges are only about x1.5 from the median, so on normal friperie prices
     they would tag about 13% as a deal and 26% as high (measured with the
-    ridge). x2 tags about 7% as a deal and 4% as high with the SVR (7% and 9%
-    with the ridge): grouped-CV estimates on the 183 hand-checked friperie
-    items at their own asking prices, mean of 5 fold assignments. "priced_high" is only returned
+    ridge). x2 tags about 5.7% as a deal and 4.4% as high with the SVR:
+    grouped-CV estimates on the 687 friperie pieces (183 hand-checked + 504
+    from public Instagram posts of 27 shops, Nov 2026) at their own asking
+    prices (train_price.py). "priced_high" is only returned
     when show_priced_high is 1. On since price_hint uses the same model (#68):
     the chat's suggestion and the tag agree. Wording kept soft ('Above the
     usual price'), shown only above x2 the estimate, always with the band.
