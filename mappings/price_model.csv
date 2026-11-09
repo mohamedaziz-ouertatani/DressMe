@@ -4,7 +4,7 @@ setting,band_high_pct,75,REVIEW: upper percentile of the reported price band
 setting,min_category_items,8,REVIEW: priced items a category needs before its own distribution is used
 setting,examples,5,REVIEW: look-alike items shown with an estimate
 setting,round_to,1,REVIEW: round the estimate to this many TND
-setting,tag_factor,2,"REVIEW: a second-hand listing is tagged good_deal below median / tag_factor and priced_high above median x tag_factor. Band edges (about x1.5) would tag ~13% deal + ~26% high of normal prices on the 183 friperie items (ridge); x2 tags ~7% deal + ~4% high with the SVR (~7% + ~9% with the ridge)"
+setting,tag_factor,2,"REVIEW: a second-hand listing is tagged good_deal below median / tag_factor and priced_high above median x tag_factor. Band edges (about x1.5) would tag ~13% deal + ~26% high of normal prices on the 183 hand-checked friperie items (ridge); x2 tags 5.7% deal + 4.4% high with the SVR on 687 friperie pieces (183 hand-checked + 504 from public Instagram posts of 27 shops, Nov 2026)"
 setting,show_priced_high,1,"REVIEW: 1 = show priced_high. On since price_hint uses the same model (#68): the chat's suggestion and the tag agree. Wording kept soft ('Above the usual price'), shown only above x2 the estimate, always with the band. Set to 0 to switch off."
 setting,condition_new_tags,1.43,"REVIEW: price factor for a piece sold new with its tags. Text-mined tayara ads: 1,523 ads, asked price vs the image-only estimate (the model cannot see condition), 95% CI 1.30-1.58"
 setting,condition_like_new,1.20,"REVIEW: price factor for a like-new piece. Same tayara measurement, 95% CI 1.08-1.33"
